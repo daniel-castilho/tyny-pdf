@@ -1,0 +1,32 @@
+root = true
+
+# Every tool that touches this tree reads this file: editors on the Windows side and the agents
+# working inside WSL2 must not disagree about whitespace, because ADR-0007 makes bytes normative.
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+max_line_length = 100
+
+[*.{md,yml,yaml,json,cmake,txt}]
+indent_size = 2
+
+[*.{c,cc,cpp,h,hpp}]
+indent_size = 2
+
+[*.py]
+indent_size = 4
+
+[*.{bat,cmd,rc}]
+end_of_line = crlf
+trim_trailing_whitespace = false
+
+[Makefile]
+indent_style = tab
+
+[tests/golden/**]
+trim_trailing_whitespace = false
+insert_final_newline = false

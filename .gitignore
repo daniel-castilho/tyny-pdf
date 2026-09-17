@@ -7,3 +7,8 @@ __pycache__/
 .pytype/
 .pytest_cache/
 .mypy_cache/
+
+*.pfx
+*.p12
+*.key
+tests/conformance/private/

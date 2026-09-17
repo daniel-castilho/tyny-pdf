@@ -1,0 +1,46 @@
+# Documentation and format gates. The build matrix (core-linux, windows-msvc, windows-mingw-cross)
+# is wired up in PR #2 together with CMakeLists.txt; adding it before there is code to build would
+# produce a green job that proves nothing, which is the failure mode docs/lessons.md is about.
+name: gates
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: install dependencies
+        run: python3 -m pip install --quiet jsonschema
+
+      - name: prove the gates can still detect problems
+        run: |
+          set -e
+          python3 tools/lang-check.py --self-test
+          python3 tools/sidecar-fmt.py self-test
+          python3 tools/naming-sync.py self-test
+          python3 tools/spec-check.py --self-test
+          python3 tools/docs-check.py --self-test
+
+      - name: run every gate
+        run: sh tools/check.sh
+
+      - name: worktree line endings match the index
+        run: |
+          set -e
+          if git ls-files --eol | grep -v 'i/lf[[:space:]]*w/lf' | grep -E '\.md|\.py|\.sh|\.json' ; then
+            echo 'text files with unexpected working-tree endings' >&2
+            exit 1
+          fi

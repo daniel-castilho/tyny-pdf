@@ -1,0 +1,33 @@
+#!/bin/sh
+# Pre-commit gate. Enable once, in both the WSL and the Windows checkout:
+#   git config core.hooksPath .githooks
+# CI runs the same scripts (see ADR-0009 rule 8), so a hook is never the only gate. Deliberately
+# no "skip" escape hatch: bypassing the gate means pushing a branch and letting CI be the judge.
+set -u
+cd "$(dirname "$0")/.." || exit 2
+
+run() {
+  printf '  %s\n' "$1"
+  shift
+  if ! "$@"; then
+    printf '\npre-commit: blocked. The check above is the definition of "done" (R-M13).\n' >&2
+    exit 1
+  fi
+}
+
+run "language gate (ADR-0005)"      python3 tools/lang-check.py
+run "naming drift (ADR-0006/0008)"  python3 tools/naming-sync.py check
+run "sidecar canonical bytes"       python3 tools/sidecar-fmt.py check tests/fixtures/sidecar
+run "byte-stable tree"              sh tools/canonical-check.sh
+run "spec shape and trace"          python3 tools/spec-check.py --quick
+run "docs promise only what exists"  python3 tools/docs-check.py
+
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  staged=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null | grep -E '\.(c|cc|cpp|h|hpp)$' || true)
+  if [ -n "$staged" ] && command -v clang-format >/dev/null 2>&1; then
+    # shellcheck disable=SC2086
+    run "clang-format" clang-format --dry-run -Werror $staged
+  fi
+fi
+
+exit 0

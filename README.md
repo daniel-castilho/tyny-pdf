@@ -14,9 +14,8 @@ versioned and audited, and the document model is a published library (`pdfcore`,
 headless companion CLI (`tynypdf-cli`). The bet is that a PDF tool should not need you: it should
 not watch you, not upload your files, and not hide your marks inside a binary only it can read.
 
-There is deliberately **no build or test-status badge**: the repository has one commit and no CI
-history yet, and a badge that cannot fail is decoration. It gets added when `gates` has run green on
-`main`.
+There is deliberately **no build or test-status badge**: the repository has no CI history yet, and a
+badge that cannot fail is decoration. It gets added when `gates` has run green on `main`.
 
 Official Domain: [https://tyny.ca](https://tyny.ca) (registered; DNS records are not configured yet,
 and nothing in the product requires them).
@@ -391,12 +390,12 @@ authority or timestamp service in v1.
 
 **Pre-code: the repository contains the plan, the specification and the gates - not the product.**
 
-- 39 files in the tree: 11 ADRs (10 accepted, ADR-0006 superseded by 0008), `docs/kickoff.md` with
+- 47 files in the tree: 11 ADRs (10 accepted, ADR-0006 superseded by 0008), `docs/kickoff.md` with
   milestones M0-M6 and their exit criteria, the first living `SPEC.md` (14 requirements: 4 already
   enforced by committed tools, 10 honestly `pending`), the sidecar schema and its normative fixture,
-  six checks plus a runner, `AGENTS.md`, `CHANGELOG.md` and `LICENSE`.
-- `sh tools/check.sh` is green locally; nothing has run in CI yet, because nothing is merged.
-- The remote repository currently holds one placeholder commit; the seed above is PR #1.
+  six checks plus a runner, the `gates` workflow, the PR template and the pre-commit hook,
+  `AGENTS.md`, `CHANGELOG.md` and `LICENSE`.
+- `sh tools/check.sh` is green locally; nothing has run in CI yet.
 - Known limitations are not bugs but absences: no viewer, no CLI binary, no corpus, no releases, no
   binaries to download. `docs/kickoff.md` states the order they appear in and what gates each.
 

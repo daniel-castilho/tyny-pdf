@@ -1,0 +1,41 @@
+# Line endings and text/binary classification are correctness, not style, in this repository:
+# ADR-0007 makes the sidecar's byte layout normative, and ADR-0010 puts the working copy on the
+# Linux filesystem while a Windows-side editor can still open it. One owner (the Linux checkout),
+# LF everywhere, and tools/canonical-check.sh proves it in CI.
+* text=auto eol=lf
+
+# Windows-native scripts that must keep CRLF to be usable on that side.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.rc  text eol=crlf
+
+# Anything that is executed or parsed as text must be LF.
+*.sh   text eol=lf
+*.py   text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.txt  text eol=lf
+*.cmake text eol=lf
+*.in   text eol=lf
+.editorconfig  text eol=lf
+.gitattributes text eol=lf
+.gitignore     text eol=lf
+
+# Reviewed as bytes, never rewritten: the fixtures are compared to their canonical form.
+tests/golden/** -text
+*.tynypdf.json  text eol=lf
+
+# Binaries.
+*.pdf   -text
+*.png   -text
+*.jpg   -text
+*.ico   -text
+*.icns  -text
+*.ttf   -text
+*.otf   -text
+*.dll   -text
+*.exe   -text
+*.zip   -text
+*.7z    -text
