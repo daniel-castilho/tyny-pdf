@@ -1,0 +1,9 @@
+[submodule "mupdf"]
+	path = third_party/mupdf
+	url = https://gitlab.freedesktop.org/mupdf/mupdf
+	upstream_url = https://gitlab.freedesktop.org/mupdf/mupdf
+	upstream_commit = TODO:mupdf-1.24.0-40hex
+	vendored_on = 2026-09-17
+	patch_series = [
+		"none",
+	]
