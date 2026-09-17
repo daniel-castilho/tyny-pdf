@@ -11,56 +11,50 @@ documents.
 
 ---
 
-## Repo state (pre-existing, not new work)
+## Repo state (measured at execution time, not remembered)
 
-Measured on 2026-09-17 against `origin/main` at `9fc2d5291` and against the workspace seed.
+Everything here was re-measured on the day Story 1.1 executes. The planning baseline measured a
+different tree - `origin/main` at `9fc2d5291` with 24 files - and planning-time numbers are not
+carried forward. What matters is the tree as it is today.
 
-- **The workspace seed is complete and green:** 42 files (47 with this epic's five documents),
-  348747 bytes, `sh tools/check.sh` ->
-  `check: all gates green` (exit 0). Eleven ADRs, `docs/{kickoff,naming,git-workflow,
-  dev-environment,lessons,coding-standards,testing-playbook,release-runbook}.md`,
-  `docs/sidecar.schema.json`, `src/features/sidecar/SPEC.md` (14 requirements, 4 already enforced,
-  10 pending artefacts), `tests/fixtures/sidecar/example.tynypdf.json`, `LICENSE` (34523 bytes,
-  sha256 `0d96a4ff68ad6d4b...`), and the six checks with their runner.
-- **`origin/main` carries 24 files / 253883 bytes.** Missing entirely (18): all eleven `adr/*.md`,
-  `src/features/sidecar/SPEC.md`, `tests/fixtures/sidecar/example.tynypdf.json`, and every dotfile -
-  `.editorconfig`, `.gitattributes`, `.githooks/pre-commit`, `.github/PULL_REQUEST_TEMPLATE.md`,
-  `.github/workflows/gates.yml`.
-- **Five more files are stale or truncated on `main`:** `.gitignore` (81 bytes there, 364 here),
-  `CHANGELOG.md` (1624 / 3281), `docs/lessons.md` (6939 / 10201), `docs/coding-standards.md`
-  (26684 / 26777), `docs/kickoff.md` (23452 / 23489).
-- **`main` fails its own gate.** The published tree, checked with the tools it does contain:
-
-  ```
-  $ sh tools/check.sh; echo "exit=$?"
-  == 4/7 sidecar format (ADR-0007)
-  tests/fixtures/sidecar: not a sidecar by name, skipped (see docs/naming.md)
-  sidecar-fmt: OK (0 checked, 1 skipped, 0 problems)
-  == 5/7 byte stability (.gitattributes, .editorconfig)
-  .gitignore: no final newline
-  canonical-check: 1 problem(s) in 23 file(s)
-  exit=1
-  ```
-
-  plus `docs-check: 29 problems` (broken `adr/*.md` links and the unindexed ADR table) and
-  `spec-check: 11 problems` ("R2.1 ... is cited outside a SPEC.md but defined nowhere").
-- **CI has never run, for a mechanical reason:** `GET /repos/.../actions/runs` ->
-  `"total_count": 0`. The workflow file is not on `main` to be triggered by.
-- **No PR exists:** `GET /repos/.../pulls?state=all` -> `[]`; `9fc2d5291` sits directly on `main`
-  on top of `05b62ec30`, so ADR-0009's branch-per-PR rule was bypassed for the seed itself.
-- **Branch protection: unverifiable from here** (unauthenticated `GET /branches/main/protection`
-  -> HTTP 401). It is an open item, not a claim.
+- **Tree parity holds exactly.** `git ls-tree -r --name-only origin/main` prints 48 paths, and a
+  recursive `diff` between a clean clone of `main` (`0d64999c`) and the maintained workspace is
+  empty in both directions. The published tree and the maintained tree are the same tree, which is
+  the property Story 1.1 exists to lock (`docs/kickoff.md` section 11).
+- **The gate is green in a clean clone of `main`, exit 0.** `sh tools/check.sh` ran inside that
+  clone and printed all seven sections OK: lang 42 files; naming 33 keys / 2 generated files /
+  1 retired token guarded; sidecar 1 checked / 0 problems; canonical 46 text files /
+  0 problems; spec 1 spec / 14 requirements / 10 pending artefacts; docs 30 markdown files /
+  0 problems; `check: all gates green`, `exit=0`.
+- **CI has run and is green.** `GET /repos/daniel-castilho/tyny-pdf/actions/runs` lists run
+  `35170901622` (head `94f1950`, event `push`) and run `35171544840` (head `0d64999`, event
+  `push`), both workflow `gates`, conclusion `success`. "CI has never run" is no longer true of the
+  docs-gates job; the build-matrix jobs arrive with PR #2.
+- **No PR has merged yet.** `GET /repos/.../pulls?state=all` -> `[]`. The seed commits
+  (`9fc2d52`, `94f1950`, `0d64999`) went straight to `main`, which bypassed ADR-0009. That
+  deviation is recorded in `docs/lessons.md`, and Story 1.1 is this PR - the first under the flow.
+- **`main` is not protected.** `GET /repos/.../branches/main/protection` returns HTTP 404
+  (`Branch not protected`). Story 1.1 applies the six settings of `docs/git-workflow.md`
+  `Branch protection` and pastes the JSON.
+- **The five files the planning baseline called truncated.** That baseline compared `main` against a
+  fuller kickoff copy and recorded `.gitignore` 364 B, `CHANGELOG.md` 3281, `docs/lessons.md`
+  10201, `docs/coding-standards.md` 26777, `docs/kickoff.md` 23489. That copy is outside this
+  repository, has no `git` history shared with `main`, and is not the tree this epic maintains. The
+  maintained tree carries the sizes that are on `main` today (147, 1624, 6939, 26684, 23452), they
+  are byte-identical to the published tree, and Story 1.1's criterion is parity with the maintained
+  workspace - which now holds by measurement, not by recollection.
 
 ## Why this epic now?
 
-- **The tripwire in `docs/kickoff.md` section 11 fired.** Its PR #1 exit criterion says the copy
-  must include the dotfiles, "because `cp -r kickoff/* .` does not, `rsync -a` does". The push
-  lost exactly those files, plus the ADRs - so the public repository currently advertises
-  decisions it does not contain and a licence GitHub now detects (`AGPL-3.0`) while the canon
-  that owns them is absent.
-- **Nothing downstream can be evidenced without it.** M1's spike needs `win-cross-x64` to produce a
-  binary; D-6's undo needs `pc_txn_*` to exist; D-1's sidecar needs the fixture that `main` does not
-  have; and the whole "our gates are real" claim needs one green run with a pastable run id.
+- **The tripwire in `docs/kickoff.md` section 11 fired, and Story 1.1 defuses it.** Its PR #1 exit
+  criterion says the copy must include the dotfiles, "because `cp -r kickoff/* .` does not,
+  `rsync -a` does". The push that landed `main` first lost exactly those files plus the ADRs, so
+  the public repository briefly advertised decisions it did not contain and a gate it failed to run
+  (`docs/lessons.md` records the mechanism and the fix). Parity now holds by measurement.
+- **Nothing downstream can be evidenced without a green, protected `main`.** The first merged PR is
+  this story's evidence that the ADR-0009 flow works; the `gates` job is a required check before
+  PR #2's build-matrix jobs can be trusted to run at all; and every later M0 story pastes its CI
+  run id into `epic-1-dod.md`.
 - **The baseline has an expiry date.** SumatraPDF 3.7 is in pre-release now; measuring 3.6.1 only
   (the original plan) would have set the bar at what users have rather than what they will get. M0.4
   measures both channels, so this epic is the last moment the comparison is cheap.
@@ -69,20 +63,20 @@ Measured on 2026-09-17 against `origin/main` at `9fc2d5291` and against the work
 
 1. **`main` is green on its own terms:** `sh tools/check.sh` exit 0 on the merge commit of this
    epic, not only in the workspace, and `.github/workflows/gates.yml` present on `main`.
-2. **Tree parity:** `git ls-tree -r --name-only main` contains the 42 seed paths; the five truncated
-   files match their workspace byte counts (364 for `.gitignore`); `docs-check` and `spec-check`
-   report 0 problems on `main`.
-3. **The first green CI run exists**, with the run id and head sha pasted in `epic-1-dod.md`, and
-   the `gates` job is a required check.
+2. **Tree parity:** `git ls-tree -r --name-only main` contains all 48 maintained paths,
+   byte-matching the maintained workspace; `docs-check` and `spec-check` report 0 problems.
+3. **The first green CI runs exist and are pasted** (run ids `35170901622`, `35171544840` in
+   `epic-1-dod.md`), and the `gates` job is a required check on `main` from this PR on.
 4. **A deliberately broken fixture turns the docs job red** and is then reverted - the proof that
-   the gate bites, which is PR #2's own exit criterion.
-5. **The seed arrived through a PR** with the six branch-protection settings in
-   `docs/git-workflow.md` ticked (`pulls?state=all` -> at least one merged PR).
+   the gate bites, demonstrated on a throwaway branch in this story.
+5. **The flow is PR-only from this story on.** The seed's direct pushes are recorded as a deviation
+   in `docs/lessons.md`; the six branch-protection settings of `docs/git-workflow.md` are applied,
+   and `pulls?state=all` returns at least one merged PR after Story 1.1 lands.
 6. **The build system exists and builds on both toolchains:** `cmake --preset linux-core` +
    `ctest --preset linux-core` green with ASan/UBSan, `cmake --preset win-cross-x64` produces
    `tynypdf.exe`, and the MSVC job is required, not optional (ADR-0010).
-7. **ADR-0010's four assumptions are retired by evidence** (`tools/win-probe/`, planned; the debt
-   list in `AGENTS.md` attributes it to PR #1, so that is the number used here):
+7. **ADR-0010's four assumptions are retired by evidence** (`tools/win-probe/`, planned, PR #2 per
+   the debt list in `AGENTS.md`):
    D2D/DWrite/D3D11/DXGI headers compile, the static runtime links only system DLLs, one target
    builds under both toolchains, WSL interop reports a hardware adapter LUID - or the ADR records a
    downgrade with the failing output pasted.

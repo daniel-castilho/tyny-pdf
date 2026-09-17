@@ -33,7 +33,7 @@ with the PR that introduces it, exactly as `docs/testing-playbook.md` section 3 
     that the presets are exercised with the probe programs only
   - `cmake --preset win-cross-x64 -DCMAKE_BUILD_TYPE=Release && cmake --build --preset
     win-cross-x64` then `file build/win-cross-x64/Release/tynypdf.exe`
-  - `tools/win-probe/build.sh` (planned, PR #1 per `AGENTS.md`) then the four programs, each with
+  - `tools/win-probe/build.sh` (planned, PR #2 per `AGENTS.md`) then the four programs, each with
     its own pasted output; `objdump -p` under LLVM-MinGW and `dumpbin /dependents` under MSVC for
     the same exe
   - The MSVC parity job on `windows-latest` runs the same ctest suite
@@ -99,13 +99,13 @@ with the PR that introduces it, exactly as `docs/testing-playbook.md` section 3 
 ## Regression gates (per story and at the end)
 
 - [ ] `sh tools/check.sh` after every story, and on a clean clone before any merge claim
-- [ ] `python3 tools/docs-check.py` - 0 problems, with the five `docs/epics/*.md` files inside its
-      scope (24 markdown files become 29 the moment these land)
+- [ ] `python3 tools/docs-check.py` - 0 problems, with the five `tasks/epic-01/*.md`
+      files inside its scope (24 markdown files become 29 the moment these land)
 - [ ] `python3 tools/spec-check.py` - 0 orphans, and it must still list the pending requirement ids;
       a run that stops listing them before the artefacts exist is a broken checker
 - [ ] `python3 tools/naming-sync.py` - 0 problems once CMake exists, or it cannot see the names it
       guards and is silently vacuous
-- [ ] `python3 tools/lang-check.sh` - 0 problems (it has its own self-test in the gate, which is the
+- [ ] `python3 tools/lang-check.py` - 0 problems (it has its own self-test in the gate, which is the
       pattern story 1.3 copies)
 - [ ] `sh tools/gates-selftest.sh` (planned, PR #2) if that is where the five self-tests land;
       otherwise the per-tool self-tests as invoked by `.github/workflows/gates.yml`

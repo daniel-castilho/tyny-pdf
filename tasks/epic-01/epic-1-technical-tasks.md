@@ -6,34 +6,38 @@ in this epic has been executed yet.
 
 ## 1.1 `main` carries the seed and CI proves it
 
-- [ ] Start from a real git repo, not a directory copy: `git init -b main`, `git config
+- [x] Started from a real git repo, not a directory copy: `git init -b main`, `git config
   core.hooksPath .githooks`, then `git add -A` and **verify the staged list against `git
   ls-files` expectations before committing** - the seed loss was a copy that dropped dotfiles,
-  and `git add` drops nothing if it is run from inside the tree
-- [ ] Push `main` containing the 42 files; confirm from the API, not from memory:
-      `GET /repos/daniel-castilho/tyny-pdf/git/trees/main?recursive=1` -> blob count, and
-      `GET /repos/.../contents/.github/workflows/gates.yml` -> 200 (today it would be 404)
-- [ ] Open the branch `chore/seed-gates-ci`, commit, push, open the PR through the template
-      `.github/PULL_REQUEST_TEMPLATE.md`, and merge it - the seed becomes retroactive context in
-      `CHANGELOG.md`, and every change after this point is a PR (ADR-0009)
-- [ ] Tick the six branch-protection settings of `docs/git-workflow.md` section "The branch rules",
-      reading `docs/release-runbook.md` section 1 for where each lives; screenshot-free proof:
-      `GET /repos/.../branches/main/protection` with a token, output pasted (today: HTTP 401
-      unauthenticated)
-- [ ] Add the toolchain pins to `docs/dev-environment.md` section 3 (today: `| Toolchain | - | -
-  |`): CMake/Ninja/Clang-Tidy/Conan/Doxygen versions and the Windows SDK version in use - or
-  write "not installed" next to each and open the install task
+  and `git add` drops nothing if it is run from inside the tree. The tree this produced is the
+  one Story 1.1 measures (48/48 parity, gate green in a clean clone - `epic-1-dod.md` §1.0)
+- [x] Pushed `main` containing the maintained seed (48 files, not the planning-era 42); confirmed
+  from the API, not from memory: `GET /repos/daniel-castilho/tyny-pdf/git/trees/main?recursive=1`
+  blob count and `GET /repos/.../contents/.github/workflows/gates.yml` both in
+  `epic-1-dod.md` §1.0
+- [ ] The branch `chore/seed-gates-ci` carries Story 1.1 (ticked after merge): commit, push, PR
+  through the template, merged - the seed commits remain retroactive context (owner decision D-3,
+  `analysis/decision-log.md`), and every change after this point is a PR (ADR-0009)
+- [ ] The six branch-protection settings of `docs/git-workflow.md` "Branch protection" are applied
+  (ticked after the API call succeeds); `GET /repos/.../branches/main/protection` JSON pasted in
+  `epic-1-dod.md` §1.1
+- [x] Toolchain pins added to `docs/dev-environment.md` "Toolchain pins (measured, Story 1.1)":
+  CMake/Ninja/Clang/`g++`/Python versions measured; Clang-Tidy/Clang-Format/Conan/Doxygen/
+  LLVM-MinGW and the Windows SDK explicitly "not installed" and each opens its install task in
+  PR #2
 - [ ] Run the first CI iteration on the PR until `gates` is green, recording the job matrix in
   the PR body (a run that never reached a failure is not a green check)
 - [ ] Prove the gate bites: on a throwaway branch, break one fixture (two-space indentation in a
       `.tynypdf.json` name) or introduce one `Tyny Pulse` token, show the red job log, then revert;
       paste both logs
-- [ ] Attempt a direct push to `main` from a non-admin identity and paste the rejection
-- [ ] Extend the lesson already recorded in `docs/lessons.md` ("a published tree was assumed to be
-      the tree we had") with the exact mechanism and the fix, in the same PR that restores parity
-- [ ] Correct `README.md` section "How to contribute" and `AGENTS.md`: the seed is no longer "PR #1
-pending"; the state on the date of the fix is pasted (`git log -1 --format=%H`, blob count, run
-      count, `pulls?state=all` length)
+- [ ] Attempt a direct push to `main` from a non-admin identity and paste the rejection -
+      OWNER-PENDING: no second identity or token available (owner decision D-6,
+      `analysis/decision-log.md`)
+- [x] `docs/lessons.md` now records the exact loss mechanism (a filesystem copy that drops dotfiles)
+  and the ADR-0009 deviation of the three direct pushes, with the rules that prevent both
+- [x] Corrected `README.md` "Current State" and `AGENTS.md`: the seed is no longer "PR #1 pending",
+  the state on the date of the fix is pasted (`git log -1 --format=%H`, blob count, run count,
+  `pulls?state=all` length) in `epic-1-dod.md` §1.0-§1.1
 
 ## 1.2 Build system and toolchain probes
 
@@ -54,7 +58,7 @@ pending"; the state on the date of the fix is pasted (`git log -1 --format=%H`, 
       editor and CI cannot disagree (this repo has no precedent for a style file; the LLVM-MinGW
       build is the only one that consumes them today)
 - [ ] `conan.lock` produced by `conan lock create` against a real graph, not hand-written
-- [ ] `tools/win-probe/` (planned, PR #1 per the debt list in `AGENTS.md`): four tiny programs
+- [ ] `tools/win-probe/` (planned, PR #2 per the debt list in `AGENTS.md`): four tiny programs
   plus a `build.sh`
       - [ ] `d2d_probe.c` including `d2d1_3.h`, `dwrite_3.h`, `d3d11.h`, `dxgi1_6.h`, linking the
         four import libs from ADR-0010's list, then a build of the full engine over the same
@@ -157,13 +161,13 @@ gate prints that it has nothing to check and exits non-zero until 1.4 lands. A g
 - [ ] `sh tools/check.sh` (exit 0) - all seven gates, on a clean clone of `main` and on the PR head
 - [ ] `sh tools/check.sh --help` prints a self-describing help and exits 0; running it from a
   foreign CWD still finds the repo root
-- [ ] `python3 tools/docs-check.py` reports 0 problems - the five new files in `docs/epics/` and
+- [ ] `python3 tools/docs-check.py` reports 0 problems - the five files in `tasks/epic-01/` and
       every relative link resolving, including `../../docs/kickoff.md` and `../../adr/...`
 - [ ] `python3 tools/spec-check.py` reports 0 orphans: every `R<Module>.<n>` cited anywhere
   exists in a `SPEC.md`; new modules introduced by 1.4 arrive with their spec
 - [ ] `python3 tools/naming-sync.py` reports 0 problems (the exe and installer names in CMake match
       `docs/naming.md`)
-- [ ] `python3 tools/lang-check.sh` reports 0 problems over the whole repo
+- [ ] `python3 tools/lang-check.py` reports 0 problems over the whole repo
 - [ ] CI green on the merge commit of 1.1, 1.2, 1.3, 1.4 and 1.5 - five run ids, pasted
 - [ ] The `epic-1-dod.md` self-audit run before any hand-off, with its output pasted
 

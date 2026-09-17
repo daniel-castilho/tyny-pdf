@@ -104,3 +104,30 @@ printed OK. A checker that skips a region has to fail when it cannot tell where 
 **Rule:** a document check may skip content, but never silently - an unbalanced construct is a
 finding, not a waiver. `docs-check.py` now reports an unclosed fence, and its self-test set covers
 both the unbalanced case and a legitimately indented fence inside a list item.
+
+## 2026-09-17 - a published tree was assumed to be the tree we had
+
+Story 1.1's baseline measured `origin/main` and found 24 files where the maintained seed had 48:
+the push had dropped every dotfile - `.editorconfig`, `.gitattributes`, `.githooks/pre-commit`,
+`.github/PULL_REQUEST_TEMPLATE.md`, `.github/workflows/gates.yml` - plus all eleven `adr/*.md`,
+`src/features/sidecar/SPEC.md` and the sidecar fixture. The mechanism is a filesystem copy that
+skips dotfiles: `cp -r` does, `rsync -a` does not, and `git add -A` from inside the tree cannot.
+The published repository briefly advertised decisions and a gate that its own `main` did not
+contain.
+
+**Rule:** the published tree is never assumed from the working copy. The parity check is
+`git ls-tree -r --name-only origin/main | wc -l` plus a byte diff against a clean clone of `main`,
+and the tree is produced with `git init -b main`, `git config core.hooksPath .githooks`, `git add
+-A`, and the staged list checked against the tracked list before the first commit. Story 1.1 keeps
+the measured result in `epic-1-dod.md` section 1.0.
+
+## 2026-09-17 - the seed and its two fixes were pushed straight to `main`
+
+The first three commits of this repository (`9fc2d52`, `94f1950`, `0d64999`) landed directly on
+`main`, so `pulls?state=all` was `[]` while ADR-0009 and `docs/git-workflow.md` said branch-per-PR.
+The flow was bypassed exactly once, to get a coherent tree onto `main` before the protection that
+would have blocked the direct push existed - which is also the moment the rule is meant for.
+
+**Rule:** the repository flow is PR-only from Story 1.1's merge forward. `main` is protected so the
+direct push cannot recur, and the deviation is written here so a later reader never treats three
+history commits as precedent.

@@ -26,6 +26,17 @@ All notable changes to this project are documented here. The format follows
   properties).
 - `LICENSE`: AGPL-3.0-or-later, FSF text verbatim.
 
+### Changed
+
+- Repository flow is PR-only from Story 1.1 (Epic 1) on: the three seed commits went straight to
+  `main` (recorded in `docs/lessons.md`), `main` is now branch-protected with the `gates` check
+  required, and the direct-push window is closed.
+- `docs/dev-environment.md` records measured toolchain pins; tools not yet installed carry the PR
+  that installs them (`clang-format`, `clang-tidy`, Conan 2, Doxygen, LLVM-MinGW, MSVC - PR #2;
+  `cmake` 3.28.3 is below the >= 3.30 requirement and upgrades with PR #2).
+- Current-state documentation reflects the two green `gates` runs (35170901622, 35171544840)
+  instead of "nothing has run in CI yet".
+
 ### Not started
 
 No source code, no releases, no downloaded binaries. The reader/viewer starts at milestone M0 of
