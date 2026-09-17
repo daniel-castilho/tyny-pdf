@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:tynypdf:sidecar:1",
+  "title": "Tyny PDF annotation sidecar",
+  "description": "ADR-0007. The sidecar is the source of truth for the annotation set of one PDF document; the annotations written into the PDF are a projection of it. Unknown keys must be preserved verbatim by every writer.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["format_version", "document", "annotations"],
+  "properties": {
+    "format_version": { "const": 1, "description": "Integer. Never decreased, never reused with different semantics." },
+    "generator": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "version": { "type": "string", "minLength": 1, "maxLength": 32 }
+      },
+      "description": "Informational. Excluded from the content digest so that a save by a different tool does not look like an edit."
+    },
+    "document": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["sha256", "pages"],
+      "properties": {
+        "sha256": { "$ref": "#/$defs/sha256", "description": "Hash of the PDF as last read. Used for reconciliation, never to refuse to open." },
+        "pages": { "type": "integer", "minimum": 1, "maximum": 1000000 },
+        "filename": { "type": "string", "maxLength": 512, "description": "Hint only. Path is never stored: it leaks usernames and breaks portability." },
+        "page_size": {
+          "type": "array",
+          "description": "MediaBox width/height per page at capture time, used to detect geometry change before re-anchoring.",
+          "items": { "type": "array", "prefixItems": [{ "type": "number", "exclusiveMinimum": 0 }, { "type": "number", "exclusiveMinimum": 0 }], "minItems": 2, "maxItems": 2 },
+          "minItems": 1
+        },
+        "projection": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["digest"],
+          "properties": {
+            "digest": { "$ref": "#/$defs/sha256", "description": "Digest of the annotation objects this sidecar last wrote into the PDF. Mismatch means a third party edited the PDF." },
+            "written_at": { "$ref": "#/$defs/date_time" }
+          }
+        }
+      }
+    },
+    "annotations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/annotation" },
+      "description": "Canonical order: page ascending, then top to bottom, then left to right, then id."
+    },
+    "settings": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "flatten_on_export": { "type": "boolean", "default": false },
+        "author_default": { "type": "string", "maxLength": 128 }
+      },
+      "description": "Sidecar behaviour, not view state. Zoom, page and scroll live in the view-state file."
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "date_time": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$", "description": "RFC 3339 UTC, second precision. Milliseconds are banned: they churn on every save." },
+    "color": { "type": "string", "pattern": "^#[0-9a-f]{6}([0-9a-f]{2})?$", "description": "sRGB. Suffix is alpha. Lowercase only." },
+    "id": { "type": "string", "pattern": "^[a-z2-7]{10}$", "description": "RFC 4648 base32 lowercase, 10 chars, random, immutable. Stable across merges and unique across sidecars." },
+    "rect": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 4,
+      "maxItems": 4,
+      "description": "[x0, y0, x1, y1] in PDF user space units, origin bottom-left, before page rotation. At most 3 decimals."
+    },
+    "quad": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 8,
+      "maxItems": 8,
+      "description": "One text line: top-left, top-right, bottom-left, bottom-right. Matches the PDF QuadPoints order, so export is lossless."
+    },
+    "anchor": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Reconciliation data. Never used to draw, only to relocate an annotation when the document changed.",
+      "properties": {
+        "quote": { "type": "string", "maxLength": 2000, "description": "Normalized extraction of the covered text: NFKC, case folded, whitespace collapsed." },
+        "prefix": { "type": "string", "maxLength": 120 },
+        "suffix": { "type": "string", "maxLength": 120 },
+        "text_sha256": { "$ref": "#/$defs/sha256", "description": "Digest of the normalized page text of the anchored page. The first cheap test of whether the page moved." },
+        "page_label": { "type": "string", "maxLength": 32 },
+        "score": { "type": "number", "minimum": 0, "maximum": 1, "description": "Confidence of the last reconciliation. Below 0.5 the UI must ask instead of guessing." },
+        "state": { "type": "string", "enum": ["anchored", "moved", "unanchored"], "default": "anchored" }
+      }
+    },
+    "reply": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "author", "created", "text"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "author": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "created": { "$ref": "#/$defs/date_time" },
+        "text": { "type": "string", "maxLength": 20000 },
+        "in_reply_to": { "$ref": "#/$defs/id" }
+      }
+    },
+    "annotation": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "type", "page", "rect", "created"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "type": { "enum": ["highlight", "underline", "squiggly", "strikeout", "text_note", "free_text", "ink", "square", "circle", "line", "polygon", "polyline", "caret", "stamp", "redaction"], "description": "file_attachment is deliberately absent: attachment bytes belong in the PDF, not in a text file." },
+        "page": { "type": "integer", "minimum": 0, "description": "Zero-based index, matching the PDF page tree order." },
+        "rect": { "$ref": "#/$defs/rect" },
+        "quads": { "type": "array", "items": { "$ref": "#/$defs/quad" }, "minItems": 1, "description": "Required for highlight, underline, squiggly, strikeout." },
+        "rotation_at_capture": { "enum": [0, 90, 180, 270], "default": 0 },
+        "created": { "$ref": "#/$defs/date_time" },
+        "modified": { "$ref": "#/$defs/date_time", "description": "Absent when never edited after creation." },
+        "deleted": { "type": "boolean", "default": false, "description": "Tombstone: kept for merge friendliness, dropped by tynypdf-cli sidecar gc after 30 days." },
+        "author": { "type": "string", "maxLength": 128 },
+        "subject": { "type": "string", "maxLength": 256 },
+        "contents": { "type": "string", "maxLength": 100000, "description": "The annotation body, as the user wrote it. Any language, any script." },
+        "contents_rtf": { "type": "string", "maxLength": 400000, "description": "Optional rich text, verbatim from the PDF when present." },
+        "color": { "$ref": "#/$defs/color" },
+        "highlight_color": { "$ref": "#/$defs/color", "description": "Markup annotations use HighlightColor, not Color." },
+        "interior_color": { "$ref": "#/$defs/color" },
+        "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "thickness": { "type": "number", "minimum": 0, "maximum": 1000 },
+        "dashes": { "type": "array", "items": { "type": "number", "minimum": 0 }, "maxItems": 2 },
+        "line_endings": { "type": "array", "items": { "enum": ["none", "square", "circle", "diamond", "open_arrow", "closed_arrow"] }, "minItems": 2, "maxItems": 2 },
+        "icon": { "type": "string", "maxLength": 32, "description": "PDF annotation icon name, e.g. Comment, Key, Note, Help, NewParagraph." },
+        "flags": { "type": "array", "items": { "enum": ["invisible", "hidden", "print", "no_view", "no_read_only", "locked", "toggle_no_view", "toggle_no_print", "exported", "popup"], "uniqueItems": true }, "uniqueItems": true },
+        "open": { "type": "boolean", "description": "Popup open at capture time." },
+        "font": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["size"],
+          "properties": {
+            "family": { "type": "string", "maxLength": 128, "description": "Requested family. A missing family is a fallback decision, never an error, and the substituted family is recorded in font.resolved." },
+            "size": { "type": "number", "exclusiveMinimum": 0, "maximum": 2000 },
+            "resolved": { "type": "string", "maxLength": 128, "description": "Written by the exporter so a diff shows when the fallback changed (delta D-4)." },
+            "weight": { "enum": ["regular", "bold"] },
+            "italic": { "type": "boolean" }
+          }
+        },
+        "alignment": { "enum": ["left", "center", "right"] },
+        "background_color": { "$ref": "#/$defs/color", "description": "Free-text background, see FreeTextBackgroundColor." },
+        "ink_path": {
+          "type": "array",
+          "items": { "type": "array", "items": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }, "minItems": 2 },
+          "description": "Strokes of points in PDF user space."
+        },
+        "vertices": { "type": "array", "items": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }, "minItems": 2 },
+        "stamp": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["name"],
+          "properties": {
+            "name": { "type": "string", "maxLength": 64 },
+            "text": { "type": "string", "maxLength": 512 }
+          }
+        },
+        "redaction": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Present only while a redaction is pending. Applying it removes the object from the sidecar and records it in the proof report (delta D-3).",
+          "required": ["overlay"],
+          "properties": {
+            "overlay": { "enum": ["black_box", "red_box", "image", "none"] },
+            "repeat": { "type": "boolean", "default": false },
+            "terms": { "type": "array", "items": { "type": "string", "maxLength": 512 }, "maxItems": 500 }
+          }
+        },
+        "anchor": { "$ref": "#/$defs/anchor" },
+        "replies": { "type": "array", "items": { "$ref": "#/$defs/reply" } },
+        "accessibility": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "label": { "type": "string", "maxLength": 512, "description": "Read by the UIA tree so the annotation list is usable without a pointer (delta D-5)." },
+            "reading_order": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "imported_from": { "type": "string", "enum": ["pdf", "sidecar", "fdf", "manual", "imported_pdf"] },
+            "lossy": { "type": "boolean", "description": "True when the source held something we model imperfectly; the UI shows a warning instead of hiding it." }
+          }
+        }
+      }
+    }
+  }
+}

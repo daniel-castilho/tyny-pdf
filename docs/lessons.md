@@ -1,0 +1,106 @@
+# Lessons
+
+Append-only. An entry exists because something was believed, measured, and found wrong. Each entry
+names the belief, the evidence, and the rule that came out of it, so that the next person - or the
+next agent session - does not have to rediscover it. Nothing here is prose for its own sake: if an
+entry has no rule, it is not a lesson, and if a rule is durable it belongs in an ADR, not here.
+
+## 2026-09-16 - a roadmap asserted a capability that belonged to a binding, not the engine
+
+The plan for "table extraction" credited the C engine. Measured against the engine's own feature
+list, structured table finding lives in the Python binding layer, and the engine's C API exposes
+text-page access, not tables. The task survived only because the wording changed to say what the
+layer does.
+
+**Rule:** a capability claim in a specification cites the API that provides it, at the version we
+pin (R-M1 in [ADR-0001](../adr/0001-engineering-canon.md)). "The engine supports X" is not a
+requirement; "`pc_doc_find_tables` returns N rectangles for corpus file Y" is.
+
+## 2026-09-16 - a sibling project documented a release pipeline that its CI did not run
+
+The old release runbook described an updater build, signing and notarisation. The workflow files
+contained none of it, and two modules named in the documentation existed only as declarations in
+`main.rs`. The documentation was not wrong once; it was wrong permanently, because nothing executed
+it.
+
+**Rule:** every documented command in this repository is either a script in `tools/` or a CI step,
+and forward references to tools that do not exist yet are marked "(planned)" so that
+`tools/docs-check.py` (PR #2) can distinguish a promise from a lie.
+
+## 2026-09-16 - an agent marked a task verified without writing a test
+
+Documented in the literature on spec-driven development and reproduced here on the first day: a task
+list said "checked", no test existed.
+
+**Rule:** "done" is written by CI, never by a person or an agent. `tools/spec-check.py` fails a
+`Verification:` artefact that does not exist once the capability has code, and a test that does not
+cite the requirement id it proves (R-M13, [ADR-0009](../adr/0009-git-workflow.md) rule 5).
+
+## 2026-09-16 - an audit of this seed found three defects, and none of them were in the tools
+
+The gate run is reproducible (every number in the README re-executed to the unit). What was
+wrong was prose that *reported* measurements: a table column labelled "repos with the token plus
+`pdf`" holding free-text counts (`recto` 22 free text vs 4 in name), a concurrency figure
+described as a throughput ratio ("13.3x throughput" for what the source measured as 13.3x the
+*time* at ten threads versus 3.3x at ten processes), and a specification written in present
+tense about infrastructure that has never run ("green in CI today", when the remote repository
+has one commit and no workflow history).
+
+**Rule:** a measurement in a document carries its query, its unit and its date - `"<token> pdf"` is
+not the same measurement as `"<token> pdf in:name"`, and "13.3x time" is the opposite of "13.3x
+throughput". And a document describing a pipeline says whether the pipeline has executed: present
+tense is a claim about the world. Where the fix is a label, record the correction in the document
+(`adr/0006` does), so the reader of the old copy can see what changed.
+
+## 2026-09-16 - the "nobody else does it" premise was checked against the wrong version
+
+The gap analysis that justified the six deltas measured the incumbent against SumatraPDF 3.6.1, the
+latest *stable* release (2026-04-06, verified via the releases API). Its own pre-release changelog
+already lists an Edit PDF mode with an annotation browser, Apply Redactions, undo/redo built on
+MuPDF's journal covering annotations and form fields, signing from the Windows certificate store,
+Document Properties showing LTV/RFC 3161/PAdES/EU LOTL, about twenty CLI tools, and a local-agent AI
+chat. "The incumbent cannot do it" was true of a version nobody should be compared to and false
+of the one that matters.
+
+**Rule:** a competitive claim names the version *and the channel* (stable, pre-release,
+nightly), and is re-read at every milestone, not once at kick-off. A delta survives on mechanism
+(where the data lives, whether the proof is an artefact, whether the API is public), not on the
+competitor's gap. This is why `docs/kickoff.md` section 4 is written as mechanism, and why M0
+measures 3.7 pre-release besides 3.6.1.
+
+ADR-0007 defines canonical bytes for the sidecar; ADR-0010 puts the working copy in WSL2 while
+Windows tools still reach it. A single CRLF conversion in a fixture, or a trailing space added by an
+IDE, invalidates a hash-comparison test without touching meaning.
+
+**Rule:** `.gitattributes` and `.editorconfig` own line endings and whitespace;
+`tools/canonical-check.sh` proves both hold on every commit, and `core.autocrlf=false` is set in
+both environments.
+
+## The front page is bound by the same gates as the code
+
+The README was written to match the visual model of a sibling project: emoji in the bullet list,
+box-drawing characters in the directory tree, shields at the top. Our own `tools/lang-check.py` R1
+allows a short list of typographic marks in prose and nothing else, so the emoji and the tree glyphs
+failed the gate on the first run. The tempting fix was the file-level exemption marker on the
+README - and it would have exempted the one file most likely to acquire a stray Portuguese
+word or an unverifiable claim.
+
+**Rule:** when a rule blocks the copy, either change the copy or change the rule *in writing*, in
+the ADR that owns it; never waive it for the file that the rule is currently inconvenient for. The
+same run produced a smaller twin of this mistake: a comment claiming the title emoji was "the
+exception the repository grants itself", which no decision had granted. Both were fixed in the
+text.
+
+Related: `docs/kickoff.md` promised the CI job would be "badge-free"; a project with badges and no
+CI history needs a sharper line than none-versus-all. The recorded rule is *no status badge until
+the job that can fail it exists*; static stack badges are allowed because they state facts
+(language, platform, engine, licence) rather than measurements.
+
+The same run found the tool-side half of the lesson. Editing the README left a code fence with its
+closing marker glued to the end of a text line, and `tools/docs-check.py` walked the rest of the
+file as "inside a fence": three over-length lines and a broken block went unnoticed, and the check
+printed OK. A checker that skips a region has to fail when it cannot tell where the region ends.
+
+**Rule:** a document check may skip content, but never silently - an unbalanced construct is a
+finding, not a waiver. `docs-check.py` now reports an unclosed fence, and its self-test set covers
+both the unbalanced case and a legitimately indented fence inside a list item.

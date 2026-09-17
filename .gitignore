@@ -1,0 +1,9 @@
+/build/
+.env
+.env.*
+__pycache__/
+*.pyc
+*.pyo
+.pytype/
+.pytest_cache/
+.mypy_cache/
