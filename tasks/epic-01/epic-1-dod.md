@@ -274,6 +274,55 @@ gpu exit=0
 # identical / hardware adapter + feature level observed through WSL interop).
 ```
 
+CI evidence for the same story (PR #5, all four jobs green, head `5dc5767`):
+
+```
+$ gh pr checks 5
+core-linux          pass  18s   run 35179132038
+gates               pass  10s   run 35179132038
+windows-mingw-cross pass  25s   run 35179132038
+windows-msvc        pass  56s   run 35179132038
+
+# windows-mingw-cross (run 35179132038, job 105067300115)
+ABI DIFF: IDENTICAL
+KERNEL32.dll
+api-ms-win-crt-stdio-l1-1-0.dll
+api-ms-win-crt-runtime-l1-1-0.dll
+api-ms-win-crt-locale-l1-1-0.dll
+api-ms-win-crt-heap-l1-1-0.dll
+api-ms-win-crt-private-l1-1-0.dll
+api-ms-win-crt-string-l1-1-0.dll
+api-ms-win-crt-math-l1-1-0.dll
+api-ms-win-crt-environment-l1-1-0.dll
+RUNTIME IMPORTS: system32 only
+
+# windows-msvc (run 35179132038, job 105067300036): dumpbin /DEPENDENTS lists only
+KERNEL32.dll            # /MT static runtime; winprobe_runtime and winprobe_d2d exit 0
+gpu_probe: adapter 0 vendor=0x1414 device=0x008C type=hardware dedicated=0 MB
+gpu_probe: device feature level 0xB000
+gpu_probe: PASS - hardware adapter + device          # informational on a hosted runner
+MSVC: static runtime + D2D surface verified
+
+# two CI defects were found and fixed on the PR before it went green:
+#   1. build/cmake/toolchain-llvm-mingw.cmake was swallowed by .gitignore's /build/ - the
+#      source module is now re-included and the MinGW job has the file (mingw job red -> green)
+#   2. windows-latest moved to Visual Studio 2026, so the "Visual Studio 17 2022" generator
+#      was replaced by Ninja + the Developer PowerShell environment; dumpbin temp path moved
+#      off /tmp (which is D:\tmp on the runner) to $env:RUNNER_TEMP
+```
+
+Merge and clean-clone evidence:
+
+```
+$ git log --oneline -1 2ec9977
+2ec9977 build: Story 1.2 build system, presets, and ADR-0010 probes (#5)
+$ git ls-tree -r --name-only origin/main | wc -l
+73
+$ git clone https://github.com/daniel-castilho/tyny-pdf.git /tmp/opencode/tyny-pdf-clean
+$ sh tools/check.sh        # in the clean clone, on 2ec9977
+check: all gates green     # exit 0; docs-check: OK (31 markdown files, 0 problems)
+```
+
 ### 1.3 Engine pinned, four gates with teeth
 
 ```
@@ -354,6 +403,26 @@ one new file). The four red runs are itemised in §1.1 with the command that fai
 decisions are cited as D-ids from `analysis/decision-log.md`. The two deliberate-break PRs (#2, #3)
 were closed without merge. No closure claim is made here - only state plus evidence.
 
+### 2.2 Story 1.2 hand-off audit (run 2026-09-17, output pasted)
+
+```
+$ git log --oneline -1 2ec9977
+2ec9977 build: Story 1.2 build system, presets, and ADR-0010 probes (#5)
+$ gh pr view 5 --json mergeCommit,state --jq '.mergeCommit.oid + " " + .state'
+2ec9977a37263c99797c3982361d024f7750e7bb MERGED
+$ gh api repos/daniel-castilho/tyny-pdf/branches/main/protection/required_status_checks \
+  --jq '.strict, .contexts'
+true
+["gates","core-linux","windows-mingw-cross","windows-msvc"]
+$ git ls-tree -r --name-only origin/main | wc -l
+73
+```
+Every sha above resolves in `git log`/the PR API; run 35179132038 appears with head `5dc5767` on
+PR #5 and its four jobs are pasted in §1.2. The two red items of the story are on the table in
+§1.2 (ignored toolchain file; VS 2026 generator) with the failing command and the change that fixed
+each. Owner decision D-7 scopes the product exe to story 1.4. The required-contexts list now
+carries all four jobs. No closure claim: story 1.2 is evidenced, the epic is not over.
+
 ## 3. Standing definitions
 
 - **Pair** = (test, run number, sha). An id alone rots; a number alone drifts; both come from the
@@ -388,8 +457,10 @@ were closed without merge. No closure claim is made here - only state plus evide
   35170901622/35171544840 on seed main), six protection settings pasted, gate proven to bite (PRs
   #2/#3, runs 35174885710/35175102894), admin-side push rejection pasted; the non-admin push from a
   second identity remains OWNER-PENDING (D-6)
-- [ ] 1.2: presets + CMake + style configs build on GCC/Clang and LLVM-MinGW and MSVC; ADR-0010's
-  four unverified items retired with output or amended with a downgrade
+- [x] 1.2: presets + CMake + style configs build on GCC/Clang and LLVM-MinGW and MSVC; ADR-0010's
+  four unverified items retired with output or amended with a downgrade (PR #5, run 35179132038,
+  head `5dc5767`, merged `2ec9977`; evidence in §1.2 and the §2.2 audit). Product exe deferred to
+  story 1.4 by owner decision D-7
 - [ ] 1.3: MuPDF pinned at a 40-hex sha, patch series real, four new gates green with a demonstrated
       red case each, `NOTICE` and `docs/references.md` present
 - [ ] 1.4: `pdfcore` M0 surface + `null`/`mupdf` backends + contract suite + four CLI exit codes +

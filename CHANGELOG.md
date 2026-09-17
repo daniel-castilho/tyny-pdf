@@ -35,6 +35,16 @@ CalVer-compatible SemVer as declared in [docs/release-runbook.md](docs/release-r
 - `AGENTS.md` debt rows 1 and 2 close: build system and toolchain-pinned CMake presets
   are in the tree.
 
+### Fixed (Story 1.2, found on PR #5)
+
+- `.gitignore` no longer swallows the checked-in `build/cmake/toolchain-llvm-mingw.cmake`
+  (the source module is re-included; build outputs stay ignored).
+- `windows-msvc` uses Ninja + the Developer PowerShell environment instead of the
+  `Visual Studio 17 2022` generator, which `windows-latest` (now VS 2026) no longer matches;
+  the `dumpbin` temp file moved off `/tmp` to `$env:RUNNER_TEMP`.
+- `.clang-format`: `EmptyLineBeforeAccessModifier` set to `Always` (the `LogicalSection`
+  value needs a newer clang-format than the pinned 18.1.3).
+
 ### Added (Story 1.1, PR #1 and PR #4)
 
 - Gate suite: `tools/check.sh` with six gates and their self-tests, wired into the
