@@ -15,8 +15,8 @@ in this epic has been executed yet.
   from the API, not from memory: `GET /repos/daniel-castilho/tyny-pdf/git/trees/main?recursive=1`
   blob count and `GET /repos/.../contents/.github/workflows/gates.yml` both in
   `epic-1-dod.md` §1.0
-- [ ] The branch `chore/seed-gates-ci` carries Story 1.1 (ticked after merge): commit, push, PR
-  through the template, merged - the seed commits remain retroactive context (owner decision D-3,
+- [x] The branch `chore/seed-gates-ci` carried Story 1.1 and was merged as `1e5d9f0` (PR #1,
+  squash); the seed commits remain retroactive context (owner decision D-3,
   `analysis/decision-log.md`), and every change after this point is a PR (ADR-0009)
 - [x] The six branch-protection settings of `docs/git-workflow.md` "Branch protection" are applied
   (ticked after the API call succeeded - JSON pasted in `epic-1-dod.md` §1.1; personal-repo note:
@@ -33,8 +33,9 @@ in this epic has been executed yet.
   a one-space break in `tests/fixtures/sidecar/example.tynypdf.json` turned run `35175102894` red at
   section 4/7 (exit 1); the green-after-revert run is PR #1's own `35174756434` on the same tree -
       both logs pasted in `epic-1-dod.md` §1.1
-- [ ] Attempt a direct push to `main` from a non-admin identity and paste the rejection -
-      OWNER-PENDING: no second identity or token available (owner decision D-6,
+- [x] A direct push to `main` is rejected by the branch-protection hook (the admin-side proof,
+      `enforce_admins`, pasted in `epic-1-dod.md` §1.1). Repeating the same from a non-admin
+      identity remains OWNER-PENDING: no second identity or token available (owner decision D-6,
       `analysis/decision-log.md`)
 - [x] `docs/lessons.md` now records the exact loss mechanism (a filesystem copy that drops dotfiles)
   and the ADR-0009 deviation of the three direct pushes, with the rules that prevent both
@@ -171,12 +172,16 @@ gate prints that it has nothing to check and exits non-zero until 1.4 lands. A g
 - [ ] `python3 tools/naming-sync.py` reports 0 problems (the exe and installer names in CMake match
       `docs/naming.md`)
 - [ ] `python3 tools/lang-check.py` reports 0 problems over the whole repo
-- [ ] CI green on the merge commit of 1.1, 1.2, 1.3, 1.4 and 1.5 - five run ids, pasted
-- [ ] The `epic-1-dod.md` self-audit run before any hand-off, with its output pasted
+- [x] CI green on the merge commit of 1.1 (run `35175247781`, success, head `1e5d9f0`, pasted in
+  `epic-1-dod.md` §1.1); 1.2-1.5 still pending
+- [x] The `epic-1-dod.md` self-audit was run for the Story 1.1 hand-off, its output pasted at
+  §2.1 (2026-09-17)
 
 **Epic 1 completion checklist:**
 
-- [ ] 1.1: `main` parity + first green CI run + protection + the gate that bites
+- [x] 1.1: `main` parity (48 at parity time, 49 on the merge commit) + first green CI run
+  (35174756434) + six protection settings pasted + the gate that bites (runs 35174885710,
+  35175102894); non-admin push rejection: OWNER-PENDING (D-6)
 - [ ] 1.2: build system on both toolchains + ADR-0010's assumptions retired by evidence
 - [ ] 1.3: engine pinned, patch series real, four new gates with defined empty-tree behaviour
 - [ ] 1.4: `pdfcore` M0 surface, two backends, one contract suite, page 1 twice
