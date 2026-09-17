@@ -54,8 +54,8 @@ int main(int argc, char** argv) {
     extern pc_backend_api pc_null_backend_api;
     backend_api = &pc_null_backend_api;
   } else if (strcmp(backend_name, "mupdf") == 0) {
-    fprintf(stderr, "mupdf backend not yet linked\n");
-    return 3;
+    extern pc_backend_api pc_mupdf_backend_api;
+    backend_api = &pc_mupdf_backend_api;
   } else {
     fprintf(stderr, "Unknown backend: %s\n", backend_name);
     return 2;

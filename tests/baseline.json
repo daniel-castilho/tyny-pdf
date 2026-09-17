@@ -29,16 +29,16 @@
       "version": "3.6.1",
       "channel": "stable",
       "source": "https://www.sumatrapdfreader.org/free-downloads.html",
-      "sha256": "TODO: fill after download",
-      "acquisition_date": "2026-09-17"
+      "sha256": "BLOCKED: Cloudflare 403 on sumatrapdfreader.org; download manually on Windows, run bench-measure.sh, paste results here",
+      "acquisition_date": "PENDING"
     },
     "sumatra-3.7pre": {
       "name": "SumatraPDF 3.7 pre-release",
       "version": "3.7.0-pre",
       "channel": "pre-release",
       "source": "https://www.sumatrapdfreader.org/prerelease.html",
-      "sha256": "TODO: fill after download",
-      "acquisition_date": "2026-09-17"
+      "sha256": "BLOCKED: Cloudflare 403 on sumatrapdfreader.org; download manually on Windows, run bench-measure.sh, paste results here",
+      "acquisition_date": "PENDING"
     }
   },
   "corpus": {

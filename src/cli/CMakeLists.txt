@@ -1,6 +1,6 @@
 if (TYNYPDF_EXECUTABLES_CLI)
     add_executable(${TYNYPDF_EXECUTABLES_CLI} main.cc)
-    target_link_libraries(${TYNYPDF_EXECUTABLES_CLI} PRIVATE pdfcore ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)
+    target_link_libraries(${TYNYPDF_EXECUTABLES_CLI} PRIVATE pdfcore ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}mupdf)
     target_include_directories(${TYNYPDF_EXECUTABLES_CLI} PRIVATE ${CMAKE_SOURCE_DIR}/include)
     pc_apply_core_flags(${TYNYPDF_EXECUTABLES_CLI})
     pc_apply_warnings(${TYNYPDF_EXECUTABLES_CLI})
