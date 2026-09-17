@@ -171,10 +171,13 @@ def check(root: Path, quick: bool = False):
 
     if not quick:
         cited = set()
+        def is_excluded(path: Path) -> bool:
+            return "third_party" in path.parts
         scan = list(root.glob("adr/**/*.md")) + list(root.glob("docs/**/*.md")) + \
             list(root.glob("src/**/*.md")) + [p for p in root.rglob("*")
                                               if p.is_file() and p.suffix in SOURCE_SUFFIXES
-                                              and ".git/" not in str(p)]
+                                              and ".git/" not in str(p)
+                                              and not is_excluded(p)]
         for path in scan:
             text = path.read_text(encoding="utf-8", errors="replace")
             if path.name == SPEC_NAME:

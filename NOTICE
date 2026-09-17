@@ -1,0 +1,14 @@
+# NOTICE
+
+This project contains the following third-party materials:
+
+Engine:
+- MuPDF: https://gitlab.freedesktop.org/mupdf/mupdf (AGPL-3.0 licensed)
+
+Fonts:
+- No bundled fonts currently.
+
+Licenses:
+- LICENSE: GNU Affero General Public License version 3.0 (the text is in LICENSE, 34523 bytes, sha256 0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0)
+
+No other third-party materials are included in this release.

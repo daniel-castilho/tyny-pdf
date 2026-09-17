@@ -128,8 +128,10 @@ def check_index(root: Path, text: str):
 
 def check(root: Path = ROOT):
     problems = []
+    def is_excluded(path: Path) -> bool:
+        return "third_party" in path.parts
     for path in sorted(root.rglob("*.md")):
-        if ".git/" in str(path):
+        if ".git/" in str(path) or is_excluded(path):
             continue
         problems += check_markdown(path, path.read_text(encoding="utf-8"))
     readme = root / "README.md"

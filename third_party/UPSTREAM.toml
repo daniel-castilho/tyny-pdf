@@ -1,0 +1,12 @@
+[submodule "mupdf"]
+	path = third_party/mupdf
+	url = https://gitlab.freedesktop.org/mupdf/mupdf
+	upstream_url = https://gitlab.freedesktop.org/mupdf/mupdf
+	upstream_commit = v1.26.8
+	vendored_on = 2026-09-17
+	patch_series = [
+		"0001-initial.patch",
+		"0002-font-fallback.patch",
+		"0003-text-rendering.patch",
+		"0004-platform-support.patch",
+	]

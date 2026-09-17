@@ -1,0 +1,4 @@
+# Subject: Initial MuPDF vendoring
+# Reason: Vendoring MuPDF for PDF rendering engine
+# Upstream-status: none
+# Owner: daniel-castilho
