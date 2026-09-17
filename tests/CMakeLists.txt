@@ -3,6 +3,7 @@ if (TYNYPDF_BUILD_TESTS)
     add_executable(test_status_abi unit/test_status_abi.cc)
     target_link_libraries(test_status_abi pdfcore)
     target_include_directories(test_status_abi PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    target_compile_definitions(test_status_abi PRIVATE TEST_GOLDEN_DIR="${CMAKE_SOURCE_DIR}/tests/golden")
     pc_apply_warnings(test_status_abi)
     add_test(NAME test_status_abi COMMAND test_status_abi)
 

@@ -1,4 +1,4 @@
-# MuPDF Backend Capability Specification
+#MuPDF Backend Capability Specification
 
 ## Requirements
 
