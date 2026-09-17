@@ -85,18 +85,66 @@ $ gh api repos/daniel-castilho/tyny-pdf/actions/runs --jq \
 35171544840 gates success 0d64999cce32ceeb2e53fdd47ad33c6b0810cdf4 push
 35170901622 gates success 94f1950df0876c6d1bcfea3d9afe471800ef766e push
 
-# protection JSON, after the six settings of docs/git-workflow.md are applied (pasted once live):
-$ gh api repos/daniel-castilho/tyny-pdf/branches/main/protection --jq .
-<filled below, pasted from the live call>
+# Story 1.1 PR runs:
+# 35174756434 gates success 6dc7a07... pull_request  (PR #1, green)
+# 35174885710 gates failure 291bfde... pull_request  (PR #2, the deliberate break, closed unmerged)
 
-# red job log from the deliberately broken fixture on a throwaway branch, then the green log after
-# revert (pasted below):
-<filled below, pasted from the throwaway-branch run>
+# protection JSON, after the six settings of docs/git-workflow.md were applied:
+$ gh api repos/daniel-castilho/tyny-pdf/branches/main/protection --jq .
+{
+    "required_status_checks": { "strict": true, "contexts": ["gates"] },
+    "required_pull_request_reviews": {
+        "dismiss_stale_reviews": false,
+        "require_code_owner_reviews": false,
+        "require_last_push_approval": false,
+        "required_approving_review_count": 0
+    },
+    "required_signatures": { "enabled": false },
+    "enforce_admins": { "enabled": true },
+    "required_linear_history": { "enabled": true },
+    "allow_force_pushes": { "enabled": false },
+    "allow_deletions": { "enabled": false }
+}
+# repository settings, same call:
+$ gh api -X PATCH repos/daniel-castilho/tyny-pdf -f allow_auto_merge=true -f delete_branch_on_merge=true --jq \
+  '{allow_auto_merge, delete_branch_on_merge}'
+{"allow_auto_merge":true,"delete_branch_on_merge":true}
+
+# note on "Restrict pushing": settings 1-4 of the six. GitHub rejects the users/teams/apps form of
+# `restrictions` on a personal (non-organization) public repository ("Only organization repositories
+# can have users and team restrictions"), so push restriction is enforced by required-pull-request +
+# enforce_admins + required_status_checks("gates") instead of by a restrictions list; the GET above
+# is what proves the settings are live.
+
+# red job log - deliberately broken fixture on the throwaway branch (PR #2). A one-space indentation
+# break in tests/fixtures/sidecar/example.tynypdf.json failed `sidecar-fmt` locally (exit 1), and a
+# retired token line in README.md ("Recto", the token the tree actually guards; "Tyny Pulse" is a
+# planning example and is not in retired_tokens) failed `naming-sync` locally (exit 1). CI's
+# `run every gate` stops at the first failing section (3/7), so the pasted red log names the first
+# reason:
+$ python3 tools/sidecar-fmt.py check tests/fixtures/sidecar
+tests/fixtures/sidecar/example.tynypdf.json: not canonical (run sidecar-fmt.py fix)
+sidecar-fmt: FAILED (1 checked, 0 skipped, 1 problems)
+$ python3 tools/naming-sync.py check
+naming-sync: README.md:457: retired token 'Recto'
+$ gh run view 35174885710 --log-failed
+gates	run every gate	== 1/7 language (ADR-0005)
+gates	run every gate	lang-check: OK (43 files)
+gates	run every gate	== 2/7 language self-test (the gate must still detect violations)
+gates	run every gate	lang-check self-test: OK
+gates	run every gate	== 3/7 naming drift (ADR-0006 rules, ADR-0008 name)
+gates	run every gate	naming-sync: README.md:457: retired token 'Recto'
+gates	run every gate	##[error]Process completed with exit code 1.
+
+# the green log after the revert is PR #1's own run on the same tree (35174756434, success) plus the
+# clean-clone run of 1.0; the throwaway branch was closed without merge and deleted.
 
 # push rejection from a non-admin identity: OWNER-PENDING. No second GitHub identity or token is
-# available in this environment; the AC is recorded as owner-pending in epic-1-stories.md and in the
-# completion checklist, not claimed as executed.
+# available in this environment; recorded as owner-pending in epic-1-stories.md, technical tasks and
+# the completion checklist (owner decision D-6, analysis/decision-log.md).
 ```
+
+The merge-commit clean-clone gate for Story 1.1 is pasted below once the Story 1.1 PR is merged.
 
 ### 1.2 Build system, both toolchains, ADR-0010 probes
 
