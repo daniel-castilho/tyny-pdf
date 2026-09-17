@@ -1,18 +1,29 @@
-# Test registration. enable_testing() runs from the root; each suite registers itself
-# with the ctest preset in CMakePresets.json. Until the suites exist (story 1.4) a ctest
-# run reports "no tests were found", which is the defined behaviour of the seed - the
-# alternative (a synthetic passing test) would print a green that means nothing.
-file(GLOB pc_unit_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/unit/*.cc")
+if (TYNYPDF_BUILD_TESTS)
+    # status_abi test
+    add_executable(test_status_abi unit/test_status_abi.cc)
+    target_link_libraries(test_status_abi pdfcore)
+    target_include_directories(test_status_abi PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_status_abi)
+    add_test(NAME test_status_abi COMMAND test_status_abi)
 
-if(NOT pc_unit_sources)
-  message(STATUS "tests: no tests yet (unit and contract suites arrive with story 1.4)")
-  return()
+    # app_render test
+    add_executable(test_app_render unit/test_app_render.cc)
+    target_link_libraries(test_app_render pdfcore)
+    target_include_directories(test_app_render PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_app_render)
+    add_test(NAME test_app_render COMMAND test_app_render)
+
+    # cli_exit_codes test
+    add_executable(test_cli_exit_codes unit/test_cli_exit_codes.cc)
+    target_link_libraries(test_cli_exit_codes pdfcore)
+    target_include_directories(test_cli_exit_codes PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_cli_exit_codes)
+    add_test(NAME test_cli_exit_codes COMMAND test_cli_exit_codes)
+
+    # contract test
+    add_executable(test_backend_contract contract/backend_contract.cc)
+    target_link_libraries(test_backend_contract pdfcore ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)
+    target_include_directories(test_backend_contract PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_backend_contract)
+    add_test(NAME test_backend_contract COMMAND test_backend_contract)
 endif()
-
-foreach(pc_unit_source IN LISTS pc_unit_sources)
-  get_filename_component(pc_test_name ${pc_unit_source} NAME_WE)
-  add_executable(${pc_test_name} ${pc_unit_source})
-  target_link_libraries(${pc_test_name} PRIVATE ${TYNYPDF_LIBRARY_CORE_TARGET})
-  pc_apply_warnings(${pc_test_name})
-  add_test(NAME ${pc_test_name} COMMAND ${pc_test_name})
-endforeach()
