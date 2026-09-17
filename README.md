@@ -395,7 +395,11 @@ authority or timestamp service in v1.
   enforced by committed tools, 10 honestly `pending`), the sidecar schema and its normative fixture,
   six checks plus a runner, the `gates` workflow, the PR template and the pre-commit hook,
   `AGENTS.md`, `CHANGELOG.md` and `LICENSE`.
-- `sh tools/check.sh` is green locally; nothing has run in CI yet.
+- `sh tools/check.sh` is green locally and in CI: the `gates` workflow has run `success` twice on
+  `main` (run `35171544840` at `0d64999`, run `35170901622` at `94f1950`). No build code exists yet,
+  so the build-matrix jobs are added with PR #2, not before.
+- `main` is branch-protected since Story 1.1 (PR-only, `gates` required); the three seed commits
+  were a one-time direct push, recorded in `docs/lessons.md`.
 - Known limitations are not bugs but absences: no viewer, no CLI binary, no corpus, no releases, no
   binaries to download. `docs/kickoff.md` states the order they appear in and what gates each.
 

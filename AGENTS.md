@@ -259,9 +259,11 @@ item; flag it in the PR and open it here with the number that measures it.
    configs arrive with PR #2, which is the PR that defines the CI matrix in terms of them (the
    header comment of `.github/workflows/gates.yml` records that pairing); PR #5 is the first PR
    that puts a target worth building into it. Every `M0` row above is blocked on this.
-2. **CI has never run:** `.github/workflows/gates.yml` exists and is reviewed by hand, so the
-   `gates` job's first green is future tense. No status badge may appear in `README.md` until it can
-   fail.
+2. **Only the docs-gates job has run:** `.github/workflows/gates.yml` ran `success` twice on `main`
+   (run `35170901622` at `94f1950`, run `35171544840` at `0d64999`), but the build matrix
+   (`core-linux`, `windows-msvc`, `windows-mingw-cross`) arrives with PR #2 and has never executed;
+   a run that never built a target is not release evidence. No status badge may appear in
+   `README.md` until a job that can fail on bad code exists.
 3. **Four unverified toolchain claims** (Direct2D/DirectWrite headers, a truly static runtime, the
    same target under both toolchains, GPU adapter through WSL interop) stay open until
    `tools/win-probe/` (planned, PR #2) runs; the list is ADR-0010's own, and until it is executed

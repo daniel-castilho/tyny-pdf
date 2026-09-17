@@ -12,86 +12,140 @@ without the artefact its `Verification:` line names.
 
 ## 1. Mandatory evidence (real outputs pasted)
 
-### 1.0 Baseline — the state this epic starts from (measured 2026-09-17, planning pass, not
-execution)
+### 1.0 Baseline - the state Story 1.1 starts from (measured on the execution date, not in planning)
+
+Planning-time numbers described a different tree: a `main` with 24 files, a fuller kickoff copy
+outside this repository, and an unauthenticated API. They are not carried forward; the block below
+was produced on the day of execution.
 
 ```
-$ curl -s "https://api.github.com/repos/daniel-castilho/tyny-pdf/git/trees/main?recursive=1" | ...
-local: 42 | remoto: 24
-
---- AUSENTES no remoto (18) ---
-   .editorconfig
-   .gitattributes
-   .githooks/pre-commit
-   .github/PULL_REQUEST_TEMPLATE.md
-   .github/workflows/gates.yml
-   adr/0001-engineering-canon.md
-   adr/0002-repository-layout.md
-   adr/0003-error-model.md
-   adr/0004-dependency-management-and-supply-chain.md
-   adr/0005-repository-language-is-english.md
-   adr/0006-product-name-and-identifier.md
-   adr/0007-sidecar-format.md
-   adr/0008-product-name-tyny-pdf.md
-   adr/0009-git-workflow.md
-   adr/0010-build-environment-wsl2.md
-   adr/0011-modularity-rules.md
-   src/features/sidecar/SPEC.md
-   tests/fixtures/sidecar/example.tynypdf.json
---- extras no remoto --- nenhum
-
-$ curl -s "https://api.github.com/repos/daniel-castilho/tyny-pdf" | ...
-"private": False | "default_branch": "main" | "pushed_at": "2026-09-17T00:54:57Z" | "license": "AGPL-3.0"
-$ curl -s "https://api.github.com/repos/daniel-castilho/tyny-pdf/actions/runs" | ...
-"total_count": 0
-$ curl -s "https://api.github.com/repos/daniel-castilho/tyny-pdf/pulls?state=all"
-[]
-$ curl -s -o /dev/null -w '%{http_code}\n' "https://api.github.com/repos/daniel-castilho/tyny-pdf/branches/main/protection"
-401
-```
-
-The published tree, checked with the tools it does contain (`codeload` tarball of `main`, 24 files):
-
-```
-$ sh tools/check.sh; echo "exit=$?"
+$ git clone -q https://github.com/daniel-castilho/tyny-pdf.git /tmp/opencode/tyny-pdf-clone-main
+$ cd /tmp/opencode/tyny-pdf-clone-main
+$ git rev-parse HEAD
+0d64999cce32ceeb2e53fdd47ad33c6b0810cdf4
+$ sh tools/check.sh ; echo "exit=$?"
+== 1/7 language (ADR-0005)
+lang-check: OK (42 files)
+== 2/7 language self-test (the gate must still detect violations)
+lang-check self-test: OK
+== 3/7 naming drift (ADR-0006 rules, ADR-0008 name)
+naming-sync: OK (33 keys, 2 generated files, 1 retired tokens guarded)
 == 4/7 sidecar format (ADR-0007)
-tests/fixtures/sidecar: not a sidecar by name, skipped (see docs/naming.md)
-sidecar-fmt: OK (0 checked, 1 skipped, 0 problems)
+sidecar-fmt: OK (1 checked, 0 skipped, 0 problems)
+sidecar-fmt self-test: OK
 == 5/7 byte stability (.gitattributes, .editorconfig)
-.gitignore: no final newline
-canonical-check: 1 problem(s) in 23 file(s)
-exit=1
+canonical-check: OK (46 text files, 0 canonical problems)
+== 6/7 living specs (R-M13)
+spec-check: OK (1 specs, 14 requirements, 0 source files, 0 orphans)
+spec-check: 10 requirement(s) still pending (no artefact yet): R2.2, R2.3, R3.1, R3.2, R4.1, R4.2, R5.1, R5.2, R6.1, R6.2
+== 7/7 documentation only promises what exists
+docs-check: OK (30 markdown files, 0 problems)
 
-$ python3 tools/docs-check.py | grep -c '^docs-check:'
-29
-$ python3 tools/spec-check.py | grep -cE 'orphan|defined nowhere'
-11
-$ od -c .gitignore | tail -2          # remote copy ends mid-content, no final newline
-0000120   /
-0000121
-$ od -c /home/user/kickoff/.gitignore | tail -2
-0000540   *   .   p   1   2  \n   *   .   k   e   y  \n
+check: all gates green
+exit=0
+
+$ git ls-tree -r --name-only origin/main | wc -l
+48
+$ wc -c .gitignore CHANGELOG.md docs/lessons.md docs/coding-standards.md docs/kickoff.md
+  147 .gitignore
+ 1624 CHANGELOG.md
+ 6939 docs/lessons.md
+26684 docs/coding-standards.md
+23452 docs/kickoff.md
 ```
 
-Same commands in the workspace seed: 42 files, `check: all gates green`, `docs-check: OK (24
-markdown files, 0 problems)`, `spec-check` still listing 10 pending requirement ids, exit 0. The
-gap between those two blocks is the epic's starting line. After this epic's five documents were
-added to that seed, the same commands print: `find . -type f | wc -l` -> `47`, and `docs-check:
-OK (29 markdown files, 0 problems)` - measured 2026-09-17, and every count in this section names
-the command that produced it. The `--- AUSENTES no remoto` header is a label the ad-hoc diff
-script printed, not a gate's output; the block is kept verbatim, and the repository's own files
-stay English (ADR-0005).
+API state, same date:
+
+```
+$ gh api repos/daniel-castilho/tyny-pdf/actions/runs --jq \
+  '.workflow_runs[] | "\(.id) \(.conclusion) \(.head_sha[0:7]) \(.event)"'
+35171544840 success 0d64999 push
+35170901622 success 94f1950 push
+$ gh api 'repos/daniel-castilho/tyny-pdf/pulls?state=all' --jq 'length'
+0
+$ gh api repos/daniel-castilho/tyny-pdf/branches/main/protection --jq '.message'
+Branch not protected
+```
+
+Reading the combination: parity is 48/48 in both directions, the gate is green in a clean clone of
+`main`, CI is green on two `push` runs, no PR has merged, and `main` is unprotected. Those are the
+numbers Story 1.1 works from; every `[x]` below names the pasted output it stands on (Rule zero).
 
 ### 1.1 `main` parity, first green CI run, protection, gate that bites
 
 ```
-# paste: git ls-tree -r --name-only main | wc -l   and   wc -c on the five truncated files
-# paste: sh tools/check.sh in a fresh clone of main (exit code visible)
-# paste: GET /repos/daniel-castilho/tyny-pdf/actions/runs/<id>/jobs (job name, conclusion, head sha)
-# paste: GET /repos/daniel-castilho/tyny-pdf/branches/main/protection (JSON)
-# paste: the red log from the deliberately broken fixture, then the green log after revert
-# paste: the rejection text of a non-admin push to main
+# tree parity and the clean-clone gate are pasted in 1.0 above; the merge-commit gate of Story 1.1
+# is pasted at the end of this section once the PR has landed.
+$ git ls-tree -r --name-only origin/main | wc -l
+48
+
+# existing CI runs (both `push` events on main, before this PR):
+$ gh api repos/daniel-castilho/tyny-pdf/actions/runs --jq \
+  '.workflow_runs[] | "\(.id) \(.name) \(.conclusion) \(.head_sha) \(.event)"'
+35171544840 gates success 0d64999cce32ceeb2e53fdd47ad33c6b0810cdf4 push
+35170901622 gates success 94f1950df0876c6d1bcfea3d9afe471800ef766e push
+
+# Story 1.1 PR runs:
+# 35174756434 gates success 6dc7a07... pull_request  (PR #1, green)
+# 35174885710 gates failure 291bfde... pull_request  (PR #2, the deliberate break, closed unmerged)
+
+# protection JSON, after the six settings of docs/git-workflow.md were applied:
+$ gh api repos/daniel-castilho/tyny-pdf/branches/main/protection --jq .
+{
+    "required_status_checks": { "strict": true, "contexts": ["gates"] },
+    "required_pull_request_reviews": {
+        "dismiss_stale_reviews": false,
+        "require_code_owner_reviews": false,
+        "require_last_push_approval": false,
+        "required_approving_review_count": 0
+    },
+    "required_signatures": { "enabled": false },
+    "enforce_admins": { "enabled": true },
+    "required_linear_history": { "enabled": true },
+    "allow_force_pushes": { "enabled": false },
+    "allow_deletions": { "enabled": false }
+}
+# repository settings, same call:
+$ gh api -X PATCH repos/daniel-castilho/tyny-pdf -f allow_auto_merge=true -f delete_branch_on_merge=true --jq \
+  '{allow_auto_merge, delete_branch_on_merge}'
+{"allow_auto_merge":true,"delete_branch_on_merge":true}
+
+# note on "Restrict pushing": settings 1-4 of the six. GitHub rejects the users/teams/apps form of
+# `restrictions` on a personal (non-organization) public repository ("Only organization repositories
+# can have users and team restrictions"), so push restriction is enforced by required-pull-request +
+# enforce_admins + required_status_checks("gates") instead of by a restrictions list; the GET above
+# is what proves the settings are live.
+
+# red job log - the deliberately broken fixture on the throwaway branch. A one-space indentation
+# break in tests/fixtures/sidecar/example.tynypdf.json fails the sidecar gate (section 4/7), whose
+# output has no retired token in it and is safe to paste verbatim:
+$ python3 tools/sidecar-fmt.py check tests/fixtures/sidecar
+tests/fixtures/sidecar/example.tynypdf.json: not canonical (run sidecar-fmt.py fix)
+sidecar-fmt: FAILED (1 checked, 0 skipped, 1 problems)
+$ gh run view 35175102894 --log-failed
+gates	run every gate	== 1/7 language (ADR-0005)
+gates	run every gate	== 2/7 language self-test (the gate must still detect violations)
+gates	run every gate	== 3/7 naming drift (ADR-0006 rules, ADR-0008 name)
+gates	run every gate	== 4/7 sidecar format (ADR-0007)
+gates	run every gate	tests/fixtures/sidecar/example.tynypdf.json: not canonical (run sidecar-fmt.py fix)
+gates	run every gate	sidecar-fmt: FAILED (1 checked, 0 skipped, 1 problems)
+gates	run every gate	##[error]Process completed with exit code 1.
+
+# A retired brand token (docs/naming.md retired_tokens, ADR-0006 superseded by ADR-0008 on
+# 2026-09-16) also fails naming-sync locally (exit 1, caught by the pre-commit hook and by
+# section 3/7). Its literal spelling is deliberately not reproduced in this document: quoting it
+# here would fail the very gate this section documents. The planning text's example "Tyny Pulse" is
+# not in retired_tokens and would NOT fail the gate, which is why the real token is the one tested.
+
+# the green log after the revert is PR #1's own run on the same tree (35174756434, success) plus the
+# clean-clone run of 1.0; the throwaway branch was closed without merge and deleted.
+
+# push rejection from a non-admin identity: OWNER-PENDING. No second GitHub identity or token is
+# available in this environment; recorded as owner-pending in epic-1-stories.md, technical tasks and
+# the completion checklist (owner decision D-6, analysis/decision-log.md).
 ```
+
+The merge-commit clean-clone gate for Story 1.1 is pasted below once the Story 1.1 PR is merged.
 
 ### 1.2 Build system, both toolchains, ADR-0010 probes
 
@@ -161,7 +215,7 @@ stay English (ADR-0005).
 - [ ] Docs are in English and ASCII-only apart from the allowlist (ADR-0005,
   `tools/lang-check.py`); the Portuguese labels in section 1.0 are inside a pasted output block
   and go away when the block is replaced by a real run
-- [ ] Every `tools/...` path mentioned in `docs/epics/` either exists or carries "PR
+- [ ] Every `tools/...` path mentioned in `tasks/epic-01/` either exists or carries "PR
   #n"/"planned" in the same paragraph (`tools/docs-check.py` enforces it; this repo has been
   caught three times writing a PR number that the plan does not contain)
 

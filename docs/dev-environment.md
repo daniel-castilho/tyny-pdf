@@ -18,6 +18,27 @@ disagree, CI is right and this page is a bug.
 sanitizers is what a 16 GB laptop feels first, and WSL2's default balloon is too generous for the
 parallel jobs CI emulates locally.
 
+## Toolchain pins (measured, Story 1.1)
+
+Each version below was printed by the tool itself on the day it was recorded; a row whose tool is
+not installed says so and names the PR that installs it. Versions are deliberately not a range: a
+`git tag` name, a release number or a tarball hash pins what CI and the working copy run.
+
+| Tool | Version / pin | State | Notes |
+| --- | --- | --- | --- |
+| `git` | 2.43.0 | installed | `git --version` |
+| `cmake` | 3.28.3 | installed | below `README.md`'s >= 3.30 requirement; upgrade in PR #2 |
+| `ninja` | 1.11.1 | installed | `ninja --version` |
+| `python3` | 3.12.3 | installed | `python3 --version` |
+| `clang` / `clang++` | 18.1.3 (Ubuntu) | installed | `clang --version` |
+| `g++` | 13.3.0 (Ubuntu) | installed | `g++ --version` |
+| `clang-format` | - | not installed | install task in PR #2 |
+| `clang-tidy` | - | not installed | install task in PR #2 |
+| `conan` (2.x) | - | not installed | install task in PR #2 |
+| `doxygen` | - | not installed | install task in PR #2 |
+| LLVM-MinGW | tarball | not installed | `third_party/toolchains/llvm-mingw.sha256` + PR #2; unpacked under `~/.toolchains/` |
+| MSVC v143 + Windows SDK | Windows-side | not installed | the `windows-msvc` CI job is the parity path; local install optional (ADR-0010) |
+
 ## One-time setup
 
 ```sh
