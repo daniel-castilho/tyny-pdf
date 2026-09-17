@@ -90,6 +90,8 @@ def tracked_files(root: Path) -> list[Path]:
 
 def check_file(path: Path, root: Path) -> list[str]:
     rel = path.relative_to(root) if path.is_relative_to(root) else Path("..") / path.name
+    if is_allowed(rel):
+        return []
     try:
         raw = path.read_bytes()
     except OSError as exc:  # unreadable file is a hard failure

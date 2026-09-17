@@ -8,15 +8,15 @@ memory (ADR-0011 R-M13).
 
 - upstream URL: `https://gitlab.freedesktop.org/mupdf/mupdf`
 - upstream commit format: 40-hex recorded in `third_party/UPSTREAM.toml`
-- patch series: `third_party/patches/*.patch`, each header carries `Subject`, `Reason`, `Upstream-status`, `Owner`
+- patch series: each header carries `Subject`, `Reason`, `Upstream-status`, `Owner`
 - decision D11: patch-report.sh fails on stale entries (>180 days)
 - decision D13: screening not started (conformance corpus intake)
 - Conan lockfile: `conanfile.py` + `conan.lock`
 
 ## ADR-0010: Build environment (WSL2)
 
-- four toolchain claims: headers link and factories create; static runtime holds in import tables; host/cross symbol tables identical; hardware GPU adapter + D3D_FEATURE_LEVEL observed through WSL interop
-- toolchain: LLVM-MinGW 20260812-ucrt-ubuntu-22.04-x86_64, hash `575f0f1528c2d619f87b50dca1d7a2895553fee6b27749238138f88493e26f91`
+- four toolchain claims: headers create
+- toolchain: LLVM-MinGW 20260812, hash in third_party/toolchains/llvm-mingw.sha256
 - installed at `~/.toolchains/llvm-mingw-20260812-ucrt-ubuntu-22.04-x86_64/`
 - `tools/win-probe/` records the four ADR-0010 results
 

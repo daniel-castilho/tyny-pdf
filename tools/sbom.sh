@@ -10,3 +10,4 @@ set -euo pipefail
 # The SBOM is attached to the release; NOTICE lists engine, fonts, third parties.
 echo "sbom.sh: not yet implemented (planned, PR #4)"
 exit 0
+

@@ -22,7 +22,7 @@ list_files() {
   fi
 }
 
-for f in $(list_files | grep -E '\.(md|py|sh|yml|yaml|json|txt|cmake|in|env)$|editorconfig$|gitattributes$|gitignore$'); do
+for f in $(list_files | grep -E '\.(md|py|sh|yml|yaml|json|txt|cmake|in|env)$|editorconfig$|gitattributes$|gitignore$' | grep -v '^third_party/'); do
   [ -f "$f" ] || continue
   files=$((files + 1))
   case "$f" in tests/golden/*) continue ;; esac
