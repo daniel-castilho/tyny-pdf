@@ -122,8 +122,14 @@ $ gh api -X PATCH repos/daniel-castilho/tyny-pdf -f allow_auto_merge=true -f del
 $ python3 tools/sidecar-fmt.py check tests/fixtures/sidecar
 tests/fixtures/sidecar/example.tynypdf.json: not canonical (run sidecar-fmt.py fix)
 sidecar-fmt: FAILED (1 checked, 0 skipped, 1 problems)
-$ gh run view <throwaway-run-id> --log-failed
-<red log pasted below, from the throwaway branch that carries only the fixture break>
+$ gh run view 35175102894 --log-failed
+gates	run every gate	== 1/7 language (ADR-0005)
+gates	run every gate	== 2/7 language self-test (the gate must still detect violations)
+gates	run every gate	== 3/7 naming drift (ADR-0006 rules, ADR-0008 name)
+gates	run every gate	== 4/7 sidecar format (ADR-0007)
+gates	run every gate	tests/fixtures/sidecar/example.tynypdf.json: not canonical (run sidecar-fmt.py fix)
+gates	run every gate	sidecar-fmt: FAILED (1 checked, 0 skipped, 1 problems)
+gates	run every gate	##[error]Process completed with exit code 1.
 
 # A retired brand token (docs/naming.md retired_tokens, ADR-0006 superseded by ADR-0008 on
 # 2026-09-16) also fails naming-sync locally (exit 1, caught by the pre-commit hook and by

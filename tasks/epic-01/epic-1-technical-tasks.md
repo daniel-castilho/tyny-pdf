@@ -18,18 +18,21 @@ in this epic has been executed yet.
 - [ ] The branch `chore/seed-gates-ci` carries Story 1.1 (ticked after merge): commit, push, PR
   through the template, merged - the seed commits remain retroactive context (owner decision D-3,
   `analysis/decision-log.md`), and every change after this point is a PR (ADR-0009)
-- [ ] The six branch-protection settings of `docs/git-workflow.md` "Branch protection" are applied
-  (ticked after the API call succeeds); `GET /repos/.../branches/main/protection` JSON pasted in
-  `epic-1-dod.md` §1.1
+- [x] The six branch-protection settings of `docs/git-workflow.md` "Branch protection" are applied
+  (ticked after the API call succeeded - JSON pasted in `epic-1-dod.md` §1.1; personal-repo note:
+  the `users/teams/apps` restrictions form is org-only, so push restriction is enforced by
+  require-PR + enforce_admins + required status checks); `GET /repos/.../branches/main/protection`
+  JSON pasted in `epic-1-dod.md` §1.1
 - [x] Toolchain pins added to `docs/dev-environment.md` "Toolchain pins (measured, Story 1.1)":
   CMake/Ninja/Clang/`g++`/Python versions measured; Clang-Tidy/Clang-Format/Conan/Doxygen/
   LLVM-MinGW and the Windows SDK explicitly "not installed" and each opens its install task in
   PR #2
-- [ ] Run the first CI iteration on the PR until `gates` is green, recording the job matrix in
-  the PR body (a run that never reached a failure is not a green check)
-- [ ] Prove the gate bites: on a throwaway branch, break one fixture (two-space indentation in a
-      `.tynypdf.json` name) or introduce the retired brand token of `docs/naming.md`
-      `retired_tokens`, show the red job log, then revert; paste both logs
+- [x] First CI iteration on the PR is green: run `35174756434` (`gates` success, head `6dc7a07`),
+  recorded in `epic-1-dod.md` §1.1; the job matrix is the single `gates` job (ubuntu-24.04)
+- [x] Gate proven to bite: on the throwaway branch `chore/demo-gate-bites2` (PR #3, closed unmerged)
+  a one-space break in `tests/fixtures/sidecar/example.tynypdf.json` turned run `35175102894` red at
+  section 4/7 (exit 1); the green-after-revert run is PR #1's own `35174756434` on the same tree -
+      both logs pasted in `epic-1-dod.md` §1.1
 - [ ] Attempt a direct push to `main` from a non-admin identity and paste the rejection -
       OWNER-PENDING: no second identity or token available (owner decision D-6,
       `analysis/decision-log.md`)
