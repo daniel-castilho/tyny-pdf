@@ -116,25 +116,20 @@ $ gh api -X PATCH repos/daniel-castilho/tyny-pdf -f allow_auto_merge=true -f del
 # enforce_admins + required_status_checks("gates") instead of by a restrictions list; the GET above
 # is what proves the settings are live.
 
-# red job log - deliberately broken fixture on the throwaway branch (PR #2). A one-space indentation
-# break in tests/fixtures/sidecar/example.tynypdf.json failed `sidecar-fmt` locally (exit 1), and a
-# retired token line in README.md ("Recto", the token the tree actually guards; "Tyny Pulse" is a
-# planning example and is not in retired_tokens) failed `naming-sync` locally (exit 1). CI's
-# `run every gate` stops at the first failing section (3/7), so the pasted red log names the first
-# reason:
+# red job log - the deliberately broken fixture on the throwaway branch. A one-space indentation
+# break in tests/fixtures/sidecar/example.tynypdf.json fails the sidecar gate (section 4/7), whose
+# output has no retired token in it and is safe to paste verbatim:
 $ python3 tools/sidecar-fmt.py check tests/fixtures/sidecar
 tests/fixtures/sidecar/example.tynypdf.json: not canonical (run sidecar-fmt.py fix)
 sidecar-fmt: FAILED (1 checked, 0 skipped, 1 problems)
-$ python3 tools/naming-sync.py check
-naming-sync: README.md:457: retired token 'Recto'
-$ gh run view 35174885710 --log-failed
-gates	run every gate	== 1/7 language (ADR-0005)
-gates	run every gate	lang-check: OK (43 files)
-gates	run every gate	== 2/7 language self-test (the gate must still detect violations)
-gates	run every gate	lang-check self-test: OK
-gates	run every gate	== 3/7 naming drift (ADR-0006 rules, ADR-0008 name)
-gates	run every gate	naming-sync: README.md:457: retired token 'Recto'
-gates	run every gate	##[error]Process completed with exit code 1.
+$ gh run view <throwaway-run-id> --log-failed
+<red log pasted below, from the throwaway branch that carries only the fixture break>
+
+# A retired brand token (docs/naming.md retired_tokens, ADR-0006 superseded by ADR-0008 on
+# 2026-09-16) also fails naming-sync locally (exit 1, caught by the pre-commit hook and by
+# section 3/7). Its literal spelling is deliberately not reproduced in this document: quoting it
+# here would fail the very gate this section documents. The planning text's example "Tyny Pulse" is
+# not in retired_tokens and would NOT fail the gate, which is why the real token is the one tested.
 
 # the green log after the revert is PR #1's own run on the same tree (35174756434, success) plus the
 # clean-clone run of 1.0; the throwaway branch was closed without merge and deleted.

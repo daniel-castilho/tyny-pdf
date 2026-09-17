@@ -28,8 +28,8 @@ in this epic has been executed yet.
 - [ ] Run the first CI iteration on the PR until `gates` is green, recording the job matrix in
   the PR body (a run that never reached a failure is not a green check)
 - [ ] Prove the gate bites: on a throwaway branch, break one fixture (two-space indentation in a
-      `.tynypdf.json` name) or introduce one `Tyny Pulse` token, show the red job log, then revert;
-      paste both logs
+      `.tynypdf.json` name) or introduce the retired brand token of `docs/naming.md`
+      `retired_tokens`, show the red job log, then revert; paste both logs
 - [ ] Attempt a direct push to `main` from a non-admin identity and paste the rejection -
       OWNER-PENDING: no second identity or token available (owner decision D-6,
       `analysis/decision-log.md`)
