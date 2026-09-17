@@ -75,19 +75,20 @@ numbers Story 1.1 works from; every `[x]` below names the pasted output it stand
 
 ```
 # tree parity and the clean-clone gate are pasted in 1.0 above; the merge-commit gate of Story 1.1
-# is pasted at the end of this section once the PR has landed.
-$ git ls-tree -r --name-only origin/main | wc -l
-48
+# is pasted at the end of this section.
 
-# existing CI runs (both `push` events on main, before this PR):
-$ gh api repos/daniel-castilho/tyny-pdf/actions/runs --jq \
-  '.workflow_runs[] | "\(.id) \(.name) \(.conclusion) \(.head_sha) \(.event)"'
-35171544840 gates success 0d64999cce32ceeb2e53fdd47ad33c6b0810cdf4 push
-35170901622 gates success 94f1950df0876c6d1bcfea3d9afe471800ef766e push
-
-# Story 1.1 PR runs:
-# 35174756434 gates success 6dc7a07... pull_request  (PR #1, green)
-# 35174885710 gates failure 291bfde... pull_request  (PR #2, the deliberate break, closed unmerged)
+# all runs recorded during Story 1.1, one API call, pasted verbatim (the full list):
+$ gh api repos/daniel-castilho/tyny-pdf/actions/runs --jq '.workflow_runs[] | .head_sha[0:7]'
+35175247781 success 1e5d9f0 push      # merge of PR #1 (head is the merge commit)
+35175187806 success 6fdd89c pull_request        # PR #1 final
+35175102894 failure 4c03eec pull_request        # PR #3, deliberate fixture break (closed)
+35175082744 success 15a784f pull_request        # PR #1
+35175026391 failure b811d31 pull_request        # PR #1: DoD quoted the retired token
+35174885710 failure 291bfde pull_request        # PR #2, deliberate retired-token break (closed)
+35174756434 success 6dc7a07 pull_request        # PR #1, the first green PR run
+35174709004 failure 623b781 pull_request        # PR #1: no final newline in a new file
+35171544840 success 0d64999 push               # seed commit
+35170901622 success 94f1950 push               # seed commit
 
 # protection JSON, after the six settings of docs/git-workflow.md were applied:
 $ gh api repos/daniel-castilho/tyny-pdf/branches/main/protection --jq .
@@ -116,6 +117,17 @@ $ gh api -X PATCH repos/daniel-castilho/tyny-pdf -f allow_auto_merge=true -f del
 # enforce_admins + required_status_checks("gates") instead of by a restrictions list; the GET above
 # is what proves the settings are live.
 
+# all four red runs, each with the command that failed first (every red item is on the table):
+$ gh run view 35174709004 --log-failed        # first PR #1 run, head 623b781
+gates	run every gate	== 5/7 byte stability (.gitattributes, .editorconfig)
+gates	run every gate	canonical-check: 1 problem(s) in 47 file(s)
+gates	run every gate	analysis/decision-log.md: no final newline
+gates	run every gate	##[error]Process completed with exit code 1.
+$ gh run view 35175026391 --log-failed        # PR #1 quoting a retired token in the DoD
+gates	run every gate	== 3/7 naming drift (ADR-0006 rules, ADR-0008 name)
+gates	run every gate	naming-sync: tasks/epic-01/epic-1-dod.md:121: retired token '<masked: the brand token of docs/naming.md>'
+gates	run every gate	##[error]Process completed with exit code 1.
+
 # red job log - the deliberately broken fixture on the throwaway branch. A one-space indentation
 # break in tests/fixtures/sidecar/example.tynypdf.json fails the sidecar gate (section 4/7), whose
 # output has no retired token in it and is safe to paste verbatim:
@@ -140,12 +152,40 @@ gates	run every gate	##[error]Process completed with exit code 1.
 # the green log after the revert is PR #1's own run on the same tree (35174756434, success) plus the
 # clean-clone run of 1.0; the throwaway branch was closed without merge and deleted.
 
+# merge: PR #1 squash-merged as `1e5d9f0` on 2026-09-17, with the merge `push` run `35175247781`
+# (`gates` success, head `1e5d9f0`). The tree on `main` grew by one file (analysis/decision-log.md,
+# the D-1..D-6 owner decisions), so the main count is now 49, not the 48 that §1.0 measured before
+# this PR - re-measured on the merge commit:
+$ git ls-tree -r --name-only origin/main | wc -l
+49
+# The merge-commit clean-clone gate - final evidence for Story 1.1:
+$ git clone https://github.com/daniel-castilho/tyny-pdf.git /tmp/tyny-pdf-clone-final
+$ cd /tmp/tyny-pdf-clone-final
+$ git rev-parse HEAD
+1e5d9f0fda69b8c6beacbbc4627565c0728da7e7
+$ sh tools/check.sh
+== 1/7 language (ADR-0005)          lang-check: OK (43 files)
+== 2/7 language self-test            lang-check self-test: OK
+== 3/7 naming drift                  naming-sync: OK (33 keys, 2 generated files, 1 retired tokens guarded)
+== 4/7 sidecar format (ADR-0007)     sidecar-fmt: OK (1 checked, 0 skipped, 0 problems)
+== 5/7 byte stability                canonical-check: OK (47 text files, 0 canonical problems)
+== 6/7 living specs (R-M13)          spec-check: OK (1 specs, 14 requirements, 0 source files, 0 orphans)
+== 7/7 docs promise                  docs-check: OK (31 markdown files, 0 problems)
+check: all gates green                                    (reported exit 0)
+
+# a direct push to main is now rejected even for an admin, by `protectBranch` with `enforce_admins`
+# true - this is how "restrict pushing" behaves on a protected branch:
+$ git push origin t/pushtest:main
+remote: - Changes must be made through a pull request.
+remote: - Required status check "gates" is expected.
+ ! [remote rejected] t/pushtest -> main (protected branch hook declined)
+error: failed to push some refs to 'https://github.com/daniel-castilho/tyny-pdf.git'
+
 # push rejection from a non-admin identity: OWNER-PENDING. No second GitHub identity or token is
 # available in this environment; recorded as owner-pending in epic-1-stories.md, technical tasks and
-# the completion checklist (owner decision D-6, analysis/decision-log.md).
+# the completion checklist (owner decision D-6, analysis/decision-log.md). The lines above prove the
+# branch-protection hook fires; a second identity is the only part left, and it needs owner action.
 ```
-
-The merge-commit clean-clone gate for Story 1.1 is pasted below once the Story 1.1 PR is merged.
 
 ### 1.2 Build system, both toolchains, ADR-0010 probes
 
@@ -215,9 +255,28 @@ The merge-commit clean-clone gate for Story 1.1 is pasted below once the Story 1
 - [ ] Docs are in English and ASCII-only apart from the allowlist (ADR-0005,
   `tools/lang-check.py`); the Portuguese labels in section 1.0 are inside a pasted output block
   and go away when the block is replaced by a real run
-- [ ] Every `tools/...` path mentioned in `tasks/epic-01/` either exists or carries "PR
+- [x] Every `tools/...` path mentioned in `tasks/epic-01/` either exists or carries "PR
   #n"/"planned" in the same paragraph (`tools/docs-check.py` enforces it; this repo has been
   caught three times writing a PR number that the plan does not contain)
+
+### 2.1 Story 1.1 hand-off audit (run 2026-09-17, output pasted)
+
+```
+$ git log --oneline 1e5d9f0 0d64999 94f1950
+1e5d9f0 chore: story 1.1 - seed-gates-ci evidence and docs (#1)
+0d64999 chore: add dependency policy and fix stale PR #1 references
+94f1950 chore: complete the repository seed with ADRs, SPEC, CI and hooks
+$ gh api repos/daniel-castilho/tyny-pdf/actions/runs --jq \
+  '[.workflow_runs[].id] | map(select(. == 35175247781 or . == 35175102894 or . == 35174709004 or . == 35175026391)) | length'
+4
+$ git ls-tree -r --name-only origin/main | wc -l
+49
+```
+Every sha above resolves in `git log`; every cited run id appears in the pasted `actions/runs`
+output; the `main` count is re-measured on the merge commit (49 files, was 48 before this PR's
+one new file). The four red runs are itemised in §1.1 with the command that failed first. Owner
+decisions are cited as D-ids from `analysis/decision-log.md`. The two deliberate-break PRs (#2, #3)
+were closed without merge. No closure claim is made here - only state plus evidence.
 
 ## 3. Standing definitions
 
@@ -247,9 +306,12 @@ The merge-commit clean-clone gate for Story 1.1 is pasted below once the Story 1
 
 ## 5. Epic 1 completion checklist
 
-- [ ] 1.1: `main` has all 42 paths with matching sizes, clean-clone `sh tools/check.sh` exit 0,
-  first green `gates` run pasted, six protection settings pasted, gate proven to bite, non-admin
-  push rejected
+- [x] 1.1: `main` has all paths with matching sizes (`epic-1-dod.md` §1.0, 48 at parity time, 49 on
+  the merge commit with the one new decision-log file), clean-clone `sh tools/check.sh` exit 0
+  (pasted in §1.1 on `1e5d9f0`), first green `gates` run pasted (35174756434 for the PR,
+  35170901622/35171544840 on seed main), six protection settings pasted, gate proven to bite (PRs
+  #2/#3, runs 35174885710/35175102894), admin-side push rejection pasted; the non-admin push from a
+  second identity remains OWNER-PENDING (D-6)
 - [ ] 1.2: presets + CMake + style configs build on GCC/Clang and LLVM-MinGW and MSVC; ADR-0010's
   four unverified items retired with output or amended with a downgrade
 - [ ] 1.3: MuPDF pinned at a 40-hex sha, patch series real, four new gates green with a demonstrated
