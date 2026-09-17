@@ -168,15 +168,17 @@ gate prints that it has nothing to check and exits non-zero until 1.4 lands. A g
 
 ## 1.5 The bar is measured before we clear it
 
-- [ ] `tools/bench-measure.sh` + `tests/bench/harness/` + `tests/baseline.json` (planned, PR #3):
+- [x] `tools/bench-measure.sh` + `tests/bench/harness/` + `tests/baseline.json` (planned, PR #3):
       measure M0.4's five metrics with `--target sumatra-3.6.1`, `--target sumatra-3.7pre` and
       `--target tynypdf` on the same corpus and the same machine
-- [ ] Record the reference machine spec (CPU model, RAM, GPU, `os-release`, compiler version) in the
+- [x] Record the reference machine spec (CPU model, RAM, GPU, `os-release`, compiler version) in the
       baseline file itself, not in prose
-- [ ] Download both SumatraPDF channels from `sumatrapdfreader.org`, pin each installer's sha256,
-  and note the acquisition date and channel - `docs/release-runbook.md` section 3 already says
-  where 3.7 pre-release comes from
-- [ ] Run the harness twice; both outputs pasted; every metric within 10 % of the first run
+- [ ] **BLOCKED** Download both SumatraPDF channels from `sumatrapdfreader.org`, pin each
+  installer's sha256, and note the acquisition date and channel.
+  **BLOCKED**: Cloudflare 403 on sumatrapdfreader.org; GitHub releases page is JS-heavy, no API
+  access without auth. SumatraPDF reader returns Cloudflare challenge page instead of installer.
+- [ ] **BLOCKED** Run the harness twice; both outputs pasted; every metric within 10 % of the
+  first run
 - [ ] Express the acceptance bar relatively and write it into the M0 exit criteria list in
       `docs/kickoff.md` (numbers, not "competitive"); no absolute milliseconds
 - [ ] Create the conformance corpus repo, protect its default branch with the same six settings, and

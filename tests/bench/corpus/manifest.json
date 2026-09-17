@@ -1,0 +1,33 @@
+{
+  "valid": true,
+  "files": [
+    {
+      "path": "multipage.pdf",
+      "size": 971,
+      "sha256": "9a96e285661504cf28be470446ce6aa7612ec496cbae235e7c1248fdfd7e1334",
+      "valid": true
+    },
+    {
+      "path": "simple.pdf",
+      "size": 473,
+      "sha256": "45cbed3ec83ecfe9ae3c435594f507c2701233e54d2e802a59b15c85f46f5548",
+      "valid": true
+    },
+    {
+      "path": "text.pdf",
+      "size": 823,
+      "sha256": "68a3594e628925bdd20446b9d5413122eb0991abab8c3493a39925852c4a3a8f",
+      "valid": true
+    }
+  ],
+  "errors": [],
+  "warnings": [
+    "No manifest.txt found"
+  ],
+  "stats": {
+    "total_files": 3,
+    "total_size": 2267,
+    "valid_pdfs": 3,
+    "invalid_pdfs": 0
+  }
+}
