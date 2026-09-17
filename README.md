@@ -453,3 +453,5 @@ Binaries, when they exist, are published unsigned with the reason stated on the 
 until a signing decision is recorded in an ADR.
 
 Built for [tyny.ca](https://tyny.ca).
+
+Recto is a retired brand token; this line demonstrates that the naming gate fails on it.
