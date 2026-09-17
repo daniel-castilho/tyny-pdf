@@ -18,7 +18,7 @@ disagree, CI is right and this page is a bug.
 sanitizers is what a 16 GB laptop feels first, and WSL2's default balloon is too generous for the
 parallel jobs CI emulates locally.
 
-## Toolchain pins (measured, Story 1.1)
+## Toolchain pins (measured, Stories 1.1-1.2)
 
 Each version below was printed by the tool itself on the day it was recorded; a row whose tool is
 not installed says so and names the PR that installs it. Versions are deliberately not a range: a
@@ -27,25 +27,30 @@ not installed says so and names the PR that installs it. Versions are deliberate
 | Tool | Version / pin | State | Notes |
 | --- | --- | --- | --- |
 | `git` | 2.43.0 | installed | `git --version` |
-| `cmake` | 3.28.3 | installed | below `README.md`'s >= 3.30 requirement; upgrade in PR #2 |
+| `cmake` | 3.31.6 | installed | `pipx install cmake==3.31.6`; `/usr/bin/cmake` stays 3.28.3 (apt), the pitx one is first on PATH. Recorded while 3.31.6 was the current release; CI jsonschema/cmake pins match this box exactly |
 | `ninja` | 1.11.1 | installed | `ninja --version` |
 | `python3` | 3.12.3 | installed | `python3 --version` |
 | `clang` / `clang++` | 18.1.3 (Ubuntu) | installed | `clang --version` |
 | `g++` | 13.3.0 (Ubuntu) | installed | `g++ --version` |
-| `clang-format` | - | not installed | install task in PR #2 |
-| `clang-tidy` | - | not installed | install task in PR #2 |
-| `conan` (2.x) | - | not installed | install task in PR #2 |
-| `doxygen` | - | not installed | install task in PR #2 |
-| LLVM-MinGW | tarball | not installed | `third_party/toolchains/llvm-mingw.sha256` + PR #2; unpacked under `~/.toolchains/` |
+| `clang-format` | 18.1.3 | installed | `clang-format --version`; format gate `tools/format-check.sh` with `--self-test` |
+| `clang-tidy` | 18.1.3 | installed | `clang-tidy --version`; first real run lands with story 1.4's code |
+| `conan` (2.x) | 2.32.0 | installed | `conan --version`, via pipx; graph locked by `conan.lock` (ADR-0004) |
+| `doxygen` | - | not installed | first needed by the docs build in story 1.4; not promised before then |
+| LLVM-MinGW | 20260812-ucrt-ubuntu-22.04-x86_64 (clang 23.1.0-rc3) | installed | tarball under `~/.toolchains/llvm-mingw-20260812-ucrt-ubuntu-22.04-x86_64/`, hash of `bin/clang` in `third_party/toolchains/llvm-mingw.sha256`, version pinned in `CMakePresets.json`; verified by CI in the `windows-mingw-cross` job |
 | MSVC v143 + Windows SDK | Windows-side | not installed | the `windows-msvc` CI job is the parity path; local install optional (ADR-0010) |
 
 ## One-time setup
 
 ```sh
 # in Ubuntu (WSL2)
-sudo apt update && sudo apt install -y git cmake ninja-build python3 python3-pip \
+sudo apt update && sudo apt install -y git ninja-build python3 python3-pip \
   clang-format clang-tidy build-essential python3-jsonschema
-pipx install conan || python3 -m pip install --user conan
+pipx install cmake==3.31.6
+pipx install conan==2.32.0
+# LLVM-MinGW: /usr/local/bin must win the PATH race against the apt cmake (3.28.3).
+sudo ln -sf ~/.local/pipx/venvs/cmake/bin/cmake /usr/local/bin/cmake
+sudo ln -sf ~/.local/pipx/venvs/cmake/bin/ctest /usr/local/bin/ctest
+sudo ln -sf ~/.local/pipx/venvs/cmake/bin/cpack /usr/local/bin/cpack
 git clone git@github.com:daniel-castilho/tyny-pdf.git ~/projects/tyny-pdf
 cd ~/projects/tyny-pdf
 git config core.autocrlf false
@@ -53,11 +58,15 @@ git config core.fileMode false
 git config core.hooksPath .githooks
 chmod +x tools/*.sh tools/*.py .githooks/*   # git preserves the exec bit; re-apply after a fresh clone of a seed that lost it
 python3 tools/naming-sync.py write && sh tools/check.sh
+sha256sum ~/.toolchains/llvm-mingw-*/bin/clang   # must equal third_party/toolchains/llvm-mingw.sha256
 ```
 
-The toolchain pin is a hash, not a name:
+The toolchain pin is a hash, not a name, and the hash is of the compiler binary, not of the
+tarball label - a different build of the same named release trips it, which is the point:
 
 ```sh
+curl -L -O https://github.com/mstorsjo/llvm-mingw/releases/download/20260812/llvm-mingw-20260812-ucrt-ubuntu-22.04-x86_64.tar.xz
+tar -xJf llvm-mingw-20260812-ucrt-ubuntu-22.04-x86_64.tar.xz -C ~/.toolchains
 sha256sum ~/.toolchains/llvm-mingw-*/bin/clang | sed 's|.*: ||'   # compare with third_party/toolchains/llvm-mingw.sha256
 ```
 

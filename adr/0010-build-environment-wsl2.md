@@ -103,18 +103,25 @@ become a silent build failure mode for a repository whose whole value is a corpu
 delta-compress well anyway. (The exact free-tier LFS numbers were not verified here and do not
 matter once the decision is "no LFS".)
 
-## Assumptions that PR #2 must retire (not verified in the planning sandbox)
+## Assumptions retired by PR #2 (measured, 2026-09-16, `tools/win-probe/`)
 
-| Assumption | Probe (a 10-minute job, before anything else is built on top of it) |
-| --- | --- |
-| MinGW ships the Direct2D/DirectWrite/D3D11/DXGI headers we need, at a usable revision | `tools/win-probe/` : one translation unit including `d2d1_1.h`, `dwrite_2.h`, `d3d11_1.h`, `dxgi1_4.h`, instantiating `D2D1_RENDER_TARGET_PROPERTIES` and a swapchain descriptor, then linking with `-ld2d1 -ldwrite -ld3d11 -ldxgi` |
-| A static runtime is actually static (no `libstdc++-6.dll`, no VC++ redist) | `x86_64-w64-mingw32-g++ -static` on the probe, then `objdump -p a.exe \| grep 'DLL Name'` and the result must be only system DLLs (`KERNEL32`, `USER32`, `GDI32`, ...) |
-| The same CMake target builds under both toolchains | add `windows-msvc` to CI in the same PR, not the next one |
-| WSL interop runs the GUI binary with a real GPU adapter | the probe window must report the adapter LUID it got; if it reports the software rasteriser, M1 timing is measured on the Windows session only |
+Each row was a scheduled check in the planning sandbox (no MinGW, no root there). PR #2
+runs the four probes and records what came back; the "planning sandbox" footnote below is
+kept so the table reads as history and not as a claim about that machine.
 
-The sandbox used to write these decisions has no MinGW and no root
+| Assumption | Probe | Result (this machine, cross → interop) |
+| --- | --- | --- |
+| MinGW ships the Direct2D/DirectWrite/D3D11/DXGI headers we need, at a usable revision | `d2d_probe.c` including `d2d1_3.h`, `dwrite_3.h`, `d3d11.h`, `dxgi1_6.h`, linking `-ld2d1 -ldwrite -ld3d11 -ldxgi`, factories created at runtime | PASS. MinGW headers (LLVM-MinGW 20260812, clang 23.1.0-rc3) expose `ID2D1Factory7`/`IDWriteFactory7`/`IDXGIFactory6`; all four factories create through WSL interop; first adapter `0x10DE:0x2560`, 5994 MB dedicated. Two measured surprises: the versioned `dwrite_*.h` do not chain (each must be included in order) and the factory7-era interfaces sit behind `NTDDI_VERSION` guards whose C-mode declarations are MingW `/* FIXME */` stubs - so `d2d_probe.c` keeps its name but compiles as C++ (see its CMake comment) |
+| A static runtime is actually static (no `libstdc++-6.dll`, no VC++ redist) | `runtime_probe.c` with `-static` (LLVM-MinGW) / `/MT` (MSVC), import table listed | PASS. `objdump -p winprobe_runtime.exe`: only `KERNEL32.dll` and the `api-ms-win-crt-*` api-set (system) appear; the probe also refuses to start if a compiler runtime DLL is mapped. MSVC `/MT` is enforced via `MSVC_RUNTIME_LIBRARY` and verified by `dumpbin /DEPENDENTS` in the `windows-msvc` CI job |
+| The same CMake target builds under both toolchains | `abi_probe.cc` mirroring the story 1.4 `pc_*` surface, `nm -C --defined-only` diffed | PASS (host vs cross). `pc_doc_open`, `pc_doc_close`, `pc_doc_page_count`, `pc_page_render` both sides, symbol tables identical. The `windows-msvc` CI job (added in the same PR) builds the same `winprobe_test` aggregate from the same source |
+| WSL interop runs the GUI binary with a real GPU adapter | `gpu_probe.cpp` via `CreateDXGIFactory1` + `EnumAdapters1` + `D3D11CreateDevice` | PASS. Two hardware adapters enumerate (NVIDIA `0x10DE:0x2560`, AMD `0x1002:0x1681`) plus the Microsoft software rasteriser (`0x1414`); device creates at `D3D_FEATURE_LEVEL_11_0`. A machine with only the software adapter makes the probe exit 2, which is the signal to change the GPU story - so the CI job treats the probe as informational and the hardware claim stays measured on this box |
+
+The planning sandbox used to write these decisions had no MinGW and no root
 (`apt-get install g++-mingw-w64-x86-64` -> `dpkg lock ... are you root?`; package candidate
-14.2.0 exists but is not installable here), so the table is a scheduled check and not a claim.
+14.2.0 exists but was not installable there), which is why the table above is a result and
+not a claim. The toolchain hash recorded in `third_party/toolchains/llvm-mingw.sha256`
+verified in CI by hashing the extracted `bin/clang` - the pin is the compiler, not a
+tarball label.
 
 ## Consequences
 

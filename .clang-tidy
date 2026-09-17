@@ -1,0 +1,42 @@
+# Static analysis configuration (docs/coding-standards.md section 12). Checks are strict:
+# a finding is an error, and a suppression needs a comment naming the diagnostic id and
+# why it is wrong here. The broad patterns below are expected to tighten on the first
+# real code (story 1.4) - the point of the seed config is that the tool runs and fails
+# loudly, not that its early blacklist is perfect.
+Checks: >-
+  clang-analyzer-*,
+  clang-diagnostic-*,
+  bugprone-*,
+  performance-*,
+  portability-*,
+  modernize-*,
+  misc-*,
+  readability-*,
+  cppcoreguidelines-*,
+  -bugprone-easily-swappable-parameters,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-pro-type-vararg,
+  -misc-no-recursion,
+  -readability-magic-numbers,
+  -readability-named-parameter,
+  -readability-suspicious-call-argument
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*'
+CheckOptions:
+  - key: readability-identifier-naming.FunctionCase
+    value: lower_case
+  - key: readability-identifier-naming.VariableCase
+    value: lower_case
+  - key: readability-identifier-naming.LocalVariableCase
+    value: lower_case
+  - key: readability-identifier-naming.TypeCase
+    value: PascalCase
+  - key: readability-identifier-naming.ClassCase
+    value: PascalCase
+  - key: readability-identifier-naming.StructCase
+    value: PascalCase
+  - key: readability-identifier-naming.MemberCase
+    value: lower_case
+  - key: readability-identifier-naming.MemberSuffix
+    value: _

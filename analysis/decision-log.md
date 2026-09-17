@@ -41,3 +41,13 @@ host Windows + maquina de referencia".
 Owner decided the direct-push rejection proof (Story 1.1 AC) is documented as a pending owner item
 rather than fabricated with a second identity. Answered in-session: "Documentar como pendencia de
 dono".
+
+## D-7 (2026-09-17) - Story 1.2 ships probe targets; the product exe is Story 1.4
+
+Owner decided the Artifact Producing/Cross-building AC of Story 1.2 is scoped by what PR #2 can
+honestly build: the CMake presets must produce the ADR-0010 probe executables in
+`build/win-cross-x64/Release/`, and the executable that carries `artifact_stem: tynypdf` is a Story
+1.4 delivery, matching `AGENTS.md` debt item 1 and the M0/Roadmap rows. A build that produces a
+Do-Nothing `tynypdf.exe` would prove tooling about nothing; the probes are the only meaningful
+targets until Story 1.4 lands. Story 1.2 AC wording and `tasks/epic-01/epic-1-technical-tasks.md`
+were amended accordingly in PR #2.

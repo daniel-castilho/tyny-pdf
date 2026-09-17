@@ -1,0 +1,17 @@
+# House style (docs/coding-standards.md section 11): a small, deliberate delta over
+# Google's LLVM-adjacent defaults. The tool that matters is the format gate:
+#   clang-format --dry-run -Werror <files>
+# run by tools/format-check.sh, by the pre-commit hook, and by CI. A style that needs a
+# longer file than this is a style that needs an ADR.
+BasedOnStyle: Google
+IndentWidth: 2
+ColumnLimit: 100
+PointerAlignment: Left
+DerivePointerAlignment: false
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+NamespaceIndentation: None
+AllowShortFunctionsOnASingleLine: InlineOnly
+AllowShortIfStatementsOnASingleLine: false
+EmptyLineBeforeAccessModifier: Always
+FixNamespaceComments: true

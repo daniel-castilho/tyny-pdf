@@ -111,14 +111,19 @@ because the directory does not exist is **not** a pass. Claiming one is a pass i
 | **Spec shape and requirement traceability** | `python3 tools/spec-check.py`                                     | `Root` (today)               |
 | **Docs may only promise what exists**       | `python3 tools/docs-check.py`                                     | `Root` (today)               |
 | **Byte stability of the tree**              | `sh tools/canonical-check.sh`                                     | `Root` (today)               |
+| **Formatting gate**                         | `sh tools/format-check.sh`                                        | `Root` (today)               |
 | **A gate's own self-test**                  | `--self-test` (lang, spec, docs) or `self-test` (naming, sidecar) | `Root` (today)               |
-| **Configure and build the core**            | `cmake --preset linux-core && cmake --build --preset linux-core`  | `CMakeLists.txt` (M0, PR #2) |
-| **Run unit and contract tests**             | `ctest --preset linux-core --output-on-failure`                   | `tests/` (M0)                |
-| **Cross-build the Windows binary**          | `cmake --preset win-cross-x64`                                    | `CMakePresets.json` (M0)     |
-| **Run the viewer through WSL interop**      | `./build/win-cross-x64/Release/tynypdf.exe ~/tmp/sample.pdf`      | Windows process (M0)         |
+| **Configure and build the core**            | `cmake --preset linux-core && cmake --build --preset linux-core`  | `Root` (today)              |
+| **Run unit and contract tests**             | `ctest --preset linux-core --output-on-failure`                   | `Root` (today)              |
+| **Cross-build the Windows target**          | `cmake --preset win-cross-x64`                                    | `Root` (today)              |
+| **Run the ADR-0010 probes in CI's order**   | `tools/win-probe/build.sh`                                        | `Root` (today)              |
+| **Run the viewer through WSL interop**      | `./build/win-cross-x64/Release/tynypdf.exe ~/tmp/sample.pdf`      | Windows process (M0)        |
 
 Every row marked `(today)` was run for the seed and is reproducible in a clean checkout; the rows
 marked `M0` name artefacts that do not exist yet, which is why they cite the PR that writes them.
+The build rows became `(today)` in PR #2 together with `CMakeLists.txt`, `CMakePresets.json`,
+`tools/win-probe/` and the CI matrix; the `tynypdf.exe` row stays `M0` because the product binary
+is delivered by story 1.4/1.5.
 
 ---
 
@@ -255,19 +260,22 @@ Generated-by: agent (implementation); verified-by: owner (criteria and merge)
 Nothing here is "resolved" - the project has not shipped a line of code. Do not silently add an
 item; flag it in the PR and open it here with the number that measures it.
 
-1. **No build system yet:** `CMakeLists.txt`, `CMakePresets.json`, the Conan graph and the style
-   configs arrive with PR #2, which is the PR that defines the CI matrix in terms of them (the
-   header comment of `.github/workflows/gates.yml` records that pairing); PR #5 is the first PR
-   that puts a target worth building into it. Every `M0` row above is blocked on this.
-2. **Only the docs-gates job has run:** `.github/workflows/gates.yml` ran `success` twice on `main`
-   (run `35170901622` at `94f1950`, run `35171544840` at `0d64999`), but the build matrix
-   (`core-linux`, `windows-msvc`, `windows-mingw-cross`) arrives with PR #2 and has never executed;
-   a run that never built a target is not release evidence. No status badge may appear in
-   `README.md` until a job that can fail on bad code exists.
-3. **Four unverified toolchain claims** (Direct2D/DirectWrite headers, a truly static runtime, the
-   same target under both toolchains, GPU adapter through WSL interop) stay open until
-   `tools/win-probe/` (planned, PR #2) runs; the list is ADR-0010's own, and until it is executed
-   ADR-0010 states those properties as expected, not demonstrated.
+1. **The build system landed but builds no product yet:** PR #2 shipped `CMakeLists.txt`,
+   `CMakePresets.json`, the Conan graph (`conanfile.py` + `conan.lock`), the style configs and
+   `tools/win-probe/`, and made the CI matrix (`core-linux`, `windows-mingw-cross`, `windows-msvc`)
+   run them. The only real targets today are the probe executables: a build of
+   `tynypdf-core`/`tynypdf.exe` is story 1.4's delivery (task 1.4 wires the first target worth
+   shipping). Until then every green matrix run proves tooling, not product.
+2. **Only the doc gates and the matrix's first runs are recorded:** `gates` ran green on `main`
+   since run `35170901622` (at `94f1950`) and `35171544840` (at `0d64999`); the build matrix
+   arrived with PR #2 and its jobs run on every PR. The runs that built a target are still few;
+   treat them as the start of the record, not the record. No status badge may appear in `README.md`
+   until a job that can fail on bad code has failed on bad code.
+3. **The four toolchain claims are measured, not open:** PR #2 ran `tools/win-probe/` and moved
+   the ADR-0010 assumption table into results (headers link and factories create; static runtime
+   holds in import tables; the host/cross symbol tables are identical; a hardware GPU adapter and
+   a `D3D_FEATURE_LEVEL` were observed through WSL interop). What stays open is version drift of
+   the pinned toolchain - the hash gate catches it, CI verifies it each run.
 4. **Ten SPEC requirements have no artefact** (R2.2, R2.3, R3.1, R3.2, R4.1, R4.2, R5.1, R5.2, R6.1,
    R6.2); four are enforced by committed tools today. `tools/spec-check.py` prints the list on every
    run, so the debt cannot be forgotten by scrolling past it.

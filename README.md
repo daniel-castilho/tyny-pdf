@@ -14,8 +14,10 @@ versioned and audited, and the document model is a published library (`pdfcore`,
 headless companion CLI (`tynypdf-cli`). The bet is that a PDF tool should not need you: it should
 not watch you, not upload your files, and not hide your marks inside a binary only it can read.
 
-There is deliberately **no build or test-status badge**: the repository has no CI history yet, and a
-badge that cannot fail is decoration. It gets added when `gates` has run green on `main`.
+There is deliberately **no build or test-status badge**: the workflow runs today (docs gates since
+story 1.1, the four-job matrix since story 1.2), but a badge would be measuring tooling unless it
+waits for a job that has actually failed on bad code - which hasn't happened yet. It gets added the
+day a build job fails on a real defect.
 
 Official Domain: [https://tyny.ca](https://tyny.ca) (registered; DNS records are not configured yet,
 and nothing in the product requires them).
@@ -165,16 +167,21 @@ tyny-pdf/
 Development happens in **Ubuntu under WSL2** (or any Linux); the shipped binary is Windows, and it
 runs from the same shell through WSL interop.
 
-- **Linux (WSL2):** `git`, CMake >= 3.30, Ninja, Python 3.11+ with `jsonschema`, `clang-format`,
-  `clang-tidy`, Conan 2.
+- **Linux (WSL2):** `git`, Ninja, Python 3.11+ with `jsonschema`, `clang-format`, `clang-tidy`,
+  Conan 2, and CMake >= 3.30 (pinned as `cmake==3.31.6` via pipx - see
+  [docs/dev-environment.md](docs/dev-environment.md) for the exact pins that CI matches).
   ```bash
   sudo apt update
-  sudo apt install -y git cmake ninja-build python3 python3-jsonschema \
+  sudo apt install -y git ninja-build python3 python3-jsonschema \
     clang-format clang-tidy build-essential
+  pipx install cmake==3.31.6
+  pipx install conan==2.32.0
   ```
 - **Cross toolchain (builds `tynypdf.exe` on Linux):** LLVM-MinGW, pinned by tarball under
-  `third_party/toolchains/` with its SHA-256 recorded. Ubuntu's `g++-mingw-w64-x86-64` is the
-  alternative; see [ADR-0010](adr/0010-build-environment-wsl2.md) for which claim is verified where.
+  `third_party/toolchains/` with the SHA-256 of its `bin/clang` recorded and verified by CI.
+  Ubuntu's `g++-mingw-w64-x86-64` is the alternative; see
+  [ADR-0010](adr/0010-build-environment-wsl2.md), whose four toolchain claims are measured, not
+  assumed.
 - **Windows side (only for what cannot be simulated):** Visual Studio Build Tools (MSVC v143 +
   Windows SDK) for the CI-parity build, WinDbg, NVDA, and the printers used by the acceptance list.
 - **Suggested `~/.wslconfig` on a 16 GB laptop:** `memory=12GB`, `processors=8`, `swap=0`.
@@ -204,18 +211,26 @@ python3 -m pip install --user jsonschema
 
 ```bash
 sh tools/check.sh
+sh tools/format-check.sh
 ```
 
-Expected on a clean tree: seven numbered sections, all OK, and `check: all gates green`. This works
-today; the product does not exist yet, which is what the Roadmap is for.
+Expected on a clean tree: six numbered sections plus the byte-stability check, all OK, and
+`check: all gates green`, followed by the format check's silent pass. This works today; the product
+does not exist yet, which is what the Roadmap is for.
 
-### 4. Build the core (available from M0, not before)
+### 4. Build the core
+
+The build system exists since PR #2 (CMake presets, style configs, the pinned cross toolchain and
+the ADR-0010 probes). The first product targets (`pdfcore`, `tynypdf`/`tynypdf-cli`) land with story
+1.4; today the presets build the probe executables, which are the tooling that verified the
+toolchain claims:
 
 ```bash
 cmake --preset linux-core && cmake --build --preset linux-core
 ctest --preset linux-core --output-on-failure
 cmake --preset win-cross-x64 && cmake --build --preset win-cross-x64
-./build/win-cross-x64/Release/tynypdf.exe document.pdf    # WSL interop: real Windows process
+tools/win-probe/build.sh
+./build/win-cross-x64/Release/winprobe_gpu.exe    # WSL interop: real hardware adapter or exit 2
 ```
 
 ---
