@@ -190,12 +190,88 @@ error: failed to push some refs to 'https://github.com/daniel-castilho/tyny-pdf.
 ### 1.2 Build system, both toolchains, ADR-0010 probes
 
 ```
-# paste: cmake --preset linux-core && cmake --build --preset linux-core && ctest --preset linux-core
-# paste: cmake --preset win-cross-x64 ... && file build/win-cross-x64/Release/tynypdf.exe
-# paste: objdump -p tynypdf.exe (LLVM-MinGW) and dumpbin /dependents tynypdf.exe (MSVC)
-# paste: the two nm -C --defined-only outputs and their diff (empty diff, pasted anyway)
-# paste: gpu_probe stdout (adapter LUID + D3D_FEATURE_LEVEL)
-# paste: the amended ADR-0010 lines where an assumption became a result
+$ cmake --preset linux-core && cmake --build --preset linux-core && ctest --preset linux-core
+Preset CMake variables:
+  CMAKE_BUILD_TYPE="Debug"
+  CMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+  CMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+  CMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+  CMAKE_SHARED_LINKER_FLAGS="-fsanitize=address,undefined"
+-- src/core: no sources yet (pdfcore arrives with story 1.4)
+-- src/backends/null: no sources yet (arrives with story 1.4)
+-- src/app: no sources yet (tynypdf arrives with story 1.4)
+-- src/cli: no sources yet (tynypdf-cli arrives with story 1.4)
+-- tests: no tests yet (unit and contract suites arrive with story 1.4)
+-- Configuring done (0.0s) -- Generating done (0.0s)
+# build: ninja reports no work on repeat (incremental), first build wrote libtynypdf-abi-probe.a
+$ ctest --preset linux-core --output-on-failure
+Test project .../build/linux-core
+No tests were found!!!        # honest: the suite arrives with story 1.4
+ctest exit=0
+
+$ nm -C --defined-only build/linux-core/Debug/libtynypdf-abi-probe.a   (T symbols)
+T pc_doc_close
+T pc_doc_open
+T pc_doc_page_count
+T pc_page_render
+$ nm -C --defined-only build/win-cross-x64/Release/libtynypdf-abi-probe.a   (T symbols)
+T pc_doc_close
+T pc_doc_open
+T pc_doc_page_count
+T pc_page_render
+$ diff host-cross nm outputs && echo DIFF CLEAN
+DIFF CLEAN (exit 0)
+
+$ cmake --preset win-cross-x64 && cmake --build --preset win-cross-x64
+# targets produced in build/win-cross-x64/Release/:
+$ ls build/win-cross-x64/Release/
+libtynypdf-abi-probe.a  winprobe_d2d.exe  winprobe_gpu.exe  winprobe_runtime.exe
+$ file build/win-cross-x64/Release/winprobe_runtime.exe build/win-cross-x64/Release/winprobe_d2d.exe
+winprobe_runtime.exe: PE32+ executable (console) x86-64, for MS Windows
+winprobe_d2d.exe:     PE32+ executable (console) x86-64, for MS Windows
+# the exe that carries the artifact_stem "tynypdf" is story 1.4's delivery (AGENTS.md debt item 1);
+# PR #2 ships the probe targets only - re-scope recorded in analysis/decision-log.md D-7
+
+$ objdump -p build/win-cross-x64/Release/winprobe_runtime.exe | grep 'DLL Name'
+      DLL Name: KERNEL32.dll
+      DLL Name: api-ms-win-crt-stdio-l1-1-0.dll      # only System32 + static-UCRT forwarding
+      DLL Name: api-ms-win-crt-runtime-l1-1-0.dll    # no VCRUNTIME/UCrtBase, no MSVCP
+      DLL Name: api-ms-win-crt-locale-l1-1-0.dll
+      DLL Name: api-ms-win-crt-heap-l1-1-0.dll
+      DLL Name: api-ms-win-crt-private-l1-1-0.dll
+      DLL Name: api-ms-win-crt-string-l1-1-0.dll
+      DLL Name: api-ms-win-crt-math-l1-1-0.dll
+      DLL Name: api-ms-win-crt-environment-l1-1-0.dll
+# dumpbin /dependents on windows-msvc records the same class; run id pasted under Epic gates
+
+$ ./build/win-cross-x64/Release/winprobe_runtime.exe          # WSL interop, real Windows process
+runtime_probe: PASS - no compiler runtime DLL mapped, static link holds
+runtime exit=0
+
+$ ./build/win-cross-x64/Release/winprobe_d2d.exe
+d2d_probe: D2D1CreateFactory            0x00000000  ok
+d2d_probe: DWriteCreateFactory          0x00000000  ok
+d2d_probe: D3D11CreateDevice(hardware)  0x00000000  ok
+d2d_probe: CreateDXGIFactory1           0x00000000  ok
+d2d_probe: adapter 0 vendor=0x10DE device=0x2560 dedicated=5994 MB flags=0x0
+d2d_probe: PASS (D2D factory ok, DWrite factory ok)
+d2d exit=0
+
+$ ./build/win-cross-x64/Release/winprobe_gpu.exe
+gpu_probe: adapter 0 vendor=0x10DE device=0x2560 type=hardware dedicated=5994 MB luid=00000000-000115D6
+gpu_probe: adapter 1 vendor=0x1002 device=0x1681 type=hardware dedicated=485  MB luid=00000000-00012506
+gpu_probe: adapter 2 vendor=0x1414 device=0x008C type=software  dedicated=0    MB luid=00000000-00012478
+gpu_probe: device feature level 0xB000
+gpu_probe: PASS - hardware adapter + device
+gpu exit=0
+# note: DXGI always enumerates the Microsoft Basic Render Driver (0x1414) as a fallback
+# adapter; the created device bound the hardware adapter (feature level 0xB000 =
+# D3D_FEATURE_LEVEL_11_0), which is the hardware path ADR-0010 needed to observe.
+
+# adr/0010-build-environment-wsl2.md: the four "Unverified" rows were replaced by
+# "Assumptions retired by PR #2 (measured, 2026-09-16, tools/win-probe/)" - one result per
+# claim (headers link + factories create / static runtime holds / host-cross symbol tables
+# identical / hardware adapter + feature level observed through WSL interop).
 ```
 
 ### 1.3 Engine pinned, four gates with teeth

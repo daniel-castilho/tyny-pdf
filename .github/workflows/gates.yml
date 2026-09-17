@@ -1,6 +1,17 @@
-# Documentation and format gates. The build matrix (core-linux, windows-msvc, windows-mingw-cross)
-# is wired up in PR #2 together with CMakeLists.txt; adding it before there is code to build would
-# produce a green job that proves nothing, which is the failure mode docs/lessons.md is about.
+# The gates: six repo checks with self-tests, the format check with its self-test, and
+# the build matrix (core-linux, windows-mingw-cross, windows-msvc) that arrived with PR
+# #2 together with CMakeLists.txt and CMakePresets.json. Every job in the matrix can fail
+# on bad code; a job that cannot fail is not a check (AGENTS.md, ADR-0010 section 3).
+#
+# Branch protection requires all four jobs on pull requests, strict, with a linear
+# history. Availability note: the matrix jobs are required contexts on main but run only
+# on pull requests and on pushes to main - a force-pushed main cannot exist here, so a
+# required job has no "skipped forever" path.
+#
+# Supply chain pins (docs/dependency-policy.md, E-1/E-2/E-3): actions are pinned by full
+# commit sha with the human-readable version as a comment; Python pins are exact and
+# explicit (no :=, no ~=). Conan resolves from conan.lock (ADR-0004).
+
 name: gates
 
 on:
@@ -16,14 +27,16 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      # actions/checkout v4.4.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
-      - uses: actions/setup-python@v5
+      # actions/setup-python v5.6.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.12'
 
-      - name: install dependencies
-        run: python3 -m pip install --quiet jsonschema
+      - name: install dependencies (pinned, E-1)
+        run: python3 -m pip install --quiet jsonschema==4.10.3
 
       - name: prove the gates can still detect problems
         run: |
@@ -33,14 +46,184 @@ jobs:
           python3 tools/naming-sync.py self-test
           python3 tools/spec-check.py --self-test
           python3 tools/docs-check.py --self-test
+          sh tools/format-check.sh --self-test
 
       - name: run every gate
-        run: sh tools/check.sh
+        run: |
+          set -e
+          sh tools/check.sh
+          sh tools/format-check.sh
 
       - name: worktree line endings match the index
         run: |
           set -e
-          if git ls-files --eol | grep -v 'i/lf[[:space:]]*w/lf' | grep -E '\.md|\.py|\.sh|\.json' ; then
+          if git ls-files --eol | grep -v 'i/lf[[:space:]]*w/lf' | grep -E '\.(md|py|sh|json)$' ; then
             echo 'text files with unexpected working-tree endings' >&2
             exit 1
           fi
+
+  core-linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      # actions/checkout v4.4.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: install ninja and the pinned cmake
+        run: |
+          set -e
+          sudo apt-get update -y
+          sudo apt-get install -y ninja-build
+          python3 -m pip install --quiet 'cmake==3.31.6'
+          export PATH="$HOME/.local/bin:$PATH"
+          cmake --version | head -1
+
+      - name: configure
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          cmake --preset linux-core
+
+      - name: build
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          cmake --build --preset linux-core
+
+      - name: test
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          ctest --preset linux-core
+
+  windows-mingw-cross:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      # actions/checkout v4.4.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: install ninja and the pinned cmake
+        run: |
+          set -e
+          sudo apt-get update -y
+          sudo apt-get install -y ninja-build g++ binutils
+          python3 -m pip install --quiet 'cmake==3.31.6'
+          export PATH="$HOME/.local/bin:$PATH"
+          cmake --version | head -1
+
+      - name: host abi probe (linux-core)
+        run: |
+          set -e
+          export PATH="$HOME/.local/bin:$PATH"
+          cmake --preset linux-core
+          cmake --build --preset linux-core --target tynypdf-abi-probe
+          nm -C --defined-only build/linux-core/Debug/libtynypdf-abi-probe.a \
+            | grep ' T ' | awk '{print $3}' | sort > /tmp/abi-host.txt
+          cat /tmp/abi-host.txt
+
+      - name: fetch pinned LLVM-MinGW and verify bin/clang
+        run: |
+          set -e
+          curl -L --fail --retry 3 -o /tmp/llvm-mingw.tar.xz \
+            https://github.com/mstorsjo/llvm-mingw/releases/download/20260812/llvm-mingw-20260812-ucrt-ubuntu-22.04-x86_64.tar.xz
+          tar -xJf /tmp/llvm-mingw.tar.xz -C /tmp
+          clang_bin=/tmp/llvm-mingw-20260812-ucrt-ubuntu-22.04-x86_64/bin/clang
+          echo "575f0f1528c2d619f87b50dca1d7a2895553fee6b27749238138f88493e26f91  $clang_bin" \
+            | sha256sum -c -
+
+      - name: cross abi probe and runtime imports (win-cross-x64)
+        run: |
+          set -e
+          export PATH="$HOME/.local/bin:$PATH"
+          export LLVM_MINGW_ROOT=/tmp/llvm-mingw-20260812-ucrt-ubuntu-22.04-x86_64
+          cmake --preset win-cross-x64
+          cmake --build --preset win-cross-x64
+          nm -C --defined-only build/win-cross-x64/Release/libtynypdf-abi-probe.a \
+            | grep ' T ' | awk '{print $3}' | sort > /tmp/abi-cross.txt
+          cat /tmp/abi-cross.txt
+          diff -u /tmp/abi-host.txt /tmp/abi-cross.txt && echo "ABI DIFF: IDENTICAL"
+          objdump -p build/win-cross-x64/Release/winprobe_runtime.exe \
+            | grep 'DLL Name' | sed 's/.*DLL Name: //' > /tmp/dlls.txt
+          cat /tmp/dlls.txt
+          if grep -E '^(libstdc\+\+-6|libgcc_s_seh-1|libwinpthread-1|vcruntime140|msvcp140)' /tmp/dlls.txt; then
+            echo 'compiler runtime DLL in import table' >&2
+            exit 1
+          fi
+          if grep -Ev '^(KERNEL32|USER32|GDI32|ADVAPI32|SHELL32|KERNELBASE|ucrtbase|api-ms-win-crt-[A-Za-z0-9-]+)\.dll$' /tmp/dlls.txt; then
+            echo 'non-system import in winprobe_runtime.exe' >&2
+            exit 1
+          fi
+          echo "RUNTIME IMPORTS: system32 only"
+
+  windows-msvc:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      # actions/checkout v4.4.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: ensure a cmake at or above 3.30 and a ninja
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $need = $false
+          try { if ((cmake --version).Split("`n")[0] -notmatch '^cmake version 3\.(3[0-9]|[4-9][0-9])') { $need = $true } }
+          catch { $need = $true }
+          if ($need) {
+            python -m pip install --quiet 'cmake==3.31.6'
+            $py = (python -c "import sys, os; print(os.path.dirname(sys.executable))")
+            $env:Path = "$py\Scripts;$env:Path"
+          }
+          cmake --version | Select-Object -First 1
+
+      - name: configure and build winprobe_test (MSVC, /MT runtime)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $devShell = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
+            -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+            -property installationPath
+          Import-Module (Join-Path $devShell 'Common7\Tools\Microsoft.VisualStudio.DevShell.dll')
+          Enter-VsDevShell -VsInstallPath $devShell -SkipAutomaticLocation -DevCmdArguments '-arch=x64'
+          $need = $false
+          try { if ((cmake --version).Split("`n")[0] -notmatch '^cmake version 3\.(3[0-9]|[4-9][0-9])') { $need = $true } }
+          catch { $need = $true }
+          if ($need) {
+            python -m pip install --quiet 'cmake==3.31.6'
+            $py = (python -c "import sys, os; print(os.path.dirname(sys.executable))")
+            $env:Path = "$py\Scripts;$env:Path"
+          }
+          # Ninja comes from pip so the job never depends on a runner image's VS generator
+          # name; the MSVC toolset itself comes from Enter-VsDevShell (cl.exe on PATH).
+          python -m pip install --quiet 'ninja==1.11.1.1'
+          $py = (python -c "import sys, os; print(os.path.dirname(sys.executable))")
+          $env:Path = "$py\Scripts;$env:Path"
+          ninja --version
+          cmake --preset windows-msvc
+          cmake --build --preset windows-msvc --target winprobe_test
+
+      - name: runtime imports (dumpbin) and probe runs
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $devShell = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
+            -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+            -property installationPath
+          Import-Module (Join-Path $devShell 'Common7\Tools\Microsoft.VisualStudio.DevShell.dll')
+          Enter-VsDevShell -VsInstallPath $devShell -SkipAutomaticLocation -DevCmdArguments '-arch=x64'
+          $deps = Join-Path $env:RUNNER_TEMP 'deps.txt'
+          dumpbin /DEPENDENTS "build\win-msvc\Release\winprobe_runtime.exe" > $deps
+          $dlls = Get-Content $deps | Where-Object { $_ -match '\.dll$' } | ForEach-Object { $_.Trim() }
+          $dlls | Sort-Object
+          $bad = $dlls | Where-Object {
+            $_ -match '^(libstdc\+\+-6|libgcc_s_seh-1|libwinpthread-1|vcruntime140|msvcp140)' -or
+            $_ -notmatch '^(KERNEL32|USER32|GDI32|ADVAPI32|SHELL32|KERNELBASE|ucrtbase|api-ms-win-crt-[A-Za-z0-9-]+)\.dll$'
+          }
+          if ($bad) { Write-Error "non-system import: $($bad -join ', ')"; exit 1 }
+          & "build\win-msvc\Release\winprobe_runtime.exe"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & "build\win-msvc\Release\winprobe_d2d.exe"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # gpu_probe is informational on hosted runners (no guarantee of a hardware
+          # adapter); the hardware claim is measured on the development box through WSL
+          # interop and recorded in epic-1-dod.md (ADR-0010 section 2, probe #4).
+          & "build\win-msvc\Release\winprobe_gpu.exe" | Write-Host
+          Write-Host "MSVC: static runtime + D2D surface verified"

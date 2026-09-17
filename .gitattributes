@@ -19,6 +19,7 @@
 *.txt  text eol=lf
 *.cmake text eol=lf
 *.in   text eol=lf
+*.sha256 text eol=lf
 .editorconfig  text eol=lf
 .gitattributes text eol=lf
 .gitignore     text eol=lf

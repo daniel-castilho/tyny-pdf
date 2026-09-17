@@ -1,4 +1,8 @@
-/build/
+# Build outputs, except the checked-in toolchain module (build/cmake/ is source,
+# referenced by CMakePresets.json and ADR-0010).
+/build/*
+!/build/cmake/
+!/build/cmake/**
 .env
 .env.*
 __pycache__/

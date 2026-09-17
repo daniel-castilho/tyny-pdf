@@ -6,11 +6,12 @@ the command that enforces it.
 
 **Official Domain:** [https://tyny.ca](https://tyny.ca) | **App ID:** `ca.tyny.pdf`
 
-> **Status of this file.** The repository is a seed: there is no `src/`, no `CMakeLists.txt` and no
-> `.clang-format` yet. That changes how a rule here is written, not whether it binds: each section
-> names what enforces it *today* (a committed script) and what will enforce it *from M0* (a compiler
-> flag, a CI job). A rule whose enforcement is marked `planned` is a commitment in
-> `docs/kickoff.md`, not an achieved property - do not cite it as one in a PR body.
+> **Status of this file.** The repository has no product code yet, but the tooling that reviews it
+> exists since PR #2: `CMakeLists.txt`, `CMakePresets.json`, `.clang-format`, `.clang-tidy` and
+> `tools/format-check.sh` are committed. Each section names what enforces it *today* (a committed
+> script or a preset) and what will enforce it *from M0* (a CI job). A rule whose enforcement is
+> marked `planned` is a commitment in `docs/kickoff.md`, not an achieved property - do not cite it
+> as one in a PR body.
 
 **Relationship to other docs:**
 
@@ -106,8 +107,9 @@ tyny-pdf/
 
 ## 3. Practical "Do vs Don't" Code Examples
 
-The shapes below are normative; the exact signatures are declared by PR #5, the first PR that
-builds code, so treat a name here as the *role* it plays unless it is quoted from an ADR.
+The shapes below are normative; the exact signatures are declared by PR #5 (story 1.4), the first
+PR that builds product code - PR #2 already builds tooling (`tools/win-probe/`), but none of it
+ships in a release. Treat a name here as the *role* it plays unless it is quoted from an ADR.
 
 ### 3.1 Nothing of the engine crosses the seam
 
@@ -396,14 +398,14 @@ person's file in a log.
 ```bash
 python3 tools/spec-check.py                       # today: shape, orphans, artefacts
 python3 tools/sidecar-fmt.py check tests/fixtures/sidecar
-ctest --preset linux-core --output-on-failure      # from M0, with PR #5
+ctest --preset linux-core --output-on-failure      # runs today; has tests once story 1.4 lands
 ```
 
 ---
 
 ## 8. Formatting, Tooling & Pre-Commit Quality Gate
 
-**Committed today (`.editorconfig`, read by every editor and by the agents):**
+**Committed today (`.editorconfig` and the house style, read by every editor and by the agents):**
 
 - `indent_size = 2` for `*.{c,cc,cpp,h,hpp}` and for `*.md`, `*.yml`, `*.json`, `*.cmake`; 4 for
   Python and elsewhere; tabs only in `Makefile`.
@@ -414,26 +416,27 @@ ctest --preset linux-core --output-on-failure      # from M0, with PR #5
 - `.bat`, `.cmd` and `.rc` are CRLF on purpose; `.gitattributes` owns the rest (ADR-0007 makes bytes
   normative, so a re-save is a semantic change).
 
-**Not committed yet, and therefore not a standard - a gap:** there is no `.clang-format`, no
-`.clang-tidy` and no `CMakeLists.txt` in the tree: the build system and its style configuration
-are written by PR #5, the first PR that compiles anything. Until then `.githooks/pre-commit` runs
-`clang-format --dry-run -Werror` on staged C/C++ files when the binary is installed, so the style
-it enforces is that tool's default rather than a decision of this project - raise it in review
-instead of assuming the tree has agreed. The two toolchains also disagree about warnings: the
-MSVC parity job and the MinGW cross job are both required, the latter with `-Werror`, and a
-MinGW-only failure is fixed by dropping the vendor extension, never by adding an `#ifdef`
-(ADR-0010).
+**Committed since PR #2, so they are standards now:** `.clang-format`, `.clang-tidy` and
+`.clangd` exist in the tree, written together so editor and CI cannot disagree;
+`.githooks/pre-commit` runs `clang-format --dry-run -Werror` on staged C/C++ files, and
+`tools/format-check.sh` runs the same check over the whole tree in CI (each with a `--self-test`).
+The two toolchains still disagree about warnings: the MSVC parity job and the MinGW cross job are
+both required, the latter with
+`-Werror`, and a MinGW-only failure is fixed by dropping the vendor extension, never by adding an
+`#ifdef` (ADR-0010).
 
 **Every commit satisfies the local gate** - the hook runs most of it; `tools/check.sh` is the
 whole of it:
 
 ```bash
-sh tools/check.sh                                   # seven sections, all green
+sh tools/check.sh                                   # six sections + canonical, all green
+sh tools/format-check.sh                            # the seventh check, with its own self-test
 python3 tools/lang-check.py --self-test             # 5/5
 python3 tools/naming-sync.py self-test              # 5/5
 python3 tools/sidecar-fmt.py self-test              # 5/5
 python3 tools/spec-check.py --self-test             # 14/14
 python3 tools/docs-check.py --self-test             # 11/11
+python3 tools/format-check.sh --self-test           # 2/2
 # from M0, in the same order CI runs them:
 cmake --preset linux-core && cmake --build --preset linux-core
 ctest --preset linux-core --output-on-failure

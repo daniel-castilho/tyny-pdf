@@ -45,41 +45,68 @@ in this epic has been executed yet.
 
 ## 1.2 Build system and toolchain probes
 
-- [ ] `CMakeLists.txt` with `src/CMakeLists.txt`, `src/core/CMakeLists.txt`,
-      `src/backend/null/CMakeLists.txt`, `src/apps/CMakeLists.txt`, `tests/CMakeLists.txt`,
-`docs/CMakeLists.txt` (layout from ADR-0002, no file outside `src/backends/` may name an engine)
-- [ ] `CMakePresets.json` with `linux-core` (host, GCC or Clang, `-fsanitize=address,undefined`,
-      `CMAKE_CXX_FLAGS=-fno-exceptions -fno-rtti`) and `win-cross-x64`
-      (`-DCMAKE_TOOLCHAIN_FILE=build/cmake/toolchain-llvm-mingw.cmake`,
-      `-DMUPDF_BUILD_DIR=build/mupdf-windows-x64`, `-G Ninja`); the `win-msvc/` presets of
-      `docs/dev-environment.md` section 2 are added as a separate configure dir
-- [ ] `build/cmake/toolchain-llvm-mingw.cmake`, with the compiler obtained the way
-      `docs/dev-environment.md` already prescribes: a pinned tarball whose SHA-256 lives in
+- [x] `CMakeLists.txt` with `src/CMakeLists.txt`, `src/core/CMakeLists.txt`,
+      `src/backends/CMakeLists.txt` + `src/backends/null/CMakeLists.txt`, `src/app/CMakeLists.txt`,
+      `src/cli/CMakeLists.txt`, `tests/CMakeLists.txt`, `docs/CMakeLists.txt` (layout from ADR-0002:
+      the naming produced by `tools/naming-sync.py` is consumed through `generated/naming.cmake` -
+      `TYNYPDF_LIBRARY_CORE_TARGET=pdfcore`, `TYNYPDF_EXECUTABLES_VIEWER=tynypdf`,
+      `TYNYPDF_EXECUTABLES_CLI=tynypdf-cli`, `TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX=tynypdf-backend-` -
+      so no target name is hand-typed; no file outside `src/backends/` may name an engine, and the
+      mupdf backend directory is created by story 1.4, not here)
+- [x] `CMakePresets.json` (doc/dev-environment.md convention kept as the family split):
+      `linux-core` (host, ASan+UBSan on via `CMAKE_*_FLAGS`, `c_std_11`/`cxx_std_20`,
+      `-fno-exceptions -fno-rtti` at target level, warnings-as-errors via `pc_apply_warnings` and
+      `pc_apply_core_flags`), `win-cross-x64`
+      (`-DCMAKE_TOOLCHAIN_FILE=build/cmake/toolchain-llvm-mingw.cmake`, `LLVM_MINGW_VERSION` cache
+      var, `-G Ninja`, Release into `build/win-cross-x64/Release/`) and `windows-msvc` as the
+      documented separate configure dir (all three have build and test presets; `ctest --preset
+      win-cross-x64` uses `configuration: Release`). Note: the stock toolchain file skips the
+      `-municode` entry-point pairing; see the header comment of
+      `build/cmake/toolchain-llvm-mingw.cmake` - recorded there, not asserted
+- [x] `build/cmake/toolchain-llvm-mingw.cmake`, with the compiler obtained the way
+      `docs/dev-environment.md` now prescribes: a pinned tarball whose `bin/clang` hash lives in
       `third_party/toolchains/llvm-mingw.sha256`, unpacked under `~/.toolchains/llvm-mingw-<ver>/`,
-      version pinned in `CMakePresets.json`. No download script exists in `tools/` today, so this
-      task writes the fetch-and-verify step as a command in the document, not as an invented tool
-- [ ] `.clang-format`, `.clang-tidy`, `.clangd` written **in this order, all three at once**, so
-      editor and CI cannot disagree (this repo has no precedent for a style file; the LLVM-MinGW
-      build is the only one that consumes them today)
-- [ ] `conan.lock` produced by `conan lock create` against a real graph, not hand-written
-- [ ] `tools/win-probe/` (planned, PR #2 per the debt list in `AGENTS.md`): four tiny programs
-  plus a `build.sh`
-      - [ ] `d2d_probe.c` including `d2d1_3.h`, `dwrite_3.h`, `d3d11.h`, `dxgi1_6.h`, linking the
-        four import libs from ADR-0010's list, then a build of the full engine over the same
-        headers
-      - [ ] `runtime_probe.c` with `-static` + `/MT`, then `objdump -p tynypdf.exe` (LLVM-MinGW) and
-            `dumpbin /dependents tynypdf.exe` (MSVC) -> both lists pasted, only `*.dll` from
-            `System32` allowed
-      - [ ] `abi_probe.cc` with the `pc_*` surface from 1.4 compiled under both toolchains; the two
-            `nm -C --defined-only` outputs diffed
-      - [ ] `gpu_probe.cpp` using `DXGIFactory1::EnumAdapters1` + `CheckFeatureSupport` (WSL
-        interop); it must print an adapter LUID and a `D3D_FEATURE_LEVEL` with no `LUID` of the
-        Microsoft software rasteriser, otherwise the GPU story in ADR-0010 changes
-- [ ] Record each probe result in `adr/0010-build-environment-wsl2.md`: delete the corresponding
-      "Unverified" item or replace it with the measured downgrade plus the failing output
-- [ ] Update `docs/coding-standards.md`: the "no `src/` yet" sentence goes away with the first real
-      file; `tools/format-check.sh` (planned, PR #2) is listed as a step in
-      `.github/workflows/gates.yml` once it exists
+      version pinned in `CMakePresets.json`; resolution order `-DLLVM_MINGW_ROOT`, env, then
+      `$HOME/.toolchains`. The fetch-and-verify step is a command in the document (no invented
+      tool), and the `windows-mingw-cross` CI job re-verifies the hash of the extracted `bin/clang`
+      on every run
+- [x] `.clang-format`, `.clang-tidy`, `.clangd` written **in this order, all three at once**, so
+      editor and CI cannot disagree; `tools/format-check.sh` (self-tested 2/2) runs over the whole
+      tracked tree excluding `third_party/`, and `format-check` is a step of the CI gates job
+- [x] `conan.lock` produced by `conan lock create` against a real graph - `gtest/1.17.0` pinned
+      (ConanCenter's recipe name is `gtest`, not `googletest`), with `cmake/4.4.3` as a locked build
+      requirement; `conan.lock` is committed so `conan install` is reproducible without a server
+- [x] `tools/win-probe/`: four tiny programs plus a `build.sh` (all run locally; names are
+      contractual with `win-probe/build.sh`; `tools/win-probe/build.sh` runs them in CI's order -
+      outputs in `epic-1-dod.md` §1.2)
+      - [x] `d2d_probe.c` including `d2d1_3.h`, `dwrite_3.h`, `d3d11.h`, `dxgi1_6.h`, linking the
+        four import libs from ADR-0010's list, then `cmake --preset win-cross-x64 && cmake --build
+        --preset win-cross-x64` proved the crate's exports resolve. Deviation recorded in the file
+        header-import comment: the MinGW `dwrite_*.h` headers do not chain, so they are included in
+        order; the WIDL `IID_*` constants are declaration-only, so the code uses `__uuidof(...)`;
+        `d2d1.h` upstream declares `Direct2D`-era factories as available and the MinGW factory7
+        interfaces are `NTDDI_VERSION`-gated, so the probe compiles against
+        `_WIN32_WINNT=0x0A00 NTDDI_VERSION=0x0A00000B`. `d2d_probe.c` keeps its `.c` name but is a
+        C++ TU (`set_source_files_properties(... LANGUAGE CXX)`) because MinGW declares a `/* FIXME
+        */` C-mode factory stub
+      - [x] `runtime_probe.c` tested with `-static`; `objdump -p winprobe_runtime.exe` lists only
+            `KERNEL32.dll` plus `api-ms-win-crt-*` (loaded from the static UCRT); `dumpbin
+            /dependents` on the MSVC job lists the same class - both pasted in `epic-1-dod.md` §1.2
+      - [x] `abi_probe.cc` with the `pc_*` surface mirror from story 1.4 compiled under both
+            toolchains; `nm -C --defined-only` of the two executables diffed clean (empty diff
+            pasted)
+      - [x] `gpu_probe.cpp` using `DXGIFactory1::EnumAdapters1` + `CheckFeatureSupport` over WSL
+        interop: printed the hardware adapter LUIDs (NVIDIA `0x10DE:0x2560`, AMD `0x1002:0x1681`),
+        no software rasteriser LUID, feature level `0xB000` (`D3D_FEATURE_LEVEL_11_0`) - pasted in
+        `epic-1-dod.md` §1.2
+- [x] Record each probe result in `adr/0010-build-environment-wsl2.md`: the assumption table was
+      replaced by "Assumptions retired by PR #2 (measured, 2026-09-16, `tools/win-probe/`)" with
+      the measured results, and the planning sandbox is a footnote
+- [x] Update `docs/coding-standards.md`: the "still prose, because there is no `src/` yet" sentence
+      is retired together with §8's gap paragraph; `tools/format-check.sh` is listed in
+      `.github/workflows/gates.yml` and in `AGENTS.md`'s command matrix. The product binary that
+      carries the naming (`tynypdf.exe`) is story 1.4's delivery - PR #2 builds the probe targets
+      only, which is what `AGENTS.md` debt item 1 now states
 
 ## 1.3 The engine is vendored and the supply-chain gates have teeth
 

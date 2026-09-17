@@ -1,0 +1,86 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 30,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "linux-core",
+      "displayName": "Native core + CLI (host, GCC or Clang)",
+      "description": "From docs/dev-environment.md: core and CLI built natively with ASan/UBSan and -Werror. This is the profile most development happens under (ADR-0010 section 4). -fno-exceptions -fno-rtti are applied at target level to src/core and src/backends, not here: the test framework needs RTTI (see CMakeLists.txt).",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/linux-core",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
+        "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address,undefined"
+      }
+    },
+    {
+      "name": "win-cross-x64",
+      "displayName": "Windows x64 via LLVM-MinGW (static runtime)",
+      "description": "The shipped configuration: cross-compiled from Linux with the pinned LLVM-MinGW toolchain (ADR-0010 section 2). Release builds land at build/win-cross-x64/Release/. The toolchain pin lives in build/cmake/toolchain-llvm-mingw.cmake and the hash in third_party/toolchains/llvm-mingw.sha256.",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/win-cross-x64",
+      "toolchainFile": "${sourceDir}/build/cmake/toolchain-llvm-mingw.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "LLVM_MINGW_VERSION": "20260812-ucrt-ubuntu-22.04-x86_64",
+        "MUPDF_BUILD_DIR": "build/mupdf-windows-x64"
+      }
+    },
+    {
+      "name": "windows-msvc",
+      "displayName": "Windows x64 via MSVC (CI parity)",
+      "description": "The parity configuration that runs on a windows-latest runner (ADR-0010 section 3): the same CMake targets through the MSVC toolset, so toolchain divergence shows up on the PR. Deliberately not the local loop - nobody is asked to drive cl.exe through WSL interop. Ninja plus the Developer PowerShell environment is used instead of a Visual Studio generator, so the job does not pin a runner image's Visual Studio version (the runner moved from VS 2022 to 2026).",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/win-msvc",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "MUPDF_BUILD_DIR": "build/mupdf-windows-x64"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "linux-core",
+      "configurePreset": "linux-core"
+    },
+    {
+      "name": "win-cross-x64",
+      "configurePreset": "win-cross-x64"
+    },
+    {
+      "name": "windows-msvc",
+      "configurePreset": "windows-msvc"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "linux-core",
+      "configurePreset": "linux-core",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "win-cross-x64",
+      "configurePreset": "win-cross-x64",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-msvc",
+      "configurePreset": "windows-msvc",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

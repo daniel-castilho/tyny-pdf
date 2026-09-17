@@ -124,10 +124,14 @@ not when the calendar says so.
 
 Exit criteria:
 1. `main` protected (ADR-0009): required checks, no force push, auto-merge on.
-1b. The `gates` workflow ships with PR #1 and is green: the seven checks plus all five
-   self-tests, so CI proves the gates can still fail (`/.github/workflows/gates.yml`).
-2. CI matrix green: `linux-core` (gtest + ASan/UBSan), `windows-msvc`, `windows-mingw-cross`,
-   `layering` (`tools/layering-check.sh`, PR #4).
+1b. The `gates` workflow ships with PR #1 and is green: the checks plus their self-tests, so CI
+   proves the gates can still fail (`/.github/workflows/gates.yml`). PR #2 extends it to the
+   eight checks and six self-tests: `check.sh`'s six, the inline line-ending check, and
+   `tools/format-check.sh` (with its own `--self-test`).
+2. CI matrix green: `core-linux`, `windows-mingw-cross`, `windows-msvc` - wired by PR #2 with
+   `CMakeLists.txt`, `CMakePresets.json`, `tools/win-probe/` and the toolchain hash. gtest
+   consumption and the contract suite land with story 1.4; `layering` arrives with
+   `tools/layering-check.sh` (PR #4).
 3. A window opens on Windows that renders page 1 of a PDF through `src/backends/mupdf`, and the
    same CLI command renders to PNG on Linux; the `null` backend passes the contract suite.
 4. `tests/baseline.json` holds SumatraPDF numbers measured on the reference corpus and machine,

@@ -8,32 +8,36 @@ makes those decisions executable, and it names the places where the tree does no
 
 ## 0. Executable status
 
-Measured in this tree on 2026-09-17, so that the document cannot be mistaken for a description of
-running infrastructure:
+Measured in this tree on 2026-09-17 (after PR #2), so that the document cannot be mistaken for a
+description of running infrastructure:
 
 ```
 $ for p in conanfile.py conan.lock third_party NOTICE docs/security docs/references.md
 > do printf '%-24s %s\n' "$p" "$(test -e "$p" && echo present || echo absent)"; done
-conanfile.py             absent
-conan.lock               absent
-third_party              absent
+conanfile.py             present
+conan.lock               present
+third_party              present
 NOTICE                   absent
 docs/security            absent
 docs/references.md       absent
-CMakeLists.txt           absent
+CMakeLists.txt           present
 ```
 
 Three consequences follow from that block rather than from taste:
 
-- **There is no dependency graph yet.** No third-party library is present, so every row of section
-   2 is a decision about a future PR, not an inventory. A row that reads `planned` must not be
-   quoted as installed anywhere else in the repository.
-- **No rule here is enforced by a tool yet.** The four enforcing scripts (`tools/deps-refresh.sh`,
-   `tools/patch-report.sh`, `tools/sbom.sh`, `tools/layering-check.sh`) are planned with PR #4, per
-   `docs/kickoff.md` section 11 item 4; the build matrix that would run them arrives with PR #2,
-   which owns `CMakeLists.txt`, the presets and the style configs.
-- **The one dependency present today lives in CI, not in the product**, and section 8 lists it as
-   an open exception with its line number.
+- **The dependency graph exists as a lockfile.** `conan.lock` pins `gtest/1.17.0` (test-only) and
+   its `cmake` build requirement with Conan recipe revisions; no product code consumes it yet, so
+   section 2 still reads ahead of the tree. A row that reads `planned` must not be quoted as
+   installed anywhere else in the repository.
+- **The consumption-side rules are not enforced by a tool yet.** The four enforcing scripts
+   (`tools/deps-refresh.sh`, `tools/patch-report.sh`, `tools/sbom.sh`, `tools/layering-check.sh`)
+   are planned with PR #4, per `docs/kickoff.md` section 11 item 4. What PR #2 shipped instead is
+   the graph itself (`conan.lock`), the matrix that will execute it (`CMakeLists.txt`,
+   `CMakePresets.json`, `tools/win-probe/`) and the style configs.
+- **The dependencies present today live in CI and tooling, not in the product**, and every one of
+   them is pinned: `jsonschema==4.10.3` (E-1, closed), the two actions by commit sha (E-2, closed),
+   `conan==2.32.0` on the box (E-3, closed) and the cross toolchain by hash (E-4, closed). Each of
+   the four closing rows is kept below as a tombstone.
 
 ## 1. The rule
 
@@ -69,12 +73,13 @@ decorative.
 |---|---|---|---|---|---|---|
 | MuPDF (the engine) | exact upstream commit in `third_party/UPSTREAM.toml` (`upstream_url`, `upstream_commit`, `vendored_on`, `patch_series`) | AGPL-3.0-or-later, licence text shipped | n/m | A PDF parser is the one component where "write it ourselves" is the expensive option; the engine also carries rendering, layout and form code that would take years to reproduce | High, and priced in: the seam is `include/pdfcore/backend.h`, so the cost is a second backend rather than a rewrite (ADR-0011 R-M10) | planned, PR #4 (vendored tree); ADR-0004 section 1 |
 | zlib, libjpeg-turbo, freetype, harfbuzz, a crypto provider | whatever one `conan.lock` records per release | zlib / IJG / FTL-BSD / MIT / per provider | n/m | they arrive transitively through the engine's own build (ADR-0004 context item 2), so the lockfile is the record, not a decision | Low per library; medium as a set, because the engine's build script names them | not present; enters only as rows produced by `tools/deps-refresh.sh` (planned, PR #4) |
-| GoogleTest | a version the lockfile or a vendored release tag pins, settled with PR #2 | BSD-3-Clause | none in shipped artefacts (test-only) | an assertion framework is a distraction we can afford exactly once, and not now | Low - the suites are portable; `tests/contract` is plain C++ with its own main | planned: the job is PR #2's matrix (`docs/kickoff.md` M0 exit criterion 2 names gtest inside `linux-core`), the first target it executes is PR #5's |
-| LLVM-MinGW (cross toolchain) | tarball, SHA-256 recorded in `third_party/toolchains/llvm-mingw.sha256`, version pinned in `CMakePresets.json` | Apache-2.0 with LLVM exception; a build tool, nothing linked into the product | none | a pinned compiler is the only way two machines can agree about a binary, which is what the unsigned-release posture buys us (ADR-0004 section 5, ADR-0010) | Medium - a toolchain bump rewrites every object file | planned; the pin file has no owner yet, exception E-4 in section 8 |
-| MSVC v143 + Windows SDK | whatever `windows-latest` carries, recorded per run rather than pinned by us | proprietary, runner-supplied | none | parity is the requirement: the product must build with the compiler our users' toolchains expect (ADR-0010) | n/a - a second configuration, not a dependency | runner available today; the job is planned with PR #2 |
-| `d2d1`, `dwrite`, `d3d11`, `dxgi` import libs | OS version, recorded in `buildinfo.json` | system, not redistributed | none | they are the operating system, not a library; linking them is the presentation design (ADR-0010) | n/a | ADR-0010; the probe that shows the headers are usable at our pin is `tools/win-probe/` (planned, PR #2 per the debt list in `AGENTS.md`) |
-| Python `jsonschema` (CI only) | **not pinned today**: `.github/workflows/gates.yml:26` runs `pip install --quiet jsonschema` | MIT | none (not shipped) | validating `docs/sidecar.schema.json` and the SBOM is a five-line call over a several-hundred-line spec | Low - a hand-written subset check replaces it if the pin ever hurts | present in CI; exception E-1 |
-| `actions/checkout@v4`, `actions/setup-python@v5` | tags, not full commit shas | MIT / BSD-3-Clause | none | runner plumbing; writing our own checkout is not a saving | Low | present at `.github/workflows/gates.yml:19` and `:21`; exception E-2 |
+| GoogleTest | `gtest/1.17.0` in `conan.lock` (created by `conan lock create`, PR #2) | BSD-3-Clause | none in shipped artefacts (test-only) | an assertion framework is a distraction we can afford exactly once, and not now | Low - the suites are portable; `tests/contract` is plain C++ with its own main | present in the lockfile (PR #2); the target that executes it is PR #5's (`docs/kickoff.md` M0 exit criterion 2 names gtest inside `linux-core`) |
+| LLVM-MinGW (cross toolchain) | tarball, SHA-256 recorded in `third_party/toolchains/llvm-mingw.sha256`, version pinned in `CMakePresets.json` and `build/cmake/toolchain-llvm-mingw.cmake` | Apache-2.0 with LLVM exception; a build tool, nothing linked into the product | none | a pinned compiler is the only way two machines can agree about a binary, which is what the unsigned-release posture buys us (ADR-0004 section 5, ADR-0010) | Medium - a toolchain bump rewrites every object file | present, PR #2: 20260812-ucrt-ubuntu-22.04-x86_64 (clang 23.1.0-rc3), hash verified by the `windows-mingw-cross` job; exception E-4 closed |
+| MSVC v143 + Windows SDK | whatever `windows-latest` carries, recorded per run rather than pinned by us | proprietary, runner-supplied | none | parity is the requirement: the product must build with the compiler our users' toolchains expect (ADR-0010) | n/a - a second configuration, not a dependency | runner available today; the `windows-msvc` job is live (PR #2) |
+| `d2d1`, `dwrite`, `d3d11`, `dxgi` import libs | OS version, recorded in `buildinfo.json` | system, not redistributed | none | they are the operating system, not a library; linking them is the presentation design (ADR-0010) | n/a | ADR-0010; `tools/win-probe/d2d_probe.c` shows the headers are usable at our pin and was measured in PR #2 |
+| Python `jsonschema` (CI only) | `jsonschema==4.10.3` in `.github/workflows/gates.yml` (E-1, closed) | MIT | none (not shipped) | validating `docs/sidecar.schema.json` and the SBOM is a five-line call over a several-hundred-line spec | Low - a hand-written subset check replaces it if the pin ever hurts | present in CI, pinned |
+| `actions/checkout`, `actions/setup-python` | v4.4.0 `11d5960a...` and v5.6.0 `a26af69b...`, full commit shas with the version as a comment (E-2, closed) | MIT / BSD-3-Clause | none | runner plumbing; writing our own checkout is not a saving | Low | present at `.github/workflows/gates.yml` |
+| `cmake` (CI and the box) | `cmake==3.31.6` via pipx/pip in the runner jobs | BSD-3-Clause | none (build tool) | the repo presets require >= 3.30 and the working copy must match CI | Low - the apt package is a fallback | `docs/dev-environment.md` pins table and the three build jobs (PR #2) |
 | `osv-scanner` | a pinned version in a scheduled job (ADR-0004 section 4) | Apache-2.0 | none | advisories have to be looked up by someone, and re-implementing a vulnerability feed is not our edge | Low - the SBOM stays valid and the job can be swapped | planned, PR #4, and deliberately **not** in the PR gate, so an unrelated advisory cannot block a documentation fix |
 | veraPDF (conformance tooling) | a pinned release, decided when the corpus repository exists | MPL-2.0 | n/a - not linked into the product | a validity claim about ISO 32000 needs an independent implementation or it is marketing | Low | planned; `tests/conformance/` is absent and stays absent until the corpus exists (`docs/kickoff.md` M0.5) |
 | A code-signing certificate | none | n/a | n/a | decision D7b: publish unsigned binaries with the gap stated, instead of a certificate that changes what users must trust | n/a | ADR-0004 section 5; `docs/release-runbook.md` repeats that the release body must say the binaries are not Authenticode-signed |
@@ -173,14 +178,16 @@ change what ships, and nobody notices.
 ## 8. Open exceptions in this tree
 
 Each row cites the file and line that show the gap, and the mechanism that closes it. Section 2's
-`planned` rows plus these exceptions are the whole honest state of the graph today.
+`planned` rows plus these exceptions are the whole honest state of the graph today. Rows E-1..E-4
+were closed by PR #2 and are kept as tombstones for one release (section 10), so the next proposal
+reads why each pin exists.
 
 | Id | The gap, as measured | Closes with |
 |---|---|---|
-| E-1 | `python3 -m pip install --quiet jsonschema` installs an unpinned version on every run (`.github/workflows/gates.yml:26`) | PR #2, which rewrites this workflow around the build matrix: `jsonschema==<X.Y.Z>`, plus `--require-hashes` if the upkeep is accepted |
-| E-2 | CI actions are pinned by tag at `:19` and `:21`, so a force-push upstream changes what our gate builds | PR #2, same edit: full commit shas with the version as a comment |
-| E-3 | `docs/dev-environment.md:27` bootstraps with `pipx install conan \|\| python3 -m pip install --user conan`, no version | PR #2, once a `conan.lock` exists to pin against: `conan==<X.Y.Z>` |
-| E-4 | `third_party/toolchains/llvm-mingw.sha256` is the comparison target of the documented verification command (`docs/dev-environment.md:40`) and does not exist; no item in `docs/kickoff.md` section 11 owns it | an owner decision recorded here. PR #2 is where `CMakePresets.json` pins the version, so the hash file belongs with it. Until it is assigned, that documented command has nothing to compare against and must never be reported as a pass |
+| E-1 | `python3 -m pip install --quiet jsonschema` installs an unpinned version on every run | **Closed, PR #2**: `jsonschema==4.10.3` in `.github/workflows/gates.yml`; `--require-hashes` is still under upkeep review |
+| E-2 | CI actions are pinned by tag, so a force-push upstream changes what our gate builds | **Closed, PR #2**: `actions/checkout@v4.4.0` (`11d5960a326750d5838078e36cf38b85af677262`) and `actions/setup-python@v5.6.0` (`a26af69be951a213d495a4c3e4e4022e16d87065`), version as a comment |
+| E-3 | `docs/dev-environment.md` bootstraps `pipx install conan`, no version | **Closed, PR #2**: `pipx install conan==2.32.0` in `docs/dev-environment.md`, locking against the `conan.lock` shipped in the same PR |
+| E-4 | `third_party/toolchains/llvm-mingw.sha256` is referenced by the documented verification command and does not exist; no document owns it | **Closed, PR #2**: the hash file ships with the pin (`20260812-ucrt-ubuntu-22.04-x86_64`), the owner is `CMakePresets.json` + `build/cmake/toolchain-llvm-mingw.cmake`, and the `windows-mingw-cross` CI job verifies the hash of the extracted `bin/clang` on every run |
 | E-5 | `docs/security/advisories.md` is referenced by ADR-0004 section 4 and is not in the tree | PR #4, with the scheduled `osv-scanner` job; until then the sentence about where advisory responses are tracked describes an intention |
 | E-6 | `NOTICE` and `docs/references.md` do not exist; they are deliverables of Epic 1 story 1.3 | Epic 1, story 1.3 (`tasks/epic-01/epic-1-technical-tasks.md`) |
 | E-7 | ADR-0004 cites decision ids (D11, D13, D18) that live in the maintainer's log outside this repository, where a reader of the public tree cannot resolve them | not a defect to repair: it is why a row here must be self-contained and restate the reason instead of quoting an id |

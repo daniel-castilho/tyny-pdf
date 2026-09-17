@@ -1,43 +1,43 @@
 # Changelog
 
-All notable changes to this project are documented here. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres to
-[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+All notable changes to this project are documented in this file (AGENTS.md rule 11,
+README.md:444). The format follows Keep a Changelog, and the versioning follows
+CalVer-compatible SemVer as declared in [docs/release-runbook.md](docs/release-runbook.md).
 
 ## [Unreleased]
 
-### Added
+### Added (Story 1.2, PR #2 - build system, both toolchains, ADR-0010 probes)
 
-- Kick-off seed: 11 ADRs (10 accepted, ADR-0006 superseded by ADR-0008), `docs/kickoff.md`,
-  `AGENTS.md`, `docs/naming.md` as the single source of product identifiers,
-  `docs/dev-environment.md`, `docs/git-workflow.md` and `docs/lessons.md`.
-- `src/features/sidecar/SPEC.md`: the first living specification, 14 requirements in EARS form with
-  traceable verification targets.
-- Repository gates in `tools/`: `lang-check.py` (ADR-0005), `sidecar-fmt.py` (ADR-0007 canonical
-  bytes), `naming-sync.py` (ADR-0006/0008), `spec-check.py` (R-M13), `canonical-check.sh`,
-  `docs-check.py`, and `check.sh` to run the whole set.
-- `.github/workflows/gates.yml` (gates plus the five tool self-tests),
-  `.github/PULL_REQUEST_TEMPLATE.md` with the evidence trailer, `.githooks/pre-commit`,
-  `.gitattributes` and `.editorconfig`.
-- `README.md` as the project front page and `CHANGELOG.md`, so every relative link the front page
-  uses resolves in the same commit that writes it.
-- `docs-check.py` fails on an unbalanced code fence: an open fence used to hide the rest of the file
-  from the length and link rules, which is how a mangled block passed review (11 self-test
-  properties).
-- `LICENSE`: AGPL-3.0-or-later, FSF text verbatim.
+- **Build system**: `CMakeLists.txt` tree (root, `src/core`, `src/backends/null`,
+  `src/app`, `src/cli`, `tests`, `docs`) consuming `generated/naming.cmake`;
+  `CMakePresets.json` with `linux-core` (ASan/UBSan, `-Werror`), `win-cross-x64`
+  (LLVM-MinGW, static runtime) and `windows-msvc` (CI parity) presets plus matching
+  `build` and `test` presets.
+- **Cross toolchain pinned**: `build/cmake/toolchain-llvm-mingw.cmake`,
+  `third_party/toolchains/llvm-mingw.sha256` and the documented fetch-and-verify
+  procedure in `docs/dev-environment.md`.
+- **Style configuration**: `.clang-format`, `.clang-tidy` and `.clangd`, plus
+  `tools/format-check.sh` (whole tree, `--self-test`) wired into CI and the hooks.
+- **ADR-0010 probes**: `tools/win-probe/` with `d2d_probe`, `runtime_probe`, `abi_probe`
+  and `gpu_probe`, and a `winprobe_test` aggregate target for CI.
+- **Supply chain**: `conanfile.py` + `conan.lock` produced by `conan lock create`
+  (ADR-0004); CI actions pinned by full commit sha (E-2); `jsonschema==4.10.3` and
+  `cmake==3.31.6` pinned in CI (E-1).
+- **CI matrix**: `gates` kept, plus `core-linux`, `windows-mingw-cross` and
+  `windows-msvc`, all four jobs required on `main`-bound PRs.
 
-### Changed
+### Changed (Story 1.2)
 
-- Repository flow is PR-only from Story 1.1 (Epic 1) on: the three seed commits went straight to
-  `main` (recorded in `docs/lessons.md`), `main` is now branch-protected with the `gates` check
-  required, and the direct-push window is closed.
-- `docs/dev-environment.md` records measured toolchain pins; tools not yet installed carry the PR
-  that installs them (`clang-format`, `clang-tidy`, Conan 2, Doxygen, LLVM-MinGW, MSVC - PR #2;
-  `cmake` 3.28.3 is below the >= 3.30 requirement and upgrades with PR #2).
-- Current-state documentation reflects the two green `gates` runs (35170901622, 35171544840)
-  instead of "nothing has run in CI yet".
+- `ADR-0010` assumption table retired in favour of measured results from the four probes.
+- `docs/dev-environment.md` toolchain pins table now records cmake 3.31.6, clang-format
+  and clang-tidy 18.1.3, Conan 2.32.0 and the installed LLVM-MinGW 20260812 build.
+- `docs/kickoff.md` M0 exit criteria describe the four-job matrix.
+- `AGENTS.md` debt rows 1 and 2 close: build system and toolchain-pinned CMake presets
+  are in the tree.
 
-### Not started
+### Added (Story 1.1, PR #1 and PR #4)
 
-No source code, no releases, no downloaded binaries. The reader/viewer starts at milestone M0 of
-`docs/kickoff.md`.
+- Gate suite: `tools/check.sh` with six gates and their self-tests, wired into the
+  `gates` workflow; naming, sidecar, spec, language and docs checks, each with a
+  self-test. Branch protection on `main` (required checks, linear history, no force
+  push). The four toolchain pins below are named and blamed in `docs/dev-environment.md`.
