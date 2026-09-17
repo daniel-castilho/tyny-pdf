@@ -268,9 +268,10 @@ item; flag it in the PR and open it here with the number that measures it.
    shipping). Until then every green matrix run proves tooling, not product.
 2. **Only the doc gates and the matrix's first runs are recorded:** `gates` ran green on `main`
    since run `35170901622` (at `94f1950`) and `35171544840` (at `0d64999`); the build matrix
-   arrived with PR #2 and its jobs run on every PR. The runs that built a target are still few;
-   treat them as the start of the record, not the record. No status badge may appear in `README.md`
-   until a job that can fail on bad code has failed on bad code.
+   arrived with PR #2 (`2ec9977`) and its first all-four-green run is `35179132038` (head
+   `5dc5767`). The runs that built a target are still few; treat them as the start of the record,
+   not the record. No status badge may appear in `README.md` until a job that can fail on bad code
+   has failed on bad code.
 3. **The four toolchain claims are measured, not open:** PR #2 ran `tools/win-probe/` and moved
    the ADR-0010 assumption table into results (headers link and factories create; static runtime
    holds in import tables; the host/cross symbol tables are identical; a hardware GPU adapter and

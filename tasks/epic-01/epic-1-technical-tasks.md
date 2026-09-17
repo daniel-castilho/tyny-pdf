@@ -200,7 +200,8 @@ gate prints that it has nothing to check and exits non-zero until 1.4 lands. A g
       `docs/naming.md`)
 - [ ] `python3 tools/lang-check.py` reports 0 problems over the whole repo
 - [x] CI green on the merge commit of 1.1 (run `35175247781`, success, head `1e5d9f0`, pasted in
-  `epic-1-dod.md` §1.1); 1.2-1.5 still pending
+  `epic-1-dod.md` §1.1) and of 1.2 (run `35179132038`, four jobs green, head `5dc5767`, merged
+  `2ec9977`, pasted in `epic-1-dod.md` §1.2); 1.3-1.5 still pending
 - [x] The `epic-1-dod.md` self-audit was run for the Story 1.1 hand-off, its output pasted at
   §2.1 (2026-09-17)
 
@@ -209,7 +210,8 @@ gate prints that it has nothing to check and exits non-zero until 1.4 lands. A g
 - [x] 1.1: `main` parity (48 at parity time, 49 on the merge commit) + first green CI run
   (35174756434) + six protection settings pasted + the gate that bites (runs 35174885710,
   35175102894); non-admin push rejection: OWNER-PENDING (D-6)
-- [ ] 1.2: build system on both toolchains + ADR-0010's assumptions retired by evidence
+- [x] 1.2: build system on both toolchains + ADR-0010's assumptions retired by evidence
+  (PR #5, run 35179132038 at head `5dc5767`, merge `2ec9977`; product exe deferred to 1.4, D-7)
 - [ ] 1.3: engine pinned, patch series real, four new gates with defined empty-tree behaviour
 - [ ] 1.4: `pdfcore` M0 surface, two backends, one contract suite, page 1 twice
 - [ ] 1.5: baseline measured on both channels and reproducible within 10 %, corpus pinned, intake
