@@ -390,7 +390,7 @@ authority or timestamp service in v1.
 
 **Pre-code: the repository contains the plan, the specification and the gates - not the product.**
 
-- 47 files in the tree: 11 ADRs (10 accepted, ADR-0006 superseded by 0008), `docs/kickoff.md` with
+- 48 files in the tree: 11 ADRs (10 accepted, ADR-0006 superseded by 0008), `docs/kickoff.md` with
   milestones M0-M6 and their exit criteria, the first living `SPEC.md` (14 requirements: 4 already
   enforced by committed tools, 10 honestly `pending`), the sidecar schema and its normative fixture,
   six checks plus a runner, the `gates` workflow, the PR template and the pre-commit hook,
@@ -427,6 +427,7 @@ authority or timestamp service in v1.
 | :---------------------------------------------------------------- | :--------------------------------------------------------------- |
 | [`docs/kickoff.md`](docs/kickoff.md)                              | Thesis, non-goals, milestones, CI, testing, risks, first 5 PRs   |
 | [`AGENTS.md`](AGENTS.md)                                          | Operating rules for agents and humans (the same rules)           |
+| [`docs/dependency-policy.md`](docs/dependency-policy.md)          | The operating procedure ADR-0004 section 6 points at            |
 | [`docs/git-workflow.md`](docs/git-workflow.md)                    | Branch-per-PR loop, stacked PRs, hooks, branch protection         |
 | [`docs/dev-environment.md`](docs/dev-environment.md)              | WSL2 setup, cross toolchain, what is only testable on Windows     |
 | [`docs/naming.md`](docs/naming.md)                                | The single table every identifier is generated from              |

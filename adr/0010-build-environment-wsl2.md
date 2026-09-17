@@ -103,7 +103,7 @@ become a silent build failure mode for a repository whose whole value is a corpu
 delta-compress well anyway. (The exact free-tier LFS numbers were not verified here and do not
 matter once the decision is "no LFS".)
 
-## Assumptions that PR #1 must retire (not verified in the planning sandbox)
+## Assumptions that PR #2 must retire (not verified in the planning sandbox)
 
 | Assumption | Probe (a 10-minute job, before anything else is built on top of it) |
 | --- | --- |
