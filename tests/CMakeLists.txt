@@ -7,19 +7,25 @@ if (TYNYPDF_BUILD_TESTS)
     pc_apply_warnings(test_status_abi)
     add_test(NAME test_status_abi COMMAND test_status_abi)
 
-    # app_render test
+    # app_render test - open document and render page 1 via pdfcore
     add_executable(test_app_render unit/test_app_render.cc)
-    target_link_libraries(test_app_render pdfcore)
+    target_link_libraries(test_app_render pdfcore ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)
     target_include_directories(test_app_render PRIVATE ${CMAKE_SOURCE_DIR}/include)
     pc_apply_warnings(test_app_render)
     add_test(NAME test_app_render COMMAND test_app_render)
+    set_tests_properties(test_app_render PROPERTIES
+      ENVIRONMENT "CLI_BINARY=${CMAKE_BINARY_DIR}/Debug/tynypdf-cli;TEST_FIXTURE_DIR=${CMAKE_SOURCE_DIR}/tests/fixtures"
+    )
 
-    # cli_exit_codes test
+    # cli_exit_codes test - invoke the CLI binary and assert exit codes + PNG output
     add_executable(test_cli_exit_codes unit/test_cli_exit_codes.cc)
-    target_link_libraries(test_cli_exit_codes pdfcore)
+    target_link_libraries(test_cli_exit_codes)
     target_include_directories(test_cli_exit_codes PRIVATE ${CMAKE_SOURCE_DIR}/include)
     pc_apply_warnings(test_cli_exit_codes)
     add_test(NAME test_cli_exit_codes COMMAND test_cli_exit_codes)
+    set_tests_properties(test_cli_exit_codes PROPERTIES
+      ENVIRONMENT "CLI_BINARY=${CMAKE_BINARY_DIR}/Debug/tynypdf-cli;TEST_FIXTURE_DIR=${CMAKE_SOURCE_DIR}/tests/fixtures"
+    )
 
     # contract test - one binary, the same assertions against every installed backend
     add_executable(test_backend_contract contract/backend_contract.cc)
