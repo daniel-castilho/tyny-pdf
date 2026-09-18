@@ -6,6 +6,17 @@
 #include "pdfcore.h"
 #include "png_writer.h"
 
+// Portable exit code extraction: POSIX WEXITSTATUS on Unix, raw status on Windows.
+#if defined(_WIN32)
+static inline int get_exit_code(int status) {
+  return status;
+}
+#else
+static inline int get_exit_code(int status) {
+  return WEXITSTATUS(status);
+}
+#endif
+
 static void print_usage(const char* prog) {
   fprintf(stderr, "Usage: %s render <in.pdf> --page N [--dpi D] [--out F] [--backend null|mupdf]\n",
           prog);
@@ -158,7 +169,7 @@ int main(int argc, char** argv) {
     }
     int rc = system(cmd);
     if (rc != 0) {
-      return WEXITSTATUS(rc);
+      return get_exit_code(rc);
     }
     return 0;
   }
