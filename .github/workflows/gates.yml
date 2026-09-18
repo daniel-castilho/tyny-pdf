@@ -39,14 +39,12 @@ jobs:
       - name: install dependencies (pinned, E-1)
         run: python3 -m pip install --quiet jsonschema==4.10.3
 
-      - name: install veraPDF (for conformance validation)
+- name: install veraPDF (for conformance validation)
         run: |
           set -e
           curl -L -o /tmp/verapdf-cli.jar https://repo1.maven.org/maven2/org/verapdf/apps/cli/1.30.2/cli-1.30.2.jar
-          sudo tee /usr/local/bin/verapdf > /dev/null <<'EOF'
-#!/bin/sh
-exec java -jar /tmp/verapdf-cli.jar "$@"
-EOF
+          echo '#!/bin/sh' | sudo tee /usr/local/bin/verapdf > /dev/null
+          echo 'exec java -jar /tmp/verapdf-cli.jar "$@"' | sudo tee -a /usr/local/bin/verapdf > /dev/null
           chmod +x /usr/local/bin/verapdf
           verapdf --version
 
