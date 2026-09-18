@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string>
 
 // R10.1 - The viewer SHALL open a PDF document and display page 1.
 
@@ -15,32 +16,11 @@ static const char* get_env_or_die(const char* name) {
   return val;
 }
 
-static bool png_valid(const char* path, uint32_t expected_w, uint32_t expected_h) {
-  (void)expected_w;
-  (void)expected_h;
-  FILE* f = fopen(path, "rb");
-  if (!f)
-    return false;
-  uint8_t sig[8];
-  if (fread(sig, 1, 8, f) != 8) {
-    fclose(f);
-    return false;
-  }
-  static const uint8_t png_sig[8] = {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
-  if (memcmp(sig, png_sig, 8) != 0) {
-    fclose(f);
-    return false;
-  }
-  fclose(f);
-  return true;
-}
-
 static void cleanup(const char* path) {
   remove(path);
 }
 
 int main(void) {
-  const char* cli_binary = get_env_or_die("CLI_BINARY");
   const char* fixture_dir = get_env_or_die("TEST_FIXTURE_DIR");
   std::string fixture = std::string(fixture_dir) + "/simple.pdf";
   const char* out_path = "/tmp/test_app_render_out.png";
@@ -92,8 +72,6 @@ int main(void) {
       rc = 1;
     }
 
-    // Save to PNG for verification (reuse CLI binary's png_writer via system call)
-    // Simpler: just verify the pixmap has expected dimensions
     if (pixmap.width != 100 || pixmap.height != 100) {
       fprintf(stderr, "FAIL: unexpected pixmap size %ux%u\n", pixmap.width, pixmap.height);
       rc = 1;
