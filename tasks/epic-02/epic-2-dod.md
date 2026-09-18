@@ -53,11 +53,11 @@ naming-sync: OK (33 keys, 2 generated files, 1 retired tokens guarded)
 What this tree can and cannot do for this epic, measured with the same tools:
 
 ```
-$ python3 tools/layering-check.py; echo rc=$?
-layering-check: backend_line_ratio=undefined (include/pdfcore/backend.h absent)
-layering-check: OK (4 source files, 0 violations)
+$ sh tools/layering-check.sh; echo rc=$?
+layering-check: backend_line_ratio=undefined (no C/C++ file under src/ or include/)
+layering-check: OK (0 source files, 0 violations)
 rc=0
-$ python3 tools/layering-check.py --strict; echo rc=$?
+$ sh tools/layering-check.sh --strict; echo rc=$?
 layering-check: 0 violation(s), ratio over budget or undefined under --strict
 rc=1
 
@@ -131,7 +131,7 @@ Read that block as the epic's starting conditions, not as a failure list:
 
 ```
 # paste: the frame table behind "60 fps sustained, no frame over 33 ms p99", with the run length
-# paste: python3 tools/layering-check.py --strict (exit 0, ratio printed as a number)
+# paste: sh tools/layering-check.sh --strict (exit 0, ratio printed as a number)
 # paste: the two hashes - CLI PNG render of the region, and the window's presented bytes
 # paste: python3 tools/format-check.sh and python3 tools/spec-check.py on the new files
 ```
@@ -254,8 +254,8 @@ Read that block as the epic's starting conditions, not as a failure list:
   job
 - [ ] 2.6: two `docs/a11y/` scripts with exact announced text, keyboard traversal from the run,
   and a verdict committed as numbers or as a new ADR
-- [ ] `sh tools/check.sh`, `sh tools/gates-selftest.sh`, `ctest --preset linux-core`, `python3
-  tools/layering-check.py --strict` and `python3 tools/spec-check.py` green on the last commit,
+- [ ] `sh tools/check.sh`, `sh tools/gates-selftest.sh`, `ctest --preset linux-core`, `sh
+  tools/layering-check.sh --strict` and `python3 tools/spec-check.py` green on the last commit,
   outputs pasted
 - [ ] This self-audit run before any hand-off, with its output pasted
 

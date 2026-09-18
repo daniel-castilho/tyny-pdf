@@ -98,7 +98,7 @@ Direct2D/DComp presentational timing, Per-Monitor V2 DPI behaviour, UIA (Narrato
 annotation and form controls), IME composition with ABNT2 and the Portuguese keyboard, the print
 dialog and the actual spooler, Authenticode and SmartScreen reputation. Everything else must
 reproduce on the Linux side; if it cannot, the presentation layer has logic in it that belongs in
-`src/core`, and `tools/layering-check.sh` (planned, PR #4) is the check that will say so.
+`src/core`, and `tools/layering-check.sh` is the check that says so.
 
 ## Debugging
 

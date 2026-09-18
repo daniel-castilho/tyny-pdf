@@ -54,13 +54,13 @@ an unenforceable rule is decoration.
   records its cost in a "Cost of swapping" section, and the record says what would be lost by
   keeping it. (Negative example, measured in the sibling project: `x86_64-pc-windows-gnu` is forced
   by one scripting dependency, which is a toolchain decision made by a library.)
-- **R-M10 Layering is machine-checked.** `tools/layering-check.sh` (planned, PR #4) fails if
+- **R-M10 Layering is machine-checked.** `tools/layering-check.sh` fails if
   `src/render/**` or `src/os/**` contains parsing, geometry reconciliation or annotation mutation,
   and if `src/core/**` includes a Windows header.
 - **R-M11 The swap budget is measured, not promised.** `backend_line_ratio` = lines of code inside
   `src/backends/**` that are not in a vtable implementation, divided by total engine-facing lines;
-  `tools/layering-check.sh` (planned, PR #4) reports it and fails above 0.15. That number is the
-  operational meaning of "swap with little pain".
+  `tools/layering-check.sh` reports it and fails above 0.15. That number is the operational meaning
+  of "swap with little pain"; the correction of 2026-09-17 fixes both terms exactly.
 - **R-M12 Reversibility decides the ceremony.** Cheap to undo: no document, just a comment and a
   test. Expensive: an ADR with a swap cost. Irreversible user-visible formats (the sidecar suffix,
   the registry path, the PDF mutation semantics of redaction) get the "frozen at first public
@@ -74,9 +74,9 @@ an unenforceable rule is decoration.
 
 ## Consequences
 
-- Positive: "maximum modularity" becomes two numbers a reviewer can see in every PR once PR #4 wires
-  them (the ratio, and the layering check), and the engine swap stops being a rumour about a future
-  rewrite.
+- Positive: "maximum modularity" becomes two numbers a reviewer can see in every PR now that
+  `tools/layering-check.sh` wires them (the ratio, and the layering check), and the engine swap
+  stops being a rumour about a future rewrite.
 - Positive: R-M4 and R-M8 are what make the WSL2 workflow viable at all, because everything behind
   them is testable without Windows (ADR-0010).
 - Negative: copy-out IR costs memory and a translation layer; a 4000x3000 page with full text run
@@ -90,3 +90,11 @@ an unenforceable rule is decoration.
 - 2026-09-16: R-M1 and R-M2 named the vtable header `pc_backend.h`. ADR-0002 puts it at
   `include/pdfcore/backend.h`, and `pc_` is the symbol prefix rather than part of a file name; the
   rule text now matches the layout it constrains. Substance unchanged, no re-decision needed.
+- 2026-09-17: R-M11 named `backend_line_ratio` but left its two terms to the reader, and ADR-0002's
+  enforcement table described a third measurement (`cloc src/backends` over total lines). The
+  formula is now fixed and is the one `tools/layering-check.sh` implements: the **numerator** is
+  every line under `src/backends/**` that is not inside a function assigned into that backend's
+  `pc_backend_api` initializer (the vtable implementation, i.e. the code any engine has to carry),
+  and the **denominator** is every line under `src/**` and `include/**`. Lines are raw `wc -l`
+  counts over `.c`, `.cc`, `.cpp`, `.h` and `.hpp`; the gate reports the ratio and fails above 0.15.
+  The rule text above now carries the same terms.

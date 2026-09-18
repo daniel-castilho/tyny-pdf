@@ -31,7 +31,7 @@ release pressure is where the shortcuts get made.
 | SBOM                         | CycloneDX, one per artefact set            | `tools/sbom.sh` (planned, PR #4) | generated at build time, never hand-edited                 |
 
 Artefacts land next to the build directory the presets already use (`build/win-cross-x64/Release/`);
-the packaging job that collects them is written with the CI matrix in PR #2.
+the packaging job that collects them does not exist yet (planned, no PR assigned).
 
 **Not produced, deliberately:** no signed installer (see section 4), no `.appx`/Store package
 (the Store is not pursued: the portable ZIP on GitHub Releases is the only channel, so nothing

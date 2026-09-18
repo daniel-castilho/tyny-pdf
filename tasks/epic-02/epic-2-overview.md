@@ -36,8 +36,8 @@ then.
 - **Epic 1's stories 1.3 and 1.4 are not delivered in this tree**, which is what gates this epic:
   `third_party/`, `conanfile.py`, `conan.lock`, `NOTICE`, `include/pdfcore/`, `src/core/`,
   `src/backends/null/`, `src/backends/mupdf/`, `src/cli/`, `src/os/` and `src/render/` do not
-  exist. `python3 tools/layering-check.py` prints `backend_line_ratio=undefined` with the
-  parenthetical naming the absent header, and exits 1 under `--strict`.
+  exist. `sh tools/layering-check.sh` prints `backend_line_ratio=undefined` with a stated reason,
+  and exits 1 under `--strict`.
 - **There is no baseline to compare against yet.** `tests/baseline.json` is absent, `python3
   tools/corpus-check.py --root .` exits 3 with `tests/conformance/manifest.txt does not exist`,
   and `python3 tools/bench-measure.sh --compare a b` exits 2 naming the missing file. The Sumatra
@@ -90,7 +90,7 @@ holds" without the seven numbers has not.
 ## Entry conditions (before hour one)
 
 1. A backend exists that can produce pixels: `include/pdfcore/backend.h` and at least
-   `src/backends/null` (Epic 1 story 1.4). `python3 tools/layering-check.py` stops reporting
+   `src/backends/null` (Epic 1 story 1.4). `sh tools/layering-check.sh` stops reporting
    `undefined`. Without this the spike blits a synthetic pattern, which is a legitimate first day
    and is recorded as such - but criterion 2 (RSS at 1000 pages) is not measurable against a fake
    document and must not be quoted as if it were. 2. `cmake --preset win-cross-x64 && cmake
@@ -111,7 +111,7 @@ holds" without the seven numbers has not.
    records with `--record-machine`, not a hand-written paragraph.
 3. **Reproducibility matches the house rule:** a second consecutive run within 10 % per metric,
    which is `tools/bench-measure.sh`'s own tolerance (`TOLERANCE = 0.10`), both runs pasted.
-4. **Layering held while the surface was written.** `python3 tools/layering-check.py --strict`
+4. **Layering held while the surface was written.** `sh tools/layering-check.sh --strict`
    exits 0 with `backend_line_ratio` a number at or below 0.15: R-M10 is the rule that keeps
    parsing, geometry reconciliation and annotation mutation out of `src/render/` and `src/os/`,
    and a spike is exactly where people put them.

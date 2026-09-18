@@ -36,7 +36,7 @@ src/render/        swapchain/  cachemap/  tiles/
 src/app/           viewer executable: thin composition root only
 src/cli/           tynypdf-cli: headless, exit codes 0,1,2,3, JSON plus JUnit reporters
 tools/             check.sh, lang-check.py, sidecar-fmt.py, naming-sync.py, spec-check.py,
-                   canonical-check.sh, docs-check.py; layering-check.sh (planned, PR #4)
+                   canonical-check.sh, docs-check.py, layering-check.sh
 tests/
   unit/  contract/            # contract suite runs against every backend
   conformance/<iso-clause>/  # clause-keyed corpus, pinned as a submodule (ADR-0010)
@@ -68,7 +68,7 @@ AGENTS.md  README.md  CHANGELOG.md
 | No engine symbols leak into the app | `dumpbin /SYMBOLS` / `nm -u` on `pdfviewer.exe` must not list `fz_` or `FPDF_` | CI, all builds |
 | `pdfcore` links no UI, no network | `dumpbin /DEPENDENTS` of `pdfcore.lib` and backends must not list `user32.lib`, `d3d11.lib`, `winhttp.lib`, `ws2_32.lib` | CI |
 | Core includes stay narrow | `grep -rn -E "include <(fz_\|fpdf\|windows)" src/core` returns nothing | CI |
-| Backend size budget | `cloc src/backends` divided by total lines stays at or below 0.15 | CI, reported as `backend_line_ratio` |
+| Backend size budget | `sh tools/layering-check.sh` reports `backend_line_ratio` at or below 0.15 (ADR-0011 R-M11 fixes the formula) | CI, `tools/check.sh` |
 | Contract suite covers every backend | `ctest -R contract` must run once per backend pair (job matrix) | CI |
 | Generated API and traces are current | regeneration must leave `git status --porcelain` empty for `include/pdfcore/gen` | CI |
 
@@ -90,3 +90,10 @@ AGENTS.md  README.md  CHANGELOG.md
   every delta, and folder names give false comfort about boundaries while link-level checks are
   what actually hold.
 - Hybrid `core` versus `app` only. Rejected: leaves the seam placement implicit.
+
+## Corrections
+
+- 2026-09-17: the enforcement table's "Backend size budget" row said `cloc src/backends` over total
+  lines, while ADR-0011 R-M11 named a different numerator. R-M11's correction of the same date fixes
+  the exact terms, and the row now points at `tools/layering-check.sh`, which implements them.
+  Substance unchanged, no re-decision needed.

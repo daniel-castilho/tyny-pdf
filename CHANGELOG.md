@@ -6,6 +6,23 @@ CalVer-compatible SemVer as declared in [docs/release-runbook.md](docs/release-r
 
 ## [Unreleased]
 
+### Added (layering gate, ADR-0011 R-M10/R-M11)
+
+- **Architecture boundary gate**: `tools/layering-check.sh` now enforces R-M10 (no Windows or
+  DirectX header in `src/core`/`src/render`, no engine header outside `src/backends`, no engine
+  symbol or IR mutation in `src/render`/`src/os`) and R-M11 (`backend_line_ratio`, reported and
+  failed above 0.15). Ships with an 8-case `--self-test`, wired into `tools/check.sh` (section 10)
+  and `tools/gates-selftest.sh` (9/9 suites).
+- **R-M11 is now exact**: ADR-0011 and ADR-0002 carry corrections fixing the numerator (backend
+  lines outside a function assigned in the `pc_backend_api` initializer) and the denominator (all
+  lines under `src/` plus `include/`); the measured ratio on this tree is 0.1418.
+
+### Changed (layering gate)
+
+- Stale `(planned, PR #4)` markers and `layering-check.py` references updated across `AGENTS.md`,
+  `adr/`, `docs/` and `tasks/`; the `README.md` Quality Gates table now reads eleven sections and
+  9/9 suites.
+
 ### Changed (distribution)
 
 - **Windows Store / MSIX is not pursued**: the portable Windows ZIP attached to a GitHub Release

@@ -13,7 +13,7 @@ owns.
   results rather than assumptions.
 - **Action:**
   - Run each entry condition command and paste the whole output, including refusals:
-    `python3 tools/layering-check.py`, `cmake --preset win-cross-x64`,
+    `sh tools/layering-check.sh`, `cmake --preset win-cross-x64`,
     `sh tools/win-probe/build.sh --probe gpu`
   - `python3 tools/bench-measure.py --target tynypdf --binary <exe> --corpus <dir> --runs 2
     --record-machine --out tests/spike-tynypdf.json`, then
@@ -39,7 +39,7 @@ owns.
   - Approval: the same page region through `tynypdf-cli render --page N --out x.png` and through
     the window, compared as hashes; the pair of hashes is pasted, and the pixel files are not
     committed as evidence of themselves
-  - Layering: `python3 tools/layering-check.py --strict`, and read the L6 verb rule as the tool
+  - Layering: `sh tools/layering-check.sh --strict`, and read the L6 verb rule as the tool
     reads it - a parsing or mutation verb inside `src/render` or `src/os` is the failure R-M10
     names
   - `python3 tools/format-check.sh` and `python3 tools/spec-check.py` on the new files
@@ -123,7 +123,7 @@ owns.
 ## Regression gates (per story and at the end)
 
 - Per story: `sh tools/check.sh`, and for 2.2 and 2.3 additionally
-  `python3 tools/layering-check.py --strict` and `python3 tools/spec-check.py`
+  `sh tools/layering-check.sh --strict` and `python3 tools/spec-check.py`
 - At the end: `sh tools/gates-selftest.sh` (12 suites), `ctest --preset linux-core`,
   `python3 tools/bench-measure.py --compare <run1> <run2>`, `sh tools/win-probe/build.sh
   --self-test` and the `epic-2-dod.md` self-audit, all with output pasted

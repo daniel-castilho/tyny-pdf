@@ -50,7 +50,7 @@ means it is specified in an ADR or a milestone and not yet built.
   proof is a run with no route but localhost.
 - **Engine Independence (`design`, M0):** the PDF engine is one backend behind a versioned C
   vtable; a `null` backend exists so the boundary is exercised by two implementations, and
-  `backend_line_ratio <= 0.15` bounds the cost of swapping
+  `backend_line_ratio <= 0.15` bounds the cost of swapping (ADR-0011 R-M11)
 - **Supply-Chain Verification (`enforced` as a rule, `design` as a job):** the engine is vendored
   at a pinned commit with a patch series; no floating versions, no unreviewed patches
   (ADR-0004, ADR-0011 R-M11)
@@ -144,7 +144,7 @@ The M0 exit criteria from `docs/kickoff.md` section 6:
 
 Coverage numbers would be theatre in a repository whose product is still being built, so the gate
 is structural: every documented claim must be checkable, and every check must be able to fail.
-`sh tools/check.sh` runs all ten sections in review order; `.github/workflows/gates.yml` runs
+`sh tools/check.sh` runs all eleven sections in review order; `.github/workflows/gates.yml` runs
 `tools/gates-selftest.sh` and `sh tools/check.sh` on every PR.
 
 | Gate | What it proves | Self-test |
@@ -157,7 +157,8 @@ is structural: every documented claim must be checkable, and every check must be
 | `tools/canonical-check.sh` | no CRLF, BOM, trailing whitespace or missing final newline | - |
 | `tools/format-check.sh` | C/C++ style against the committed `.clang-format`, plus `--staged` for the hook | 2 properties |
 | `tools/diff-scan.py` | the D1-D8 change-hygiene scan, on a diff or the whole tree | 17 properties |
-| `tools/gates-selftest.sh` | every gate's own self-test in one command | 8/8 suites |
+| `tools/layering-check.sh` | ADR-0011 R-M10/R-M11: header/symbol layering and `backend_line_ratio <= 0.15` | 8 properties |
+| `tools/gates-selftest.sh` | every gate's own self-test in one command | 9/9 suites |
 | `.github/workflows/gates.yml` | `gates-selftest.sh` plus `sh tools/check.sh`, on every PR | - |
 
 ---
@@ -177,7 +178,7 @@ is structural: every documented claim must be checkable, and every check must be
   actions pinned by full SHA.
 - **1.3 [DONE]** MuPDF 1.26.8 vendored (`third_party/mupdf/`, SHA256
   `e8d248a666d2386f4a2014d680b6e88de5ce9fd8c847b0e274cbecc124f33cc7`),
-  UPSTREAM.toml pinned, 4 patch series files, `tools/layering-check.sh` stub,
+  UPSTREAM.toml pinned, 4 patch series files, `tools/layering-check.sh`,
   `tools/deps-refresh.sh`/`patch-report.sh`/`sbom.sh` stubs, `NOTICE`,
   `docs/references.md`.
 - **1.4 [DONE]** M0 API surface (`include/pdfcore/` headers), null backend
@@ -192,7 +193,7 @@ is structural: every documented claim must be checkable, and every check must be
   Windows download -> WSL interop benchmark -> `tests/baseline.json` and the
   `docs/kickoff.md` acceptance bar.
 
-**Epic 1 gates:** `sh tools/check.sh` -> all 10 sections green (clean clone verified);
+**Epic 1 gates:** `sh tools/check.sh` -> all 11 sections green (clean clone verified);
 the 4-job CI matrix is required on `main`; branch protection enforced.
 
 **Epic 2 (UI spike): documentation complete** (`tasks/epic-02/` five files:

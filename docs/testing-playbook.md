@@ -6,9 +6,9 @@ CLI, and the Win32/Direct2D presentation layer.
 
 **Official Domain:** [https://tyny.ca](https://tyny.ca) | **App ID:** `ca.tyny.pdf`
 
-> **What runs today.** The gates in `tools/`: `tools/check.sh` runs eight checks in ten sections
-> (canonical-check has no self-test of its own), and `tools/gates-selftest.sh` proves the seven
-> self-tests plus `diff-scan`'s, wired into `.github/workflows/gates.yml`. Everything else here is
+> **What runs today.** The gates in `tools/`: `tools/check.sh` runs nine checks in eleven sections
+> (canonical-check has no self-test of its own), and `tools/gates-selftest.sh` proves the nine
+> self-tests, wired into `.github/workflows/gates.yml`. Everything else here is
 > the harness that PR #5 lands with the first compiled code, and the milestones it is gated on
 > (`docs/kickoff.md`). A `cmake` or `ctest` line in this file is a specification of what will exist,
 > not a command that works yet - which is the one way this project's test documentation differs
@@ -65,8 +65,8 @@ CLI, and the Win32/Direct2D presentation layer.
 ### 3.1 The loop that exists today
 
 ```bash
-sh tools/check.sh                    # eight checks, ten sections, all gates
-sh tools/gates-selftest.sh           # the checks-on-the-checks, 8/8 suites
+sh tools/check.sh                    # nine checks, eleven sections, all gates
+sh tools/gates-selftest.sh           # the checks-on-the-checks, 9/9 suites
 python3 tools/spec-check.py          # requirement shape, orphans, artefacts
 python3 tools/sidecar-fmt.py check tests/fixtures/sidecar
 ```
@@ -191,10 +191,10 @@ closes, and UIA assertions cover what can be asserted programmatically.
 grep -rEn '#include *[<"](windows|windef|unknwn|d2d1|dwrite|fitz|mupdf|pdfium)' src/core
 ```
 
-_Expected result: 0 matches. Today `src/core` does not exist, so the command reports a missing
-path - that is not the pass, and no PR may record it as one. Once `tools/layering-check.sh`
-(planned, PR #4) exists, this grep is where it starts, plus the `backend_line_ratio <= 0.15`
-budget._
+_Expected result: 0 matches. `src/core` has no C++ source yet, so the grep finds nothing - that is
+not the pass, and no PR may record it as one. `tools/layering-check.sh` starts from this grep and
+adds the `backend_line_ratio <= 0.15` budget (ADR-0011 R-M10/R-M11). Today it reports 0 violations
+and a ratio under budget._
 
 ---
 
