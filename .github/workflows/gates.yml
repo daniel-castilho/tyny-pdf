@@ -42,10 +42,12 @@ jobs:
       - name: install veraPDF (for conformance validation)
         run: |
           set -e
-          curl -L -o /tmp/verapdf.zip https://software.verapdf.org/rel/verapdf-installer.zip
-          unzip -q /tmp/verapdf.zip -d /tmp/verapdf
-          chmod +x /tmp/verapdf/verapdf
-          sudo ln -sf /tmp/verapdf/verapdf /usr/local/bin/verapdf
+          curl -L -o /tmp/verapdf-cli.jar https://repo1.maven.org/maven2/org/verapdf/apps/cli/1.30.2/cli-1.30.2.jar
+          sudo tee /usr/local/bin/verapdf > /dev/null <<'EOF'
+#!/bin/sh
+exec java -jar /tmp/verapdf-cli.jar "$@"
+EOF
+          chmod +x /usr/local/bin/verapdf
           verapdf --version
 
       - name: prove the gates can still detect problems
