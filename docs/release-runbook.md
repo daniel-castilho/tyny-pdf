@@ -42,7 +42,7 @@ changes what a download URL points at.
 ## 1. Pre-flight: the gates that must be green
 
 ```bash
-sh tools/check.sh                          # seven sections, all gates
+sh tools/check.sh                          # ten sections, all gates
 python3 tools/spec-check.py                # pending ids must be zero before a tag
 cmake --preset linux-core && cmake --build --preset linux-core      # from PR #2
 ctest --preset linux-core --output-on-failure                        # from PR #5

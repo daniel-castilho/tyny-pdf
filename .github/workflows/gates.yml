@@ -1,5 +1,6 @@
-# The gates: six repo checks with self-tests, the format check with its self-test, and
-# the build matrix (core-linux, windows-mingw-cross, windows-msvc) that arrived with PR
+# The gates: eight repo checks with self-tests (run all of them through
+# tools/gates-selftest.sh), the diff-scan change-hygiene gate (D1-D8) inside tools/check.sh,
+# and the build matrix (core-linux, windows-mingw-cross, windows-msvc) that arrived with PR
 # #2 together with CMakeLists.txt and CMakePresets.json. Every job in the matrix can fail
 # on bad code; a job that cannot fail is not a check (AGENTS.md, ADR-0010 section 3).
 #
@@ -39,20 +40,12 @@ jobs:
         run: python3 -m pip install --quiet jsonschema==4.10.3
 
       - name: prove the gates can still detect problems
-        run: |
-          set -e
-          python3 tools/lang-check.py --self-test
-          python3 tools/sidecar-fmt.py self-test
-          python3 tools/naming-sync.py self-test
-          python3 tools/spec-check.py --self-test
-          python3 tools/docs-check.py --self-test
-          sh tools/format-check.sh --self-test
+        run: sh tools/gates-selftest.sh
 
       - name: run every gate
         run: |
           set -e
           sh tools/check.sh
-          sh tools/format-check.sh
 
       - name: worktree line endings match the index
         run: |

@@ -80,7 +80,10 @@ means it is specified in an ADR or a milestone and not yet built.
   except presentation, with CI-friendly exit codes and JSON/JUnit reporters.
 - **The Repository Checks Itself (`enforced`):** language policy, naming, canonical bytes, spec
   traceability and documentation honesty are six checks plus a runner in `tools/`; the runner is
-  `sh tools/check.sh`.
+  `sh tools/check.sh`. A seventh check - `tools/format-check.sh` - owns C/C++ style, and
+  `tools/diff-scan.py` reads the *change* a PR makes (D1-D8: exec bits, symlinks, invisible
+  codepoints, CI triggers, action pins, dependency names, manifest/lock drift), which none of the
+  tree-reading gates can see.
 
 ---
 
@@ -299,7 +302,10 @@ documented claim must be checkable, and every check must be able to fail.
 | `tools/spec-check.py` | EARS shape, no orphan requirement ids, "done" has an artefact | 14 properties |
 | `tools/docs-check.py` | tables, links and fence balance; a forward reference must name the PR | 11 properties |
 | `tools/canonical-check.sh` | no CRLF, BOM, trailing whitespace or missing final newline | - |
-| `.github/workflows/gates.yml` | all of the above, plus the five self-tests, on every PR | - |
+| `tools/format-check.sh` | C/C++ style against the committed `.clang-format`, plus `--staged` for the hook | 2 properties |
+| `tools/diff-scan.py` | the D1-D8 change-hygiene scan, on a diff or the whole tree | 17 properties |
+| `tools/gates-selftest.sh` | every gate's own self-test in one command | 8/8 suites |
+| `.github/workflows/gates.yml` | `gates-selftest.sh` plus `sh tools/check.sh`, on every PR | - |
 
 From M0 the set grows with: unit tests per capability, the contract suite run against every backend,
 the clause-keyed conformance corpus graded against veraPDF, ASan/UBSan and nightly libFuzzer, the
@@ -408,7 +414,8 @@ authority or timestamp service in v1.
 - 48 files in the tree: 11 ADRs (10 accepted, ADR-0006 superseded by 0008), `docs/kickoff.md` with
   milestones M0-M6 and their exit criteria, the first living `SPEC.md` (14 requirements: 4 already
   enforced by committed tools, 10 honestly `pending`), the sidecar schema and its normative fixture,
-  six checks plus a runner, the `gates` workflow, the PR template and the pre-commit hook,
+  eight gates in `tools/` (six original checks plus the format and diff-scan gates) with their
+  self-test runner, the `gates` workflow, the PR template and the pre-commit hook,
   `AGENTS.md`, `CHANGELOG.md` and `LICENSE`.
 - `sh tools/check.sh` is green locally and in CI: the `gates` workflow has run `success` twice on
   `main` (run `35171544840` at `0d64999`, run `35170901622` at `94f1950`). No build code exists yet,

@@ -18,9 +18,10 @@ bytes and `docs-check: OK (30 markdown files, 0 problems)`, and `docs/epics/` ha
 then.
 
 - **77 files, 637488 bytes** excluding `build/`. `sh tools/check.sh` -> `check: all gates green`;
-  the script runs seven gates - `lang-check`, `naming-sync`, `sidecar-fmt`, `canonical-check`,
-  `spec-check`, `format-check`, `docs-check` - each followed by the self-test that proves the gate
-  can fail. `sh tools/gates-selftest.sh` -> `gates-selftest: OK (12/12 suites hold)`. `python3
+  the script runs eight gates across ten sections - `lang-check`, `naming-sync`, `sidecar-fmt`,
+  `canonical-check`, `spec-check`, `format-check`, `diff-scan`, `docs-check` - including the
+  diff-scan change-hygiene scan (D1-D8) with its own self-test. `sh tools/gates-selftest.sh` ->
+  `gates-selftest: OK (8/8 suites hold)`. `python3
   tools/docs-check.py` -> `OK (35 markdown files, 0 problems)`: 10 in `docs/epics/` (five per
   epic), 9 under `docs/`, 11 in `adr/`, plus `README.md`, `AGENTS.md`, `CHANGELOG.md`,
   `.github/PULL_REQUEST_TEMPLATE.md` and `src/features/sidecar/SPEC.md`.

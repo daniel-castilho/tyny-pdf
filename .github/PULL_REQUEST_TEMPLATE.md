@@ -18,6 +18,18 @@ Name the command and its output. A requirement without an artefact is not done
       dropped)
 - [ ] no new dependency, build flag or toolchain without an ADR that prices it (R-M9)
 - [ ] diff is ~400 lines or less, or this PR is one link in a stack
+- [ ] `python3 tools/diff-scan.py --diff <patch>` prints no finding, or every finding is
+      answered in the ledger below
+
+## Claims ledger
+
+One row per claim this body makes about the change. A row with no `Ref` is an estimate, and it
+is read as one: `confirmed` needs the command that printed it, `partial` needs the part that is
+missing, `unsupported` blocks the merge.
+
+| Claim | Verdict | Ref |
+|---|---|---|
+| <what the author asserts> | confirmed \| partial \| unsupported | <command and what it printed> |
 
 ## Trailer
 

@@ -38,6 +38,11 @@ fi
 files=$(git ls-files -z | tr '\0' '\n' | grep -E '\.(c|cc|h|cpp)$' \
   | grep -v '^third_party/' || true)
 
+if [ "${1:-}" = "--staged" ]; then
+  files=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null \
+    | grep -E '\.(c|cc|cpp|h|hpp)$' | grep -v '^third_party/' || true)
+fi
+
 if [ -z "$files" ]; then
   echo "format-check: nothing to check"
   exit 0

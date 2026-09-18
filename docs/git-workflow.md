@@ -9,7 +9,7 @@ this page holds the commands and the settings. If the two disagree, fix this pag
 git switch main && git pull --ff-only
 git switch -c feat/d6-undo-command-log
 # ... work in small increments, one logical change each ...
-sh tools/check.sh                       # the seven gates, before anything is pushed
+sh tools/check.sh                       # the eight gates, before anything is pushed
 git add -A
 git commit                              # one commit per PR is fine; the merge squashes anyway
 git push -u origin feat/d6-undo-command-log
@@ -41,7 +41,10 @@ gh pr create --base d2/field-model ...     # open #102 against its parent, #103 
 As each parent merges, retarget the child: `gh pr edit 102 --base main`. GitHub auto-merge makes the
 chain drain by itself once the checks pass, which is what keeps small PRs affordable solo. If a
 stack is two deep and you are retargeting it more than once, that is a signal the delta should have
-been split differently.
+been split differently. One approved ticket at a time, and the regression test lands before the fix
+it covers; a session that closes more than three of them re-runs the full gate set over the whole
+interval before the push, because a green gate per commit does not add up to a green gate over the
+stack and the accumulated diff is the thing a reviewer reads (`python3 tools/diff-scan.py --diff`).
 
 ## Hotfix to a published line
 

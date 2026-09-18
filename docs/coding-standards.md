@@ -87,7 +87,7 @@ tyny-pdf/
 |   `-- approvals/              # golden structured dumps (committed; received files are not)
 |-- docs/                       # this file, kickoff, naming, dev-environment, git-workflow, lessons
 |-- adr/                        # one file per decision, each with a "Cost of swapping" section
-`-- tools/                      # the gates: check.sh plus the six checks
+`-- tools/                      # the gates: check.sh plus the eight checks
 ```
 
 ### Boundary Rules
@@ -418,10 +418,11 @@ ctest --preset linux-core --output-on-failure      # runs today; has tests once 
 
 **Committed since PR #2, so they are standards now:** `.clang-format`, `.clang-tidy` and
 `.clangd` exist in the tree, written together so editor and CI cannot disagree;
-`.githooks/pre-commit` runs `clang-format --dry-run -Werror` on staged C/C++ files, and
-`tools/format-check.sh` runs the same check over the whole tree in CI (each with a `--self-test`).
-The two toolchains still disagree about warnings: the MSVC parity job and the MinGW cross job are
-both required, the latter with
+`.githooks/pre-commit` runs `tools/format-check.sh --staged` on staged C/C++ files (the script owns
+the .clang-format decision, exits 2 when clang-format is missing instead of skipping the gate, and
+has its own `--self-test`), and `tools/format-check.sh` runs the same check over the whole tree in
+CI. The two toolchains still disagree about warnings: the MSVC parity job and the MinGW cross job
+are both required, the latter with
 `-Werror`, and a MinGW-only failure is fixed by dropping the vendor extension, never by adding an
 `#ifdef` (ADR-0010).
 
@@ -429,14 +430,16 @@ both required, the latter with
 whole of it:
 
 ```bash
-sh tools/check.sh                                   # six sections + canonical, all green
-sh tools/format-check.sh                            # the seventh check, with its own self-test
+sh tools/check.sh                                   # ten sections, all gates (incl. format-check
+                                                    # and the diff-scan tree hygiene scan)
+sh tools/gates-selftest.sh                          # the checks-on-the-checks, 8/8 suites
 python3 tools/lang-check.py --self-test             # 5/5
 python3 tools/naming-sync.py self-test              # 5/5
 python3 tools/sidecar-fmt.py self-test              # 5/5
 python3 tools/spec-check.py --self-test             # 14/14
 python3 tools/docs-check.py --self-test             # 11/11
 python3 tools/format-check.sh --self-test           # 2/2
+python3 tools/diff-scan.py --self-test              # 17/17
 # from M0, in the same order CI runs them:
 cmake --preset linux-core && cmake --build --preset linux-core
 ctest --preset linux-core --output-on-failure

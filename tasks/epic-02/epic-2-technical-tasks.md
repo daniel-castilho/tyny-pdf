@@ -139,7 +139,9 @@ usually requested and refused.
 ## 2.x Final epic gates
 
 - [ ] `sh tools/check.sh` (exit 0) on a clean clone of the branch and on the merge commit
-- [ ] `sh tools/gates-selftest.sh` -> `gates-selftest: OK (12/12 suites hold)`
+- [ ] `sh tools/gates-selftest.sh` -> `gates-selftest: OK (8/8 suites hold)`
+- [ ] `python3 tools/diff-scan.py --tree` -> `D1-D8 quiet`; `python3 tools/diff-scan.py --self-test`
+  -> `17/17 properties hold`
 - [ ] `python3 tools/layering-check.py --strict` -> exit 0, `backend_line_ratio` printed as a
   number
 - [ ] `python3 tools/spec-check.py` -> 0 orphans and no pending item for `src/features/render`
