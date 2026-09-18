@@ -24,6 +24,7 @@ layering-check      | sh tools/layering-check.sh --self-test
 sbom                | sh tools/sbom.sh --self-test
 deps-refresh        | sh tools/deps-refresh.sh --self-test
 patch-report        | sh tools/patch-report.sh --self-test
+verapdf             | sh tools/verapdf.sh --self-test
 diff-scan           | python3 tools/diff-scan.py --self-test
 "
 
