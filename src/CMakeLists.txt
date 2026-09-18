@@ -1,6 +1,4 @@
 add_subdirectory(core)
 add_subdirectory(backends)
-add_subdirectory(os)
-add_subdirectory(render)
 add_subdirectory(app)
 add_subdirectory(cli)

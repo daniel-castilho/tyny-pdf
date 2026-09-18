@@ -13,8 +13,8 @@ extern "C" {
 #endif
 
 typedef enum pc_render_backend {
-    PC_RENDER_BACKEND_NULL = 0,
-    PC_RENDER_BACKEND_MUPDF = 1,
+  PC_RENDER_BACKEND_NULL = 0,
+  PC_RENDER_BACKEND_MUPDF = 1,
 } pc_render_backend;
 
 // Swapchain

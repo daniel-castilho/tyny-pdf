@@ -115,6 +115,22 @@ tyny-pdf/
 One rule decides where a line of code lives: the dependency arrow always points inward, toward
 `src/core`, and never toward a vendor or an OS (ADR-0002).
 
+### Design decisions (ADRs)
+
+| ADR | Subject | Status |
+| :-- | :------ | :----- |
+| [0001](adr/0001-engineering-canon.md) | Engineering canon: which literature is normative here | Accepted |
+| [0002](adr/0002-repository-layout.md) | Repository layout: vertical slices with horizontal seams | Accepted |
+| [0003](adr/0003-error-model.md) | Error model across three layers; default-deny networking | Accepted |
+| [0004](adr/0004-dependency-management-and-supply-chain.md) | Dependencies, vendored engine, SBOM, supply chain | Accepted |
+| [0005](adr/0005-repository-language-is-english.md) | The repository is written in English | Accepted |
+| [0006](adr/0006-product-name-and-identifier.md) | Naming rules and reverse-DNS identifiers | Superseded by 0008 (rules retained) |
+| [0007](adr/0007-sidecar-format.md) | Annotation sidecar format | Accepted |
+| [0008](adr/0008-product-name-tyny-pdf.md) | Product name is `Tyny PDF` | Accepted |
+| [0009](adr/0009-git-workflow.md) | Git workflow: branch per PR, squash, protected `main` | Accepted |
+| [0010](adr/0010-build-environment-wsl2.md) | Build environment: WSL2 workshop, cross-built Windows target | Accepted |
+| [0011](adr/0011-modularity-rules.md) | Modularity rules R-M1..R-M13 | Accepted |
+
 ---
 
 ## Requirements
@@ -125,7 +141,7 @@ The M0 exit criteria from `docs/kickoff.md` section 6:
 |---|-----------|-----------|
 | 1 | Build matrix + vendored MuPDF + C API + page 1 rendered on both targets | `cmake --preset linux-core && cmake --build --preset linux-core && ctest --preset linux-core` green; `cmake --preset win-cross-x64` produces `tynypdf.exe` at `build/win-cross-x64/Release/` |
 | 2 | Four ADR-0010 assumptions retired by measurement | `tools/win-probe/build.sh` output: headers compile, static runtime, identical symbol tables, hardware adapter observed |
-| 3 | Page 1 renders twice from one API (Linux CLI + Win32 window) | `tynypdf-cli render --backend null|mupdf` + Win32 window blit same pixels |
+| 3 | Page 1 renders twice from one API (Linux CLI + Win32 window) | `tynypdf-cli render --backend null or mupdf` + Win32 window blit same pixels |
 | 4 | Baselines measured on both SumatraPDF channels | `tools/bench-measure.sh` runs, two runs within 10%, relative bar in `docs/kickoff.md` |
 | 5 | Competitive baseline measured on both SumatraPDF channels | `tests/baseline.json` with machine spec, two runs within 10% |
 
@@ -137,17 +153,37 @@ The M0 exit criteria from `docs/kickoff.md` section 6:
 
 **Epic 1 (Stories 1.1-1.4 delivered, Story 1.5 blocked):**
 
-- **1.1 [DONE]** Seed + gates + branch protection (PR #1, #4)
-- **1.2 [DONE]** Build system: CMake presets (`linux-core`, `win-cross-x64`, `windows-msvc`), LLVM-MinGW pinned toolchain + SHA-256, style configs + `tools/format-check.sh`, `conanfile.py` + `conan.lock` (`gtest/1.17.0`), four ADR-0010 probes (`abi_probe`, `d2d_probe`, `runtime_probe`, `gpu_probe`), 4-job CI matrix (`gates`, `core-linux`, `windows-mingw-cross`, `windows-msvc`), actions pinned by full SHA
-- **1.3 [DONE]** MuPDF 1.26.8 vendored (`third_party/mupdf/`, SHA256 `e8d248a666d2386f4a2014d680b6e88de5ce9fd8c847b0e274cbecc124f33cc7`), UPSTREAM.toml pinned, 4 patch series files, `tools/layering-check.sh` stub, `tools/deps-refresh.sh`/`patch-report.sh`/`sbom.sh` stubs, `NOTICE`, `docs/references.md`
-- **1.4 [DONE]** M0 API surface (`include/pdfcore/` headers), null backend (`src/backends/null/`), CLI (`tynypdf-cli render --page N --dpi D --backend null|mupdf`), contract tests (`test_backend_contract.cc`), CI matrix green, `pdfcore` INTERFACE library
-- **1.5 [BLOCKED]** Benchmark infrastructure ready (`tools/bench-measure.sh`, `tests/bench/harness/`, `tests/baseline.json`, `tools/corpus-check.py`, corpus with 3 PDFs + manifest). **Blocked on SumatraPDF download** (Cloudflare 403 on `sumatrapdfreader.org`, GitHub releases no binaries). Need manual Windows download -> WSL interop benchmark -> update `tests/baseline.json` + `docs/kickoff.md` acceptance bar.
+- **1.1 [DONE]** Seed + gates + branch protection (PR #1, #4).
+- **1.2 [DONE]** Build system: CMake presets (`linux-core`, `win-cross-x64`,
+  `windows-msvc`), LLVM-MinGW pinned toolchain + SHA-256, style configs +
+  `tools/format-check.sh`, `conanfile.py` + `conan.lock` (`gtest/1.17.0`), four
+  ADR-0010 probes (`abi_probe`, `d2d_probe`, `runtime_probe`, `gpu_probe`), the
+  4-job CI matrix (`gates`, `core-linux`, `windows-mingw-cross`, `windows-msvc`),
+  actions pinned by full SHA.
+- **1.3 [DONE]** MuPDF 1.26.8 vendored (`third_party/mupdf/`, SHA256
+  `e8d248a666d2386f4a2014d680b6e88de5ce9fd8c847b0e274cbecc124f33cc7`),
+  UPSTREAM.toml pinned, 4 patch series files, `tools/layering-check.sh` stub,
+  `tools/deps-refresh.sh`/`patch-report.sh`/`sbom.sh` stubs, `NOTICE`,
+  `docs/references.md`.
+- **1.4 [DONE]** M0 API surface (`include/pdfcore/` headers), null backend
+  (`src/backends/null/`), MuPDF backend (`src/backends/mupdf/`) with a real
+  `page_render`, CLI (`tynypdf-cli render --page N --dpi D --backend null|mupdf`),
+  contract tests (`test_backend_contract.cc`, run against both backends), CI
+  matrix green, `pdfcore` INTERFACE library.
+- **1.5 [BLOCKED]** Benchmark infrastructure ready (`tools/bench-measure.sh`,
+  `tests/bench/harness/`, `tests/baseline.json`, `tools/corpus-check.py`, corpus
+  with 3 PDFs + manifest). Blocked on the SumatraPDF download (Cloudflare 403 on
+  `sumatrapdfreader.org`, GitHub releases ship no binaries): needs a manual
+  Windows download -> WSL interop benchmark -> `tests/baseline.json` and the
+  `docs/kickoff.md` acceptance bar.
 
-- **Epic 1 gates:** `sh tools/check.sh` -> all 7 gates green (clean clone verified); 4-job CI matrix (`gates`, `core-linux`, `windows-mingw-cross`, `windows-msvc`) required on `main`; branch protection enforced.
+**Epic 1 gates:** `sh tools/check.sh` -> all 7 gates green (clean clone verified);
+the 4-job CI matrix is required on `main`; branch protection enforced.
 
-**Epic 2 (UI spike): Documentation complete** (`tasks/epic-02/` five files: overview, stories, technical-tasks, testing, dod). Ready to start 3-day spike when backend is ready.
-
-**Epic 1 gates:** All green on `main` (`4dcf378`).
+**Epic 2 (UI spike): documentation complete** (`tasks/epic-02/` five files:
+overview, stories, technical-tasks, testing, dod). The Win32/DComp/tile-cache
+scaffolding is parked in `spikes/epic2-win32/` (not built, not a capability)
+until R14/R15 have real verification.
 
 ---
 
@@ -166,8 +202,6 @@ The M0 exit criteria from `docs/kickoff.md` section 6:
 - [ ] **M4** - D-2: form validation, tab order, flatten verified by veraPDF
 - [ ] **M5** - D-5: editor accessibility (UIA, Narrator, NVDA) as tested requirements
 - [ ] **M6** - D-1 and D-3: the sidecar, redaction with proof, portable ZIP + winget, `0.1.0`
-- [ ] After 0.1.0: revocation and TSA behind the explicit revalidate action, MSI, signing
-      reputation, and the second render backend only if M1's numbers demand it
 - [ ] After 0.1.0: revocation and TSA behind the explicit revalidate action, MSI, signing
       reputation, and the second render backend only if M1's numbers demand it
 
