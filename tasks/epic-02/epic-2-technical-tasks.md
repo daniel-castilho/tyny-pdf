@@ -58,7 +58,7 @@ usually requested and refused.
   `src/features/render/`, EARS one-liners with ids and `Verification:` targets (ADR-0011 R-M13),
   carrying the frame budget as requirements - `python3 tools/spec-check.py` must report 0 orphans
   for them
-- [ ] `python3 tools/layering-check.py --strict` exits 0; `backend_line_ratio` is a number at or
+- [ ] `sh tools/layering-check.sh --strict` exits 0; `backend_line_ratio` is a number at or
   below 0.15 and the value is pasted even when it is comfortable
 - [ ] `sh tools/format-check.sh` clean on the new files (`.clang-format` is the decision, and the
   hook is what enforces it per commit)
@@ -70,7 +70,7 @@ usually requested and refused.
   its spec with its first file, never before it
 - [ ] `src/render/tiles/` implements residency against that budget, reading it;
   `src/render/cachemap/` maps page-plus-region to a resident tile. Neither directory may decide
-  eviction policy - that is the sentence `python3 tools/layering-check.py` cannot check, so the
+  eviction policy - that is the sentence `sh tools/layering-check.sh` cannot check, so the
   code review says it and the unit tests make it obvious
 - [ ] Allocation ownership: the backend that allocates the pixel buffer frees it (R-M6); the
   render layer holds a view, and the spike does not "temporarily" call `free()` on engine memory
@@ -142,7 +142,7 @@ usually requested and refused.
 - [ ] `sh tools/gates-selftest.sh` -> `gates-selftest: OK (8/8 suites hold)`
 - [ ] `python3 tools/diff-scan.py --tree` -> `D1-D8 quiet`; `python3 tools/diff-scan.py --self-test`
   -> `17/17 properties hold`
-- [ ] `python3 tools/layering-check.py --strict` -> exit 0, `backend_line_ratio` printed as a
+- [ ] `sh tools/layering-check.sh --strict` -> exit 0, `backend_line_ratio` printed as a
   number
 - [ ] `python3 tools/spec-check.py` -> 0 orphans and no pending item for `src/features/render`
 - [ ] `python3 tools/docs-check.py` -> 0 problems, including these five files and every path they

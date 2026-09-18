@@ -53,7 +53,7 @@ with the PR that introduces it, exactly as `docs/testing-playbook.md` section 3 
     tested, and the second run must change nothing (`git status --porcelain` empty afterwards)
   - `sh tools/patch-report.sh` (planned, PR #4) against the real patch series; the table must match
     `ls third_party/patches/*.patch | wc -l`
-  - `sh tools/layering-check.sh` (planned, PR #4) with the ratio printed; then, to prove it
+  - `sh tools/layering-check.sh` with the ratio printed; then, to prove it
     bites, add an `#include <mupdf/fit.h>` to a file under `src/core/` on a throwaway branch and
     paste the red output
   - `sh tools/sbom.sh` (planned, PR #4) and validate the CycloneDX JSON against its published schema

@@ -74,7 +74,7 @@ documented as optional.
 
 Debugging rule that follows: **a bug is only interesting once it reproduces on the Linux side**, so
 the presentation layer keeps no logic that the core cannot drive. The corollary is a test:
-`tools/layering-check.sh` (planned, PR #4) asserts that `src/render` and `src/os/win32` contain no
+`tools/layering-check.sh` asserts that `src/render` and `src/os/win32` contain no
 parsing, no
 geometry reconciliation and no annotation mutation.
 

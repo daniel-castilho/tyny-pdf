@@ -130,8 +130,8 @@ Exit criteria:
    `tools/format-check.sh` (with its own `--self-test`).
 2. CI matrix green: `core-linux`, `windows-mingw-cross`, `windows-msvc` - wired by PR #2 with
    `CMakeLists.txt`, `CMakePresets.json`, `tools/win-probe/` and the toolchain hash. gtest
-   consumption and the contract suite land with story 1.4; `layering` arrives with
-   `tools/layering-check.sh` (PR #4).
+   consumption and the contract suite land with story 1.4; `layering` is
+   `tools/layering-check.sh`.
 3. A window opens on Windows that renders page 1 of a PDF through `src/backends/mupdf`, and the
    same CLI command renders to PNG on Linux; the `null` backend passes the contract suite.
 4. `tests/baseline.json` holds SumatraPDF numbers measured on the reference corpus and machine,
@@ -166,7 +166,7 @@ of with hope.
 
 Exit: the command log is the only undo mechanism; `pc_txn_*` in the public API; a fuzzed document
 with 10k operations undoes and redoes to byte-identical state; the CLI has `tynypdf-cli txn replay`;
-`src/render` contains no undo logic (asserted by `tools/layering-check.sh`, PR #4).
+`src/render` contains no undo logic (asserted by `tools/layering-check.sh`).
 
 ### M3 - D-4, text correctness
 

@@ -100,8 +100,8 @@ tyny-pdf/
 | **`src/os/win32`**   | Win32, UIA, spooler, DPI                                          | document logic, engine handles                       |
 | **`src/app`, `src/cli`** | public headers only                                          | an engine symbol, a `fz_*` type, a private core header |
 
-`tools/layering-check.sh` (planned, PR #4) is what turns the "Prohibited" column into a number
-(`backend_line_ratio <= 0.15`) instead of an argument.
+`tools/layering-check.sh` turns the "Prohibited" column into a number
+(`backend_line_ratio <= 0.15`) instead of an argument (ADR-0011 R-M10/R-M11).
 
 ---
 

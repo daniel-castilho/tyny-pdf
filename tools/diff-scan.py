@@ -2,7 +2,7 @@
 """Diff and tree hygiene scan: the classes of change a reviewer must see before merging.
 
 Why this gate exists and what it is not: the other gates read the repository's own promises
-(`docs-check.py`), its bytes (`canonical-check.sh`), its shape (`layering-check.py`). None of them
+(`docs-check.py`), its bytes (`canonical-check.sh`), its shape (`layering-check.sh`). None of them
 reads a *change*. This tool reads a unified diff, or the working tree when there is no diff to
 read, and reports the eight classes that a narrative PR body hides. It is a static scan: it runs no
 code from the patch, resolves nothing over the network, and never prints a pass for a class it

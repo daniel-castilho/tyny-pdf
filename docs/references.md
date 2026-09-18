@@ -34,7 +34,8 @@ memory (ADR-0011 R-M13).
 
 ## tools/
 
-- `tools/layering-check.sh` reports `backend_line_ratio` (ADR-0011 R-M6); fails >0.15
+- `tools/layering-check.sh` checks R-M2/R-M4/R-M10 headers and symbols and reports
+  `backend_line_ratio` (ADR-0011 R-M11); fails above 0.15
 - `tools/deps-refresh.sh` refreshes lockfile and runs full suite (planned, PR #4)
 - `tools/patch-report.sh` prints patch status table; fails on stale entries (D11)
 - `tools/sbom.sh` generates CycloneDX SBOM from three signals (planned, PR #4)
