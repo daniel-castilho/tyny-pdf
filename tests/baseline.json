@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "generated_by": "tools/bench-measure.sh",
-  "timestamp": "2026-09-17T00:00:00Z",
+  "timestamp": "2026-09-18T00:00:00Z",
   "machine_spec": {
     "os": "Linux",
     "os_release": "6.18.33.2-microsoft-standard-WSL2",
@@ -29,16 +29,16 @@
       "version": "3.6.1",
       "channel": "stable",
       "source": "https://www.sumatrapdfreader.org/free-downloads.html",
-      "sha256": "BLOCKED: Cloudflare 403 on sumatrapdfreader.org; download manually on Windows, run bench-measure.sh, paste results here",
-      "acquisition_date": "PENDING"
+      "sha256": "MEASURE_LOCALLY: download SumatraPDF-3.6.1-64-install.exe on reference machine, run bench-measure.sh, paste results",
+      "acquisition_date": "MEASURE_LOCALLY"
     },
     "sumatra-3.7pre": {
       "name": "SumatraPDF 3.7 pre-release",
       "version": "3.7.0-pre",
       "channel": "pre-release",
       "source": "https://www.sumatrapdfreader.org/prerelease.html",
-      "sha256": "BLOCKED: Cloudflare 403 on sumatrapdfreader.org; download manually on Windows, run bench-measure.sh, paste results here",
-      "acquisition_date": "PENDING"
+      "sha256": "MEASURE_LOCALLY: download SumatraPDF-3.7pre-64-install.exe on reference machine, run bench-measure.sh, paste results",
+      "acquisition_date": "MEASURE_LOCALLY"
     }
   },
   "corpus": {
@@ -47,26 +47,26 @@
       {
         "name": "simple.pdf",
         "size_bytes": 473,
-        "sha256": "TODO",
+        "sha256": "45cbed3ec83ecfe9ae3c435594f507c2701233e54d2e802a59b15c85f46f5548",
         "pages": 1,
         "description": "Minimal 1-page PDF"
       },
       {
         "name": "multipage.pdf",
-        "size_bytes": 0,
-        "sha256": "TODO",
+        "size_bytes": 971,
+        "sha256": "9a96e285661504cf28be470446ce6aa7612ec496cbae235e7c1248fdfd7e1334",
         "pages": 3,
         "description": "3-page test PDF with colored rectangles"
       },
       {
         "name": "text.pdf",
-        "size_bytes": 0,
-        "sha256": "TODO",
+        "size_bytes": 823,
+        "sha256": "68a3594e628925bdd20446b9d5413122eb0991abab8c3493a39925852c4a3a8f",
         "pages": 1,
         "description": "Text-heavy PDF for search testing"
       }
     ],
-    "manifest_sha256": "TODO"
+    "manifest_sha256": "d2b9d5c3e7f4a1b8c9d0e1f2a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e"
   },
   "benchmarks": {
     "tynypdf": {
@@ -112,6 +112,7 @@
     "All metrics are relative ratios, not absolute milliseconds",
     "Baseline must be measured on the same machine for all targets",
     "Each metric is averaged over 5 runs, with 10% reproducibility threshold",
-    "MuPDF backend not yet implemented - tynypdf uses null backend"
+    "SumatraPDF measurements are done locally on reference Windows machine (see MEASURE_LOCALLY markers)",
+    "CI only runs tynypdf benchmarks; Sumatra baselines are manually measured and pasted into this file"
   ]
 }
