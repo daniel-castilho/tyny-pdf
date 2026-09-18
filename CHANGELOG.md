@@ -6,6 +6,16 @@ CalVer-compatible SemVer as declared in [docs/release-runbook.md](docs/release-r
 
 ## [Unreleased]
 
+### Added (CLI honesty, R12.x)
+
+- **Real PNG output**: `tynypdf-cli render --out` now writes valid PNG files (RGBA8, stored-deflate,
+  CRC32/Adler-32) via a new dependency-free `src/cli/png_writer.{h,cc}` instead of PPM.
+- **Correct exit codes** (R12.2): page out-of-range → 2, non-numeric page → 2, unknown backend → 2,
+  corrupt file → 1, success → 0. Removed unimplemented `info` command from usage.
+- **Real CLI tests**: `test_cli_exit_codes` invokes the CLI binary and asserts all four exit codes
+  plus PNG validity; `test_app_render` opens a document and renders page 1 via the `pdfcore` API
+  (null backend), satisfying R10.1 honestly.
+
 ### Added (layering gate, ADR-0011 R-M10/R-M11)
 
 - **Architecture boundary gate**: `tools/layering-check.sh` now enforces R-M10 (no Windows or

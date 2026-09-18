@@ -3,11 +3,11 @@
 #include <cstring>
 
 #include "pdfcore.h"
+#include "png_writer.h"
 
 static void print_usage(const char* prog) {
   fprintf(stderr, "Usage: %s render <in.pdf> --page N [--dpi D] [--out F] [--backend null|mupdf]\n",
           prog);
-  fprintf(stderr, "       %s info <in.pdf>\n", prog);
 }
 
 int main(int argc, char** argv) {
@@ -31,7 +31,13 @@ int main(int argc, char** argv) {
 
   for (int i = 3; i < argc; ++i) {
     if (strcmp(argv[i], "--page") == 0 && i + 1 < argc) {
-      page = atoi(argv[++i]);
+      char* endptr = nullptr;
+      long val = strtol(argv[++i], &endptr, 10);
+      if (*endptr != '\0' || val < 0) {
+        fprintf(stderr, "Invalid --page value\n");
+        return 2;
+      }
+      page = (int)val;
     } else if (strcmp(argv[i], "--dpi") == 0 && i + 1 < argc) {
       dpi = atoi(argv[++i]);
     } else if (strcmp(argv[i], "--out") == 0 && i + 1 < argc) {
@@ -76,7 +82,7 @@ int main(int argc, char** argv) {
   if (page >= (int)count) {
     backend_api->doc_close(backend_doc);
     fprintf(stderr, "Page %d out of range (0-%u)\n", page, count - 1);
-    return 1;
+    return 2;
   }
 
   void* page_ptr = nullptr;
@@ -101,18 +107,13 @@ int main(int argc, char** argv) {
   }
 
   if (out_path) {
-    FILE* f = fopen(out_path, "wb");
-    if (!f) {
-      fprintf(stderr, "Failed to open output file: %s\n", out_path);
+    if (!pc_png_write(out_path, &pixmap)) {
+      fprintf(stderr, "Failed to write PNG: %s\n", out_path);
       backend_api->pixmap_free(&pixmap);
       backend_api->page_free(page_ptr);
       backend_api->doc_close(backend_doc);
       return 1;
     }
-    // Write simple PPM
-    fprintf(f, "P6\n%u %u\n255\n", pixmap.width, pixmap.height);
-    fwrite(pixmap.data, 1, pixmap.height * pixmap.stride, f);
-    fclose(f);
   } else {
     printf("Rendered page %d at %d DPI (%ux%u)\n", page, dpi, pixmap.width, pixmap.height);
   }
