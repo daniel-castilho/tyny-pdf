@@ -11,6 +11,17 @@
 
 #include "pdfcore.h"
 
+// Portable exit code extraction: POSIX WEXITSTATUS on Unix, raw status on Windows.
+#if defined(_WIN32)
+static inline int get_exit_code(int status) {
+  return status;
+}
+#else
+static inline int get_exit_code(int status) {
+  return WEXITSTATUS(status);
+}
+#endif
+
 static const char* get_env_or_die(const char* name) {
   const char* val = std::getenv(name);
   if (!val) {
@@ -62,8 +73,8 @@ int main(void) {
   std::string cmd0 = std::string(cli_binary) + " render " + fixture + " --page 0 --out " +
                      out_path + " --backend null";
   int rc0 = system(cmd0.c_str());
-  if (WEXITSTATUS(rc0) != 0) {
-    fprintf(stderr, "FAIL: success case got exit %d\n", WEXITSTATUS(rc0));
+  if (get_exit_code(rc0) != 0) {
+    fprintf(stderr, "FAIL: success case got exit %d\n", get_exit_code(rc0));
     rc = 1;
   }
   if (!file_exists(out_path)) {
@@ -83,7 +94,7 @@ int main(void) {
     std::string probe =
         std::string(cli_binary) + " render " + fixture + " --page 0 --backend mupdf";
     int probe_rc = system(probe.c_str());
-    mupdf_available = (WEXITSTATUS(probe_rc) != 3);  // exit 3 = unsupported/not built
+    mupdf_available = (get_exit_code(probe_rc) != 3);  // exit 3 = unsupported/not built
   }
 
   if (mupdf_available) {
@@ -94,8 +105,8 @@ int main(void) {
     std::string cmd1 = std::string(cli_binary) + " render " + bad + " --page 0 --out " + out_path +
                        " --backend mupdf";
     int rc1 = system(cmd1.c_str());
-    if (WEXITSTATUS(rc1) != 1) {
-      fprintf(stderr, "FAIL: corrupt file got exit %d\n", WEXITSTATUS(rc1));
+    if (get_exit_code(rc1) != 1) {
+      fprintf(stderr, "FAIL: corrupt file got exit %d\n", get_exit_code(rc1));
       rc = 1;
     }
     remove(bad.c_str());
@@ -108,8 +119,8 @@ int main(void) {
   std::string cmd2 = std::string(cli_binary) + " render " + fixture + " --page 99 --out " +
                      out_path + " --backend null";
   int rc2 = system(cmd2.c_str());
-  if (WEXITSTATUS(rc2) != 2) {
-    fprintf(stderr, "FAIL: page out of range got exit %d\n", WEXITSTATUS(rc2));
+  if (get_exit_code(rc2) != 2) {
+    fprintf(stderr, "FAIL: page out of range got exit %d\n", get_exit_code(rc2));
     rc = 1;
   }
   cleanup(out_path);
@@ -118,8 +129,8 @@ int main(void) {
   std::string cmd3 = std::string(cli_binary) + " render " + fixture + " --page abc --out " +
                      out_path + " --backend null";
   int rc3 = system(cmd3.c_str());
-  if (WEXITSTATUS(rc3) != 2) {
-    fprintf(stderr, "FAIL: non-numeric page got exit %d\n", WEXITSTATUS(rc3));
+  if (get_exit_code(rc3) != 2) {
+    fprintf(stderr, "FAIL: non-numeric page got exit %d\n", get_exit_code(rc3));
     rc = 1;
   }
   cleanup(out_path);
@@ -128,8 +139,8 @@ int main(void) {
   std::string cmd4 = std::string(cli_binary) + " render " + fixture + " --page 0 --out " +
                      out_path + " --backend unknown";
   int rc4 = system(cmd4.c_str());
-  if (WEXITSTATUS(rc4) != 2) {
-    fprintf(stderr, "FAIL: unknown backend got exit %d\n", WEXITSTATUS(rc4));
+  if (get_exit_code(rc4) != 2) {
+    fprintf(stderr, "FAIL: unknown backend got exit %d\n", get_exit_code(rc4));
     rc = 1;
   }
   cleanup(out_path);
