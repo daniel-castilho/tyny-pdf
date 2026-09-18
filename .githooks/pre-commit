@@ -23,11 +23,15 @@ run "spec shape and trace"          python3 tools/spec-check.py --quick
 run "docs promise only what exists"  python3 tools/docs-check.py
 
 if git rev-parse --git-dir >/dev/null 2>&1; then
-  staged=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null | grep -E '\.(c|cc|cpp|h|hpp)$' || true)
-  if [ -n "$staged" ] && command -v clang-format >/dev/null 2>&1; then
-    # shellcheck disable=SC2086
-    run "clang-format" clang-format --dry-run -Werror $staged
-  fi
+  # diff-scan reads the index, so the four shapes a narrative commit message cannot describe -
+  # an exec bit, a symlink, an invisible codepoint, a manifest without its lock - are caught before
+  # the object exists locally, not in CI thirty minutes later.
+  run "change hygiene, staged diff (D1-D8)" python3 tools/diff-scan.py --staged
+
+  # tools/format-check.sh owns the style gate now: it reads .clang-format, it exits 2 when the
+  # binary is missing instead of skipping the gate, and its --staged mode is the same file list
+  # this hook used to build by hand, against the repository's own .clang-format decision.
+  run "clang-format (staged)" sh tools/format-check.sh --staged
 fi
 
 exit 0

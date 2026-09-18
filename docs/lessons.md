@@ -131,3 +131,30 @@ would have blocked the direct push existed - which is also the moment the rule i
 **Rule:** the repository flow is PR-only from Story 1.1's merge forward. `main` is protected so the
 direct push cannot recur, and the deviation is written here so a later reader never treats three
 history commits as precedent.
+
+## 2026-09-17 - a ported gate passed its own self-test only where it was run before
+
+`tools/diff-scan.py` arrived as the fruit of the AkitaOnRails "talking about my AI skills" article,
+ported from the sibling workspace. Its 17-case `--self-test` reported 16/17 here: the `--staged`
+case expected rc=3 "outside a git checkout", but `staged_diff()` ran `git rev-parse` in the
+process cwd instead of the `--root` that the test pointed at, so inside a real checkout it read a
+diff (rc != 3) and the property failed. The sibling's run had passed because its cwd was not a
+git tree. The bug is that a gate's default path silently ignored its own `--root`.
+
+**Rule:** a self-test must prove the property in the repository it ships in, not in the one it was
+written in. Ported gates are re-run locally before the PR claims them, and `tools/gates-selftest.sh`
+runs every tool's own self-test so a regression of exactly this kind fails the gate set, not a
+review reading.
+
+## 2026-09-17 - a vendored engine is third-party code, and a change gate reads the project's change
+
+The first `tools/diff-scan.py --tree` run reported 250 findings, every one inside
+`third_party/mupdf/`: the engine's own manifests and vendored test binaries fail D7/D8 because they
+are upstream's files, not ours. But `tools/format-check.sh` had already decided this: it excludes
+`third_party/` from the style gate, and the layering budget counts backend lines but never the
+engine's. The gate as ported had no such carve-out, so it graded 60 thousand lines of someone
+else's drop.
+
+**Rule:** a change-hygiene gate scans the change a PR makes and the project files it lands in;
+vendored code is excluded the same way the other gates exclude it, with the reason in the rule
+(ADR-0004). A tool that adds findings it cannot fix is a tool the next PR will quietly bypass.

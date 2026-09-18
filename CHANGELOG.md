@@ -6,6 +6,28 @@ CalVer-compatible SemVer as declared in [docs/release-runbook.md](docs/release-r
 
 ## [Unreleased]
 
+### Added (diff-scan gate and the unified self-test runner)
+
+- **Change-hygiene gate**: `tools/diff-scan.py` reads a unified diff or the working tree and
+  reports the eight classes of surprise D1-D8 - exec bit outside the tools allowlist, symlink,
+  bidi/zero-width controls, confusable codepoints, PR-shaped workflow triggers, unpinned action
+  refs, dependency-name similarity against the seed list, and manifest/lock drift. Ships with a
+  17-case `--self-test`; `.githooks/pre-commit` runs it on the staged diff.
+- **`tools/check.sh` grew from seven sections to ten**: the format gate (section 7, now
+  `--staged`-aware) and the diff-scan tree scan plus its self-test (sections 8-9) run inside the
+  same gate a reviewer reads.
+- **`tools/gates-selftest.sh`**: one entry point runs every tool's own self-test (8/8 suites);
+  `gates.yml` calls it instead of listing the self-tests inline.
+- **PR template**: the claims ledger table maps every assertion in a PR body to a command and its
+  printed output, and the checklist asks for a `diff-scan` read of the patch.
+
+### Changed (diff-scan gate)
+
+- `AGENTS.md`: commands matrix gained the gates-selftest and diff-scan rows; "six checks" became
+  "eight checks".
+- `docs/coding-standards.md` and `docs/testing-playbook.md` document the eight-checks tree and the
+  exact self-test counts (rationale: a check that cannot detect its own violation is decoration).
+
 ### Added (Story 1.2, PR #2 - build system, both toolchains, ADR-0010 probes)
 
 - **Build system**: `CMakeLists.txt` tree (root, `src/core`, `src/backends/null`,

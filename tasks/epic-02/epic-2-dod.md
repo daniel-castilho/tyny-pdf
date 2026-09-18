@@ -29,7 +29,11 @@ $ find . -type f -not -path './build/*' -printf '%s\n' | awk '{s+=$1} END{print 
 $ sh tools/check.sh | tail -1
 check: all gates green
 $ sh tools/gates-selftest.sh | tail -1
-gates-selftest: OK (12/12 suites hold)
+gates-selftest: OK (8/8 suites hold)
+$ python3 tools/diff-scan.py --tree | tail -1
+diff-scan: OK (tree wt-scan, D1-D8 quiet)
+$ python3 tools/diff-scan.py --self-test | tail -1
+diff-scan self-test: 17/17 properties hold
 $ python3 tools/docs-check.py | tail -1
 docs-check: OK (35 markdown files, 0 problems)
 $ python3 tools/spec-check.py | head -1

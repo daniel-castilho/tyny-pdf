@@ -102,7 +102,10 @@ because the directory does not exist is **not** a pass. Claiming one is a pass i
 | Purpose                                     | Command                                                           | Location                     |
 | :-----------------------------------------  | :---------------------------------------------------------------  | :--------------------------  |
 | **Run every gate**                          | `sh tools/check.sh`                                               | `Root` (today)               |
-| **Language policy only**                    | `python3 tools/lang-check.py`                                     | `Root` (today)               |
+| **Prove the gates can still fail**          | `sh tools/gates-selftest.sh`                                      | `Root` (today)               |
+| **Diff and tree hygiene (D1-D8)**           | `python3 tools/diff-scan.py --tree`                               | `Root` (today)               |
+| **Move the format gate on a staged diff**   | `sh tools/format-check.sh --staged`                               | `Root` (today)               |
+| **Language policy only**                    | `python3 tools/lang-check.py`                                     | `Root` (today)                |
 | **Naming drift and retired tokens**         | `python3 tools/naming-sync.py check`                              | `Root` (today)               |
 | **Regenerate derived identifiers**          | `python3 tools/naming-sync.py write`                              | `Root` (today)               |
 | **One identifier, for scripts**             | `python3 tools/naming-sync.py get identifiers.app_id`             | `Root` (today)               |
@@ -112,7 +115,7 @@ because the directory does not exist is **not** a pass. Claiming one is a pass i
 | **Docs may only promise what exists**       | `python3 tools/docs-check.py`                                     | `Root` (today)               |
 | **Byte stability of the tree**              | `sh tools/canonical-check.sh`                                     | `Root` (today)               |
 | **Formatting gate**                         | `sh tools/format-check.sh`                                        | `Root` (today)               |
-| **A gate's own self-test**                  | `--self-test` (lang, spec, docs) or `self-test` (naming, sidecar) | `Root` (today)               |
+| **A gate's own self-test**                  | `sh tools/gates-selftest.sh` or `--self-test` on one tool         | `Root` (today)               |
 | **Configure and build the core**            | `cmake --preset linux-core && cmake --build --preset linux-core`  | `Root` (today)              |
 | **Run unit and contract tests**             | `ctest --preset linux-core --output-on-failure`                   | `Root` (today)              |
 | **Cross-build the Windows target**          | `cmake --preset win-cross-x64`                                    | `Root` (today)              |
@@ -149,7 +152,7 @@ tyny-pdf/
 |-- tests/                      # unit/, contract/, conformance/<iso-clause>/, approvals/, fixtures/
 |-- docs/                       # kickoff, naming, dev-environment, git-workflow, lessons, a11y/
 |-- adr/                        # one file per decision, each with a "Cost of swapping" section
-`-- tools/                      # the gates: check.sh and the six checks it runs
+`-- tools/                      # the gates: check.sh and the eight checks it runs
 ```
 
 ### Layer Rules
@@ -215,8 +218,8 @@ an ADR; anything that changes a boundary, a format or the ABI belongs in an ADR.
 
 ## Testing Strategy
 
-- **The five tool self-tests first:** a check that cannot detect its own violation is decoration.
-  Run with the self-test invocation in the Commands Matrix; CI runs all of them.
+- **The eight gate self-tests first:** a check that cannot detect its own violation is decoration.
+  Run with `sh tools/gates-selftest.sh`; CI runs the same list in `gates.yml`.
 - **Unit per capability (`tests/unit/test_<subject>.cc`, from M0):** core semantics on the `null`
   backend, so a test never depends on MuPDF to make its point. Run with `ctest --preset linux-core`.
 - **Contract suite per backend (`tests/contract/`, from M0):** the same assertions run against every

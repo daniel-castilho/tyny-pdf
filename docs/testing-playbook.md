@@ -6,11 +6,13 @@ CLI, and the Win32/Direct2D presentation layer.
 
 **Official Domain:** [https://tyny.ca](https://tyny.ca) | **App ID:** `ca.tyny.pdf`
 
-> **What runs today.** The six checks in `tools/` plus their five self-tests, wired into
-> `.github/workflows/gates.yml`. Everything else here is the harness that PR #5 lands with the first
-> compiled code, and the milestones it is gated on (`docs/kickoff.md`). A `cmake` or `ctest` line in
-> this file is a specification of what will exist, not a command that works yet - which is the one
-> way this project's test documentation differs from a running project's.
+> **What runs today.** The gates in `tools/`: `tools/check.sh` runs eight checks in ten sections
+> (canonical-check has no self-test of its own), and `tools/gates-selftest.sh` proves the seven
+> self-tests plus `diff-scan`'s, wired into `.github/workflows/gates.yml`. Everything else here is
+> the harness that PR #5 lands with the first compiled code, and the milestones it is gated on
+> (`docs/kickoff.md`). A `cmake` or `ctest` line in this file is a specification of what will exist,
+> not a command that works yet - which is the one way this project's test documentation differs
+> from a running project's.
 
 ---
 
@@ -44,7 +46,7 @@ CLI, and the Win32/Direct2D presentation layer.
 
 | Level                | Location                                | Runtime                                | Purpose and exit signal                                                          |
 | :------------------- | :-------------------------------------- | :------------------------------------- | :------------------------------------------------------------------------------- |
-| **Repo gates**       | `tools/`                                | `python3`, `sh` (today)                | language, naming, sidecar bytes, spec trace, docs honesty, byte stability        |
+| **Repo gates**       | `tools/`                                | `python3`, `sh` (today)                | language, naming, sidecar bytes, spec trace, docs honesty, byte stability, diff and tree hygiene |
 | **Unit**             | `tests/unit/test_<subject>.cc`          | GoogleTest via `ctest` (M0)            | sidecar encode/decode, IR geometry, canonical rounding, id stability             |
 | **Contract**         | `tests/contract/`                       | same suite, every backend (M0)         | the vtable is the interface; `unsupported` is never reported as `empty` (R-M5)  |
 | **Approval**         | `tests/approvals/`                      | golden files, `--accept` flow (M0)     | structured IR dumps, CLI JSON, rendered page digests                             |
@@ -63,7 +65,8 @@ CLI, and the Win32/Direct2D presentation layer.
 ### 3.1 The loop that exists today
 
 ```bash
-sh tools/check.sh                    # seven sections, all gates
+sh tools/check.sh                    # eight checks, ten sections, all gates
+sh tools/gates-selftest.sh           # the checks-on-the-checks, 8/8 suites
 python3 tools/spec-check.py          # requirement shape, orphans, artefacts
 python3 tools/sidecar-fmt.py check tests/fixtures/sidecar
 ```
@@ -114,6 +117,9 @@ justification in the PR is a rejected PR.
 ```bash
 python3 tools/spec-check.py                    # every requirement cites an artefact
 python3 tools/naming-sync.py check             # derived identifiers match docs/naming.md
+python3 tools/diff-scan.py --tree              # exec bits, symlinks, invisible codepoints,
+                                               # CI triggers, action pins, dependency names,
+                                               # manifest and lock agreement
 git status --porcelain generated/              # must be empty in CI
 ```
 
