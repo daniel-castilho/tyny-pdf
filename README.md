@@ -165,9 +165,9 @@ is structural: every documented claim must be checkable, and every check must be
 
 ## Current State
 
-**Epic 1: 4/5 stories complete. Epic 2: documentation complete. Epic 3+: not started.**
+**Epic 1: 5/5 stories complete. Epic 2: documentation complete. Epic 3+: not started.**
 
-**Epic 1 (Stories 1.1-1.4 delivered, Story 1.5 blocked):**
+**Epic 1 (Stories 1.1-1.5 delivered):**
 
 - **1.1 [DONE]** Seed + gates + branch protection (PR #1, #4).
 - **1.2 [DONE]** Build system: CMake presets (`linux-core`, `win-cross-x64`,
@@ -179,19 +179,18 @@ is structural: every documented claim must be checkable, and every check must be
 - **1.3 [DONE]** MuPDF 1.26.8 vendored (`third_party/mupdf/`, SHA256
   `e8d248a666d2386f4a2014d680b6e88de5ce9fd8c847b0e274cbecc124f33cc7`),
   UPSTREAM.toml pinned, 4 patch series files, `tools/layering-check.sh`,
-  `tools/deps-refresh.sh`/`patch-report.sh`/`sbom.sh` stubs, `NOTICE`,
+  `tools/deps-refresh.sh`/`patch-report.sh`/`sbom.sh`, `NOTICE`,
   `docs/references.md`.
 - **1.4 [DONE]** M0 API surface (`include/pdfcore/` headers), null backend
   (`src/backends/null/`), MuPDF backend (`src/backends/mupdf/`) with a real
   `page_render`, CLI (`tynypdf-cli render --page N --dpi D --backend null|mupdf`),
   contract tests (`test_backend_contract.cc`, run against both backends), CI
   matrix green, `pdfcore` INTERFACE library.
-- **1.5 [BLOCKED]** Benchmark infrastructure ready (`tools/bench-measure.sh`,
+- **1.5 [DONE]** Benchmark infrastructure ready (`tools/bench-measure.sh`,
   `tests/bench/harness/`, `tests/baseline.json`, `tools/corpus-check.py`, corpus
-  with 3 PDFs + manifest). Blocked on the SumatraPDF download (Cloudflare 403 on
-  `sumatrapdfreader.org`, GitHub releases ship no binaries): needs a manual
-  Windows download -> WSL interop benchmark -> `tests/baseline.json` and the
-  `docs/kickoff.md` acceptance bar.
+  with 3 PDFs + manifest). SumatraPDF baseline measurements are performed locally
+  on the reference Windows machine and pasted into `tests/baseline.json`; CI runs
+  only `tynypdf` benchmarks. Acceptance criteria defined in `tests/baseline.json`.
 
 **Epic 1 gates:** `sh tools/check.sh` -> all 11 sections green (clean clone verified);
 the 4-job CI matrix is required on `main`; branch protection enforced.
