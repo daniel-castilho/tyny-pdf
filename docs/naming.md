@@ -35,6 +35,7 @@ library:
   core_target: "pdfcore"
   public_header: "pdfcore.h"
   backend_dll_prefix: "tynypdf-backend-"  # e.g. tynypdf-backend-mupdf.dll
+  render_dll_prefix: "tynypdf-render-"    # e.g. tynypdf-render.dll
   abi_namespace: "pc_"                    # pdfcore C symbols; brand-free on purpose
 
 paths:

@@ -21,10 +21,17 @@ if (TYNYPDF_BUILD_TESTS)
     pc_apply_warnings(test_cli_exit_codes)
     add_test(NAME test_cli_exit_codes COMMAND test_cli_exit_codes)
 
-    # contract test
+    # contract test - one binary, the same assertions against every installed backend
     add_executable(test_backend_contract contract/backend_contract.cc)
     target_link_libraries(test_backend_contract pdfcore ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)
     target_include_directories(test_backend_contract PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    target_compile_definitions(test_backend_contract PRIVATE
+        TEST_FIXTURE_DIR="${CMAKE_SOURCE_DIR}/tests/fixtures")
     pc_apply_warnings(test_backend_contract)
-    add_test(NAME test_backend_contract COMMAND test_backend_contract)
+    add_test(NAME test_backend_contract COMMAND test_backend_contract null)
+    if (TARGET ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}mupdf)
+        target_link_libraries(test_backend_contract ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}mupdf)
+        target_compile_definitions(test_backend_contract PRIVATE PC_HAVE_MUPDF)
+        add_test(NAME test_backend_contract_mupdf COMMAND test_backend_contract mupdf)
+    endif()
 endif()

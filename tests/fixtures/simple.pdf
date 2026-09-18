@@ -9,11 +9,10 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Resources << >> /Contents 4 0 R >>
 endobj
 4 0 obj
-<< /Length 44 >>
+<< /Length 21 >>
 stream
-100 0 0 100 0 0 cm
 0 g
-100 100 100 100 re
+25 25 50 50 re
 f
 endstream
 endobj
@@ -23,9 +22,9 @@ xref
 0000000009 00000 n 
 0000000058 00000 n 
 0000000115 00000 n 
-0000000210 00000 n 
+0000000219 00000 n 
 trailer
 << /Size 5 /Root 1 0 R >>
 startxref
-304
-%EOF
+289
+%%EOF
