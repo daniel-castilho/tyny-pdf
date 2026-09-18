@@ -6,6 +6,17 @@ CalVer-compatible SemVer as declared in [docs/release-runbook.md](docs/release-r
 
 ## [Unreleased]
 
+### Added (supply chain gates, ADR-0004)
+
+- **CycloneDX SBOM**: `tools/sbom.sh` generates a valid SBOM from `conan.lock`, linker inputs, and
+  the vendored MuPDF fingerprint; emits JSON with components, hashes, and purls.
+- **Dependency refresh**: `tools/deps-refresh.sh` runs `conan lock create`, the full test suite
+  (`ctest --preset linux-core`), and the full gate (`tools/check.sh`); `--dry-run` for preview.
+- **Patch report**: `tools/patch-report.sh` prints a status table for `third_party/patches/*.patch`
+  and fails if any `Upstream-status: none` entry exceeds 180 days (`--fail-on-stale`).
+- All three tools ship `--self-test` and are wired into `tools/check.sh` (sections 11-13) and
+  `tools/gates-selftest.sh` (now 12/12 suites).
+
 ### Added (CLI honesty, R12.x)
 
 - **Real PNG output**: `tynypdf-cli render --out` now writes valid PNG files (RGBA8, stored-deflate,

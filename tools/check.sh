@@ -32,11 +32,20 @@ python3 tools/diff-scan.py --tree
 printf '== 9/11 diff-scan self-test (a scan that cannot fail is not a gate)\n'
 python3 tools/diff-scan.py --self-test >/dev/null 2>&1 && echo 'diff-scan self-test: OK'
 
-printf '== 10/11 architecture layering (ADR-0011 R-M10/R-M11)\n'
+printf '== 10/14 architecture layering (ADR-0011 R-M10/R-M11)\n'
 sh tools/layering-check.sh --strict
 sh tools/layering-check.sh --self-test >/dev/null && echo 'layering-check self-test: OK'
 
-printf '== 11/11 documentation only promises what exists\n'
+printf '== 11/14 supply chain: SBOM generation (ADR-0004)\n'
+sh tools/sbom.sh --output /tmp/sbom.json
+
+printf '== 12/14 supply chain: dependency refresh (ADR-0004)\n'
+sh tools/deps-refresh.sh --dry-run
+
+printf '== 13/14 supply chain: patch report (ADR-0004)\n'
+sh tools/patch-report.sh --fail-on-stale
+
+printf '== 14/14 documentation only promises what exists\n'
 python3 tools/docs-check.py
 
 printf '\ncheck: all gates green\n'

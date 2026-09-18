@@ -4,8 +4,8 @@
 # Why this exists as a separate entry point: a gate that has only ever printed OK is an untested
 # assertion (docs/lessons.md, and docs/testing-playbook.md section 3.5). tools/check.sh runs the
 # checks; this runs the checks-on-the-checks. A tool is listed only when it ships a self-test; a
-# tool without one (patch-report.sh, sbom.sh, deps-refresh.sh, bench-measure.sh,
-# canonical-check.sh) cannot claim that property and is deliberately absent.
+# tool without one (bench-measure.sh, canonical-check.sh) cannot claim that property
+# and is deliberately absent.
 #
 # Usage: sh tools/gates-selftest.sh [--list]
 set -u
@@ -21,6 +21,9 @@ docs-check          | python3 tools/docs-check.py --self-test
 corpus-check        | python3 tools/corpus-check.py . --self-test
 format-check        | sh tools/format-check.sh --self-test
 layering-check      | sh tools/layering-check.sh --self-test
+sbom                | sh tools/sbom.sh --self-test
+deps-refresh        | sh tools/deps-refresh.sh --self-test
+patch-report        | sh tools/patch-report.sh --self-test
 diff-scan           | python3 tools/diff-scan.py --self-test
 "
 

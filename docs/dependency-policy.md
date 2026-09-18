@@ -71,8 +71,8 @@ decorative.
 
 | Name | Version / pin | Licence | Size cost | Why not local code | Removal cost | Status, and where it is enforced |
 |---|---|---|---|---|---|---|
-| MuPDF (the engine) | exact upstream commit in `third_party/UPSTREAM.toml` (`upstream_url`, `upstream_commit`, `vendored_on`, `patch_series`) | AGPL-3.0-or-later, licence text shipped | n/m | A PDF parser is the one component where "write it ourselves" is the expensive option; the engine also carries rendering, layout and form code that would take years to reproduce | High, and priced in: the seam is `include/pdfcore/backend.h`, so the cost is a second backend rather than a rewrite (ADR-0011 R-M10) | planned, PR #4 (vendored tree); ADR-0004 section 1 |
-| zlib, libjpeg-turbo, freetype, harfbuzz, a crypto provider | whatever one `conan.lock` records per release | zlib / IJG / FTL-BSD / MIT / per provider | n/m | they arrive transitively through the engine's own build (ADR-0004 context item 2), so the lockfile is the record, not a decision | Low per library; medium as a set, because the engine's build script names them | not present; enters only as rows produced by `tools/deps-refresh.sh` (planned, PR #4) |
+| MuPDF (the engine) | exact upstream commit in `third_party/UPSTREAM.toml` (`upstream_url`, `upstream_commit`, `vendored_on`, `patch_series`) | AGPL-3.0-or-later, licence text shipped | n/m | A PDF parser is the one component where "write it ourselves" is the expensive option; the engine also carries rendering, layout and form code that would take years to reproduce | High, and priced in: the seam is `include/pdfcore/backend.h`, so the cost is a second backend rather than a rewrite (ADR-0011 R-M10) | implemented; ADR-0004 section 1 |
+| zlib, libjpeg-turbo, freetype, harfbuzz, a crypto provider | whatever one `conan.lock` records per release | zlib / IJG / FTL-BSD / MIT / per provider | n/m | they arrive transitively through the engine's own build (ADR-0004 context item 2), so the lockfile is the record, not a decision | Low per library; medium as a set, because the engine's build script names them | not present; enters only as rows produced by `tools/deps-refresh.sh` |
 | GoogleTest | `gtest/1.17.0` in `conan.lock` (created by `conan lock create`, PR #2) | BSD-3-Clause | none in shipped artefacts (test-only) | an assertion framework is a distraction we can afford exactly once, and not now | Low - the suites are portable; `tests/contract` is plain C++ with its own main | present in the lockfile (PR #2); the target that executes it is PR #5's (`docs/kickoff.md` M0 exit criterion 2 names gtest inside `linux-core`) |
 | LLVM-MinGW (cross toolchain) | tarball, SHA-256 recorded in `third_party/toolchains/llvm-mingw.sha256`, version pinned in `CMakePresets.json` and `build/cmake/toolchain-llvm-mingw.cmake` | Apache-2.0 with LLVM exception; a build tool, nothing linked into the product | none | a pinned compiler is the only way two machines can agree about a binary, which is what the unsigned-release posture buys us (ADR-0004 section 5, ADR-0010) | Medium - a toolchain bump rewrites every object file | present, PR #2: 20260812-ucrt-ubuntu-22.04-x86_64 (clang 23.1.0-rc3), hash verified by the `windows-mingw-cross` job; exception E-4 closed |
 | MSVC v143 + Windows SDK | whatever `windows-latest` carries, recorded per run rather than pinned by us | proprietary, runner-supplied | none | parity is the requirement: the product must build with the compiler our users' toolchains expect (ADR-0010) | n/a - a second configuration, not a dependency | runner available today; the `windows-msvc` job is live (PR #2) |
@@ -131,7 +131,7 @@ does not name its source is a floating version in a different medium.
 
 ## 5. Refresh and upgrade
 
-- `tools/deps-refresh.sh` (planned, PR #4) is the **only** path that changes `conan.lock`. It opens
+- `tools/deps-refresh.sh` is the **only** path that changes `conan.lock`. It opens
    a branch, runs the whole test and conformance suite, and may not be merged red. Re-running it
    must leave `git status` clean, which is the lockfile-currency check in ADR-0004's Enforcement
    table.
@@ -149,7 +149,7 @@ does not name its source is a floating version in a different medium.
 
 A patch is one `git am`-applicable file in `third_party/patches/*.patch` carrying the header
 ADR-0004 section 1 names: `Subject`, `Reason`, `Upstream-status` (`none`, `proposed:<url>`,
-`merged:<commit>`), `Owner`. `tools/patch-report.sh` (planned, PR #4) prints the table at release
+`merged:<commit>`), `Owner`. `tools/patch-report.sh` prints the table at release
 time and fails on an entry older than 180 days without a status change.
 
 The part that is easy to get wrong, written out: **`Upstream-status: none` is a timer, not a
@@ -214,7 +214,7 @@ the PR is not ready, and "the gate does not check that yet" is a statement about
 - Removal cost is estimated at intake precisely so that removal stays possible; a row that says
    "unknown" has not done its job (rule 2).
 - Dropping a transitive dependency is a lockfile change, so it travels `tools/deps-refresh.sh`
-   (planned, PR #4) and the full suite exactly like an addition.
+   and the full suite exactly like an addition.
 
 ---
 
