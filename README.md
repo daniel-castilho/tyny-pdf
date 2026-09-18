@@ -30,14 +30,7 @@ and nothing in the product requires them).
 - [Tech Stack](#tech-stack)
 - [Architecture & Design Rules](#architecture--design-rules)
 - [Requirements](#requirements)
-- [Getting Started](#getting-started)
-- [CLI Usage](#cli-usage)
-- [Commands](#commands)
 - [Quality Gates](#quality-gates)
-- [The Annotation Sidecar](#the-annotation-sidecar)
-- [Backend Support](#backend-support)
-- [Privacy & Local-First Model](#privacy--local-first-model)
-- [Non-Goals](#non-goals)
 - [Current State](#current-state)
 - [Roadmap](#roadmap)
 - [Documentation & License](#documentation--license)
@@ -109,7 +102,7 @@ tyny-pdf/
 |-- tests/                      # unit/, contract/, conformance/<iso-clause>/, approvals/, fixtures/
 |-- docs/                       # kickoff, naming, dev-environment, git-workflow, lessons, a11y/
 |-- adr/                        # one file per decision, each with a "Cost of swapping" section
-`-- tools/                      # the gates: check.sh and the six checks it runs
+`-- tools/                      # the gates: check.sh and the checks it runs
 ```
 
 One rule decides where a line of code lives: the dependency arrow always points inward, toward
@@ -147,6 +140,28 @@ The M0 exit criteria from `docs/kickoff.md` section 6:
 
 ---
 
+## Quality Gates
+
+Coverage numbers would be theatre in a repository whose product is still being built, so the gate
+is structural: every documented claim must be checkable, and every check must be able to fail.
+`sh tools/check.sh` runs all ten sections in review order; `.github/workflows/gates.yml` runs
+`tools/gates-selftest.sh` and `sh tools/check.sh` on every PR.
+
+| Gate | What it proves | Self-test |
+| :--- | :------------- | :-------- |
+| `tools/lang-check.py` | the repository is English, no mojibake, no stray Portuguese | 5 properties |
+| `tools/sidecar-fmt.py` | sidecars are schema-valid and byte-canonical; `fix` is idempotent | 5 properties |
+| `tools/naming-sync.py` | derived identifiers match `docs/naming.md`; retired brand tokens are gone | 5 properties |
+| `tools/spec-check.py` | EARS shape, no orphan requirement ids, "done" has an artefact | 14 properties |
+| `tools/docs-check.py` | tables, links and fence balance; a forward reference must name the PR | 11 properties |
+| `tools/canonical-check.sh` | no CRLF, BOM, trailing whitespace or missing final newline | - |
+| `tools/format-check.sh` | C/C++ style against the committed `.clang-format`, plus `--staged` for the hook | 2 properties |
+| `tools/diff-scan.py` | the D1-D8 change-hygiene scan, on a diff or the whole tree | 17 properties |
+| `tools/gates-selftest.sh` | every gate's own self-test in one command | 8/8 suites |
+| `.github/workflows/gates.yml` | `gates-selftest.sh` plus `sh tools/check.sh`, on every PR | - |
+
+---
+
 ## Current State
 
 **Epic 1: 4/5 stories complete. Epic 2: documentation complete. Epic 3+: not started.**
@@ -177,7 +192,7 @@ The M0 exit criteria from `docs/kickoff.md` section 6:
   Windows download -> WSL interop benchmark -> `tests/baseline.json` and the
   `docs/kickoff.md` acceptance bar.
 
-**Epic 1 gates:** `sh tools/check.sh` -> all 7 gates green (clean clone verified);
+**Epic 1 gates:** `sh tools/check.sh` -> all 10 sections green (clean clone verified);
 the 4-job CI matrix is required on `main`; branch protection enforced.
 
 **Epic 2 (UI spike): documentation complete** (`tasks/epic-02/` five files:
