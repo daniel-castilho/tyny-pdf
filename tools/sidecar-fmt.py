@@ -25,6 +25,7 @@ import argparse
 import json
 import re
 import sys
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -33,6 +34,8 @@ SCHEMA_PATH = HERE.parent / "docs" / "sidecar.schema.json"
 FLOAT_MAX_PLAIN = 1e12
 FLOAT_MIN_PLAIN = 1e-6
 ID_RE = re.compile(r"^[a-z2-7]{10}$")
+# RFC3339 timestamp pattern for parsing
+TS_RE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z?$")
 
 
 class SidecarError(Exception):
@@ -135,6 +138,50 @@ def load(path):
         return json.loads(text)
     except json.JSONDecodeError as exc:
         raise SidecarError(f"invalid JSON: {exc}") from exc
+
+
+def gc_file(path, days=30):
+    """Remove tombstones older than `days` from the sidecar file."""
+    try:
+        doc = load(path)
+    except (SidecarError, OSError) as exc:
+        return [f"{path}: {exc}"]
+
+    annotations = doc.get("annotations")
+    if not isinstance(annotations, list):
+        return [f"{path}: no annotations array"]
+
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=days)
+
+    kept = []
+    removed = 0
+    for ann in annotations:
+        if not isinstance(ann, dict):
+            kept.append(ann)
+            continue
+        if ann.get("deleted") is True:
+            # Check if the annotation is older than the cutoff
+            ts_str = ann.get("modified") or ann.get("created")
+            if isinstance(ts_str, str):
+                try:
+                    ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+                    if ts.tzinfo is None:
+                        ts = ts.replace(tzinfo=timezone.utc)
+                    if ts < cutoff:
+                        removed += 1
+                        continue  # Skip this tombstone
+                except ValueError:
+                    pass  # If timestamp is unparseable, keep it
+            # Keep if not older than cutoff or timestamp unparseable
+            kept.append(ann)
+        else:
+            kept.append(ann)
+
+    doc["annotations"] = kept
+    want = canonical_bytes(doc)
+    path.write_bytes(want)
+    return [f"{path}: gc removed {removed} tombstone(s) older than {days} days"]
 
 
 # -------------------------------------------------------------------- validation
@@ -278,12 +325,27 @@ def self_test():
 
 def main(argv):
     ap = argparse.ArgumentParser(prog="sidecar-fmt.py", description=__doc__)
-    ap.add_argument("mode", choices=["check", "fix", "self-test"])
+    ap.add_argument("mode", choices=["check", "fix", "gc", "self-test"])
     ap.add_argument("paths", nargs="*", type=Path)
+    ap.add_argument("--days", type=int, default=30, help="tombstone age threshold in days (for gc)")
     args = ap.parse_args(argv)
 
     if args.mode == "self-test":
         return self_test()
+    if args.mode == "gc":
+        if not args.paths:
+            print("no files given", file=sys.stderr)
+            return 2
+        bad = 0
+        for p in args.paths:
+            if not is_sidecar_name(p):
+                print(f"{p}: not a sidecar by name, skipped (see docs/naming.md)")
+                continue
+            problems = gc_file(p, args.days)
+            for line in problems:
+                print(line)
+            bad += len([l for l in problems if l.startswith(f"{p}:") and "FAIL" in l.upper()])
+        return 1 if bad else 0
     if not args.paths:
         print("no files given", file=sys.stderr)
         return 2

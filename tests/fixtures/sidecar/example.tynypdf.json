@@ -94,19 +94,6 @@
       ],
       "rotation_at_capture": 0,
       "type": "highlight"
-    },
-    {
-      "created": "2026-09-16T18:07:00Z",
-      "deleted": true,
-      "id": "z2x3c4v5b6",
-      "page": 2,
-      "rect": [
-        100,
-        100,
-        120,
-        120
-      ],
-      "type": "square"
     }
   ],
   "document": {
