@@ -285,14 +285,11 @@ item; flag it in the PR and open it here with the number that measures it.
    run, so the debt cannot be forgotten by scrolling past it.
 5. **`tynypdf-cli sidecar gc` is out of v1:** tombstones accumulate until that command exists
    (ADR-0007 records the decision and its cost).
-6. **Windows Store distribution is undecided:** listing there would force re-signing and change the
-   portable-binary promise, so `docs/kickoff.md` carries it as an open item to settle before M6;
-   until it is settled, v1's default is `.pfx`-only and the UI says so.
-7. **The competitive baseline must be re-measured per milestone:** the seed measured SumatraPDF
+6. **The competitive baseline must be re-measured per milestone:** the seed measured SumatraPDF
    3.6.1 as stable and 3.7 pre-release as the moving edge, and the 3.7 changelog already shipped
    two of our six deltas in different form - so `tests/baseline.json` covers both channels
    (kickoff M0.4).
-8. **Two toolchains on one source is a permanent tax** (ADR-0010 negative consequence): warning
+7. **Two toolchains on one source is a permanent tax** (ADR-0010 negative consequence): warning
    sets, header coverage and link differences will keep producing `build:` PRs that look like
    noise.
 

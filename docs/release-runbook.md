@@ -34,8 +34,9 @@ Artefacts land next to the build directory the presets already use (`build/win-c
 the packaging job that collects them is written with the CI matrix in PR #2.
 
 **Not produced, deliberately:** no signed installer (see section 4), no `.appx`/Store package
-until the Store question is decided, no updater payload, no `latest` symlink that silently
-changes what a download URL points at.
+(the Store is not pursued: the portable ZIP on GitHub Releases is the only channel, so nothing
+re-signs the binary or weakens the no-installer promise), no updater payload, no `latest` symlink
+that silently changes what a download URL points at.
 
 ---
 
@@ -223,10 +224,14 @@ that makes it true.
 | Corpus repository for conformance         | create `daniel-castilho/tyny-pdf-corpus`, add as submodule at `tests/conformance/` (kickoff section 12) | first `0.1.0` candidate |
 | Branch protection not enabled             | the six settings in `docs/git-workflow.md`, before PR #2 merges | a protected `main` |
 | Authenticode decision (unsigned vs cert vs Trusted Signing) | an ADR with cost and key procedure; today's default is unsigned and stated | announcement |
-| Windows Store listing (re-signs, changes the portable promise) | open item in kickoff section 12, decided before M6 | any store submission |
 | `docs/SWAP-CHECKLIST.md` filled in         | M6 exit criterion; the checklist is what makes "swappable engine" a tested property instead of a posture | M6 exit |
 | DNS records (`www`, `updates.tyny.ca`)     | GoDaddy zone is empty; `releases.tyny.ca` must not be described as live until it resolves (ADR-0006) | announcement |
 | Trademark clearance for "Tyny"; `Tyny.TynyPDF` free in winget-pkgs | owner action; announcement gates, not development gates (kickoff section 12) | announcement |
+
+**Decided, not a blocker:** the Windows Store / MSIX channel is **not pursued** (kickoff section
+12, decided 2026-09-17). A Store listing would force re-signing and change the portable-binary
+promise, so the portable ZIP attached to a GitHub Release is the only distribution channel; no
+step in this runbook waits on a store submission.
 
 Where a row says "planned" or "open", the release is not late: the release is blocked on a
 decision that has a name, a mechanism and a deadline. That is the difference between a blocker

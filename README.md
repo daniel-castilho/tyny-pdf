@@ -200,6 +200,10 @@ overview, stories, technical-tasks, testing, dod). The Win32/DComp/tile-cache
 scaffolding is parked in `spikes/epic2-win32/` (not built, not a capability)
 until R14/R15 have real verification.
 
+**Distribution:** Windows Store / MSIX is not pursued. The portable Windows ZIP (no installer, no
+admin rights) attached to a GitHub Release is the only channel; the download is not live until the
+first tagged release is published.
+
 ---
 
 ## Roadmap
@@ -216,7 +220,8 @@ until R14/R15 have real verification.
 - [ ] **M3** - D-4: diacritics, line breaking, font fallback with a golden corpus
 - [ ] **M4** - D-2: form validation, tab order, flatten verified by veraPDF
 - [ ] **M5** - D-5: editor accessibility (UIA, Narrator, NVDA) as tested requirements
-- [ ] **M6** - D-1 and D-3: the sidecar, redaction with proof, portable ZIP + winget, `0.1.0`
+- [ ] **M6** - D-1 and D-3: the sidecar, redaction with proof, portable ZIP on GitHub Releases
+      plus winget, `0.1.0`
 - [ ] After 0.1.0: revocation and TSA behind the explicit revalidate action, MSI, signing
       reputation, and the second render backend only if M1's numbers demand it
 
