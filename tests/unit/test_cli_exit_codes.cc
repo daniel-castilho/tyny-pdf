@@ -76,20 +76,33 @@ int main(void) {
   }
   cleanup(out_path);
 
-  // R12.2: corrupt file -> exit 1 (using mupdf backend which validates)
-  std::string bad = "/tmp/bad_cli_test.pdf";
-  FILE* bf = fopen(bad.c_str(), "wb");
-  fwrite("not a pdf", 1, 9, bf);
-  fclose(bf);
-  std::string cmd1 = std::string(cli_binary) + " render " + bad + " --page 0 --out " + out_path +
-                     " --backend mupdf";
-  int rc1 = system(cmd1.c_str());
-  if (WEXITSTATUS(rc1) != 1) {
-    fprintf(stderr, "FAIL: corrupt file got exit %d\n", WEXITSTATUS(rc1));
-    rc = 1;
+  // R12.2: corrupt file -> exit 1 (using mupdf backend which validates).
+  // Only run if mupdf backend is available (not disabled at compile time).
+  bool mupdf_available = false;
+  {
+    std::string probe =
+        std::string(cli_binary) + " render " + fixture + " --page 0 --backend mupdf";
+    int probe_rc = system(probe.c_str());
+    mupdf_available = (WEXITSTATUS(probe_rc) != 3);  // exit 3 = unsupported/not built
   }
-  remove(bad.c_str());
-  cleanup(out_path);
+
+  if (mupdf_available) {
+    std::string bad = "/tmp/bad_cli_test.pdf";
+    FILE* bf = fopen(bad.c_str(), "wb");
+    fwrite("not a pdf", 1, 9, bf);
+    fclose(bf);
+    std::string cmd1 = std::string(cli_binary) + " render " + bad + " --page 0 --out " + out_path +
+                       " --backend mupdf";
+    int rc1 = system(cmd1.c_str());
+    if (WEXITSTATUS(rc1) != 1) {
+      fprintf(stderr, "FAIL: corrupt file got exit %d\n", WEXITSTATUS(rc1));
+      rc = 1;
+    }
+    remove(bad.c_str());
+    cleanup(out_path);
+  } else {
+    fprintf(stderr, "SKIP: corrupt file test (mupdf backend not built)\n");
+  }
 
   // R12.2: argument error (page out of range) -> exit 2
   std::string cmd2 = std::string(cli_binary) + " render " + fixture + " --page 99 --out " +
