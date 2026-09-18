@@ -42,7 +42,7 @@ jobs:
       - name: install veraPDF (for conformance validation)
         run: |
           set -e
-          curl -L -o /tmp/verapdf.zip https://github.com/veraPDF/veraPDF/releases/download/v1.26.0/verapdf-1.26.0-installer.zip
+          curl -L -o /tmp/verapdf.zip https://software.verapdf.org/rel/verapdf-installer.zip
           unzip -q /tmp/verapdf.zip -d /tmp/verapdf
           chmod +x /tmp/verapdf/verapdf
           sudo ln -sf /tmp/verapdf/verapdf /usr/local/bin/verapdf
