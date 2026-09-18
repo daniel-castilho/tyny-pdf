@@ -65,13 +65,14 @@ echo "  Jobs:      $JOBS"
 make -j"$JOBS" clean 2>/dev/null || true
 
 # Build libraries only (no apps)
-make -j"$JOBS" \
+make -j"$JOBS" libs libmupdf-threads \
+  HAVE_OBJCOPY=no \
   build=release \
   prefix="" \
   build_prefix="" \
   build_suffix="" \
   OUT="$OUTPUT_DIR/release" \
-  HAVE_PTHREAD=no \
+  HAVE_PTHREAD=yes \
   shared=no \
   USE_SYSTEM_LIBS=no \
   USE_SYSTEM_ZLIB=no \
@@ -89,8 +90,9 @@ make -j"$JOBS" \
   USE_SYSTEM_OPENJPEG=no \
   USE_SYSTEM_LCMS2=no \
   USE_SYSTEM_MUJS=no \
-  FONT_BIN="" \
-  FONT_GEN="" \
+  # FONT_BIN and FONT_GEN are not set to empty - let the Makefile generate fonts
+# The hexdump.sh script runs on the host and generates C files for the cross-compiler
+  HAVE_OBJCOPY=no \
   CURL_LIBS="" \
   ZLIB_LIBS="" \
   JPEG_LIBS="" \
