@@ -292,6 +292,7 @@ is blocked on it.
 | --- | --- | --- |
 | `tyny.ca` DNS: records for `www`, `releases`, `updates` | GitHub Pages plus `github.com` release assets; the reverse-DNS id needs no DNS | before the first announcement |
 | MSI vs winget-only distribution in 0.1 | portable ZIP plus winget manifest; MSI when an enterprise ask exists | M6 |
+| Windows Store / MSIX distribution | not pursued: the portable ZIP attached to a GitHub Release is the only channel, so nothing re-signs the binary or weakens the no-installer promise | decided 2026-09-17 |
 | ARM64 in 0.1 | build it, do not advertise it; the cross toolchain supports AArch64, the test machine does not | M6 |
 | Skia as a second render backend | no; revisit only if M1's kill criterion fires | after M1 |
 | Portuguese documentation of the UI | UI strings English + pt-BR resource file from D-1 on; docs in English | M6 |

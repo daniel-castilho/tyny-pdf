@@ -1,10 +1,16 @@
 # Changelog
 
-All notable changes to this project are documented in this file (AGENTS.md rule 11,
-README.md:444). The format follows Keep a Changelog, and the versioning follows
+All notable changes to this project are documented in this file (AGENTS.md rule 11).
+The format follows Keep a Changelog, and the versioning follows
 CalVer-compatible SemVer as declared in [docs/release-runbook.md](docs/release-runbook.md).
 
 ## [Unreleased]
+
+### Changed (distribution)
+
+- **Windows Store / MSIX is not pursued**: the portable Windows ZIP attached to a GitHub Release
+  is the only distribution channel, so nothing re-signs the binary or weakens the no-installer
+  promise (`docs/kickoff.md` section 12, `docs/release-runbook.md` section 9).
 
 ### Added (diff-scan gate and the unified self-test runner)
 
