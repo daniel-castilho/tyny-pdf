@@ -132,7 +132,7 @@ The M0 exit criteria from `docs/kickoff.md` section 6:
 
 | # | Criterion | Exit Gate |
 |---|-----------|-----------|
-| 1 | Build matrix + vendored MuPDF + C API + page 1 rendered on both targets | `cmake --preset linux-core && cmake --build --preset linux-core && ctest --preset linux-core` green; `cmake --preset win-cross-x64` produces `tynypdf.exe` at `build/win-cross-x64/Release/` |
+| 1 | Build matrix + vendored MuPDF + C API + page 1 rendered on both targets | `cmake --preset linux-core && cmake --build --preset linux-core && ctest --preset linux-core` green; `sh tools/build-mupdf-windows.sh && cmake --preset win-cross-x64` produces `tynypdf.exe` at `build/win-cross-x64/Release/` |
 | 2 | Four ADR-0010 assumptions retired by measurement | `tools/win-probe/build.sh` output: headers compile, static runtime, identical symbol tables, hardware adapter observed |
 | 3 | Page 1 renders twice from one API (Linux CLI + Win32 window) | `tynypdf-cli render --backend null or mupdf` + Win32 window blit same pixels |
 | 4 | Baselines measured on both SumatraPDF channels | `tools/bench-measure.sh` runs, two runs within 10%, relative bar in `docs/kickoff.md` |

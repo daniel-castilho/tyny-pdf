@@ -77,6 +77,7 @@ cmake --preset linux-core          # core + CLI, native, ASan/UBSan
 cmake --build --preset linux-core
 ctest --preset linux-core --output-on-failure
 sh tools/check.sh                  # the same six gates the pre-commit hook runs
+sh tools/build-mupdf-windows.sh    # cross-compiled MuPDF for the win-cross-x64 preset
 cmake --preset win-cross-x64 && cmake --build --preset win-cross-x64
 ./build/win-cross-x64/Release/tynypdf.exe ~/tmp/sample.pdf    # WSL interop: real Windows process, real GPU, real spooler
 ```
@@ -114,5 +115,5 @@ reproduce on the Linux side; if it cannot, the presentation layer has logic in i
 ```sh
 act -j core-linux          # optional; GitHub Actions runner images are not in the sandbox
 # the honest local equivalent is the union of the jobs:
-sh tools/check.sh && ctest --preset linux-core && cmake --preset win-cross-x64 --fresh
+sh tools/check.sh && ctest --preset linux-core && sh tools/build-mupdf-windows.sh && cmake --preset win-cross-x64 --fresh
 ```

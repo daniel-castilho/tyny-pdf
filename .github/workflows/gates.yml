@@ -109,7 +109,7 @@ jobs:
         run: |
           set -e
           sudo apt-get update -y
-          sudo apt-get install -y ninja-build g++ binutils
+          sudo apt-get install -y ninja-build g++ binutils make xxd
           python3 -m pip install --quiet 'cmake==3.31.6'
           export PATH="$HOME/.local/bin:$PATH"
           cmake --version | head -1
@@ -134,6 +134,13 @@ jobs:
           echo "575f0f1528c2d619f87b50dca1d7a2895553fee6b27749238138f88493e26f91  $clang_bin" \
             | sha256sum -c -
 
+      - name: build cross-compiled MuPDF (win-cross-x64)
+        run: |
+          set -e
+          sh tools/build-mupdf-windows.sh \
+            --toolchain-root /tmp/llvm-mingw-20260812-ucrt-ubuntu-22.04-x86_64 \
+            --jobs 4
+
       - name: cross abi probe and runtime imports (win-cross-x64)
         run: |
           set -e
@@ -157,6 +164,33 @@ jobs:
             exit 1
           fi
           echo "RUNTIME IMPORTS: system32 only"
+          # The CLI must actually link MuPDF: undefined fz_ symbols are a hard
+          # failure, and a static link leaves zero unresolved fz_ imports.
+          "$LLVM_MINGW_ROOT/bin/llvm-nm" -u build/win-cross-x64/Release/tynypdf-cli.exe \
+            | grep -cE 'fz_' > /tmp/fz-undef.txt || true
+          if [ "$(cat /tmp/fz-undef.txt)" -ne 0 ]; then
+            echo "tynypdf-cli.exe has unresolved fz_ symbols" >&2
+            exit 1
+          fi
+          "$LLVM_MINGW_ROOT/bin/llvm-nm" --defined-only build/win-cross-x64/Release/tynypdf-cli.exe \
+            | grep -cE 'T fz_' > /tmp/fz-defined.txt || true
+          if [ "$(cat /tmp/fz-defined.txt)" -eq 0 ]; then
+            echo "tynypdf-cli.exe contains no MuPDF symbols" >&2
+            exit 1
+          fi
+          echo "MUPDF LINK: tynypdf-cli.exe embeds libmupdf ($(cat /tmp/fz-defined.txt) exported fz_ symbols)"
+          objdump -p build/win-cross-x64/Release/tynypdf-cli.exe \
+            | grep 'DLL Name' | sed 's/.*DLL Name: //' > /tmp/dlls-cli.txt
+          cat /tmp/dlls-cli.txt
+          if grep -E '^(libstdc\+\+-6|libgcc_s_seh-1|libwinpthread-1|vcruntime140|msvcp140)' /tmp/dlls-cli.txt; then
+            echo 'compiler runtime DLL in tynypdf-cli.exe import table' >&2
+            exit 1
+          fi
+          if grep -Ev '^(KERNEL32|USER32|GDI32|ADVAPI32|SHELL32|KERNELBASE|ucrtbase|api-ms-win-crt-[A-Za-z0-9-]+)\.dll$' /tmp/dlls-cli.txt; then
+            echo 'non-system import in tynypdf-cli.exe' >&2
+            exit 1
+          fi
+          echo "MUPDF CLI IMPORTS: system32 only"
 
   windows-msvc:
     runs-on: windows-latest

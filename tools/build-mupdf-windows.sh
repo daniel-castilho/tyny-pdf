@@ -39,6 +39,9 @@ fi
 
 export PATH="$TOOLCHAIN_ROOT/bin:$PATH"
 
+# Toolchain nm for the post-build font check (no bare 'nm' in LLVM-MinGW).
+NM="$TOOLCHAIN_ROOT/bin/llvm-nm"
+
 # Cross-compilation environment
 export CC=x86_64-w64-mingw32-gcc
 export CXX=x86_64-w64-mingw32-g++
@@ -61,11 +64,22 @@ echo "  Toolchain: $TOOLCHAIN_ROOT"
 echo "  Output:    $OUTPUT_DIR"
 echo "  Jobs:      $JOBS"
 
-# Clean previous build
-make -j"$JOBS" clean 2>/dev/null || true
+# Clean previous build (make clean uses OUT, so it only touches our output dir)
+make -j"$JOBS" clean \
+  OUT="$OUTPUT_DIR/release" \
+  build=release \
+  build_prefix="" \
+  build_suffix="" \
+  2>/dev/null || true
 
-# Build libraries only (no apps)
-make -j"$JOBS" libs libmupdf-threads \
+# Build libraries only (no apps). Fonts are embedded via host-side hexdump.sh
+# (HAVE_OBJCOPY=no): objcopy cannot relocate binary font data into COFF objects,
+# so the Makefile instead generates C arrays on the host and cross-compiles them.
+# FONT_BIN/FONT_GEN are therefore left at their Makefile defaults. All system
+# libraries are disabled so the vendored thirdparty sources are used; the x11,
+# glut and curl viewer apps are not built at all.
+MAKE_LOG="${TMPDIR:-/tmp}/tynypdf-mupdf-cross.log"
+if make -j"$JOBS" libs libmupdf-threads \
   HAVE_OBJCOPY=no \
   build=release \
   prefix="" \
@@ -85,14 +99,11 @@ make -j"$JOBS" libs libmupdf-threads \
   USE_SYSTEM_HARFBUZZ=no \
   USE_SYSTEM_LCMS2=no \
   USE_SYSTEM_MUJS=no \
-  USE_SYSTEM_ZLIB=no \
   USE_SYSTEM_JBIG2=no \
-  USE_SYSTEM_OPENJPEG=no \
-  USE_SYSTEM_LCMS2=no \
-  USE_SYSTEM_MUJS=no \
-  # FONT_BIN and FONT_GEN are not set to empty - let the Makefile generate fonts
-# The hexdump.sh script runs on the host and generates C files for the cross-compiler
-  HAVE_OBJCOPY=no \
+  HAVE_GLUT=no \
+  HAVE_X11=no \
+  HAVE_CURL=no \
+  HAVE_LIBCRYPTO=no \
   CURL_LIBS="" \
   ZLIB_LIBS="" \
   JPEG_LIBS="" \
@@ -105,13 +116,28 @@ make -j"$JOBS" libs libmupdf-threads \
   PKCS7_SRC="" \
   LIB_CRYPTO="" \
   LIB_SSL="" \
-  2>&1 | tail -20
+  >"$MAKE_LOG" 2>&1; then
+  :
+else
+  echo "build-mupdf-windows: FAIL - make exited $? (log tail below)" >&2
+  tail -40 "$MAKE_LOG" >&2 || true
+  rm -f "$MAKE_LOG"
+  exit 1
+fi
+rm -f "$MAKE_LOG"
 
-# Verify output
+# Verify output: the three libraries must exist and libmupdf.a must carry
+# embedded font data (fzsymbols from the generated C arrays). A build that
+# skipped the font step still links, so a plain existence check is not enough.
+FZ_FONT_SYMBOL_COUNT=$("$NM" --defined-only "$OUTPUT_DIR/release/libmupdf.a" 2>/dev/null | grep -cE '_binary_' || true)
 if [ -f "$OUTPUT_DIR/release/libmupdf.a" ] && \
    [ -f "$OUTPUT_DIR/release/libmupdf-third.a" ] && \
    [ -f "$OUTPUT_DIR/release/libmupdf-threads.a" ]; then
-  echo "build-mupdf-windows: SUCCESS - libraries built at $OUTPUT_DIR/release/"
+  if [ "$FZ_FONT_SYMBOL_COUNT" -eq 0 ]; then
+    echo "build-mupdf-windows: FAIL - libmupdf.a has no embedded fonts" >&2
+    exit 1
+  fi
+  echo "build-mupdf-windows: SUCCESS - libraries built at $OUTPUT_DIR/release/ ($FZ_FONT_SYMBOL_COUNT embedded fonts)"
   ls -la "$OUTPUT_DIR/release/"*.a
 else
   echo "build-mupdf-windows: FAIL - expected libraries not found" >&2
