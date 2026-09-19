@@ -118,7 +118,7 @@ because the directory does not exist is **not** a pass. Claiming one is a pass i
 | **A gate's own self-test**                  | `sh tools/gates-selftest.sh` or `--self-test` on one tool         | `Root` (today)               |
 | **Configure and build the core**            | `cmake --preset linux-core && cmake --build --preset linux-core`  | `Root` (today)              |
 | **Run unit and contract tests**             | `ctest --preset linux-core --output-on-failure`                   | `Root` (today)              |
-| **Cross-build the Windows target**          | `cmake --preset win-cross-x64`                                    | `Root` (today)              |
+| **Cross-build the Windows target**          | `sh tools/build-mupdf-windows.sh && cmake --preset win-cross-x64` | `Root` (today)              |
 | **Run the ADR-0010 probes in CI's order**   | `tools/win-probe/build.sh`                                        | `Root` (today)              |
 | **Run the viewer through WSL interop**      | `./build/win-cross-x64/Release/tynypdf.exe ~/tmp/sample.pdf`      | Windows process (M0)        |
 
@@ -264,10 +264,12 @@ Nothing here is "resolved" by assertion; each item stays until the number that m
 not silently add an item; flag it in the PR and open it here with the number that measures it.
 
 1. **The build now produces a product, but only a thin one:** PR #2 landed the build system and
-   `tools/win-probe/`; story 1.4 then added `tynypdf-core`, the `null` and `mupdf` backends,
-   `tynypdf-cli` and the contract tests, so a green matrix run now builds real targets. What is
-   still missing is everything above the IR: `src/core` has no C++ yet, and Story 1.5's baseline is
-   blocked (item 5), so "builds" is not yet "does the job".
+   `tools/win-probe/`; story 1.4 added `tynypdf-core`, the `null` and `mupdf` backends,
+   `tynypdf-cli` and the contract tests, so a green matrix run builds real targets and the
+   `windows-mingw-cross` job now cross-compiles MuPDF itself and links it into `tynypdf-cli.exe`
+   (fz symbol and import table checks in the job). What is still missing is everything above the
+   IR: `src/core` has no C++ yet, and Story 1.5's baseline is blocked (item 5), so "builds" is
+   not yet "does the job".
 2. **Only the doc gates and the matrix's first runs are recorded:** `gates` ran green on `main`
    since run `35170901622` (at `94f1950`) and `35171544840` (at `0d64999`); the build matrix
    arrived with PR #2 (`2ec9977`) and its first all-four-green run is `35179132038` (head
