@@ -168,10 +168,6 @@ class BenchmarkRunner:
 
     def get_cmd_for_page(self, pdf_path: Path, page_idx: int) -> List[str]:
         """Get command for rendering a specific page."""
-        t = self.targets.get(self.target)
-        if not t:
-            raise ValueError(f"Unknown target: {self.target}")
-
         if self.target == 'tynypdf':
             build_dir = Path(os.environ.get('BUILD_DIR', '/tmp/tyny-pdf/build/linux-core/Debug'))
             binary = build_dir / 'tynypdf-cli'
@@ -183,7 +179,9 @@ class BenchmarkRunner:
                             break
             if binary.exists():
                 return [str(binary), 'render', '--page', str(page_idx), '--dpi', '72', '--backend', 'null']
-        return ['tynypdf-cli', 'render', '--page', str(page_idx), '--dpi', '72', '--backend', 'null']
+            return ['tynypdf-cli', 'render', '--page', str(page_idx), '--dpi', '72', '--backend', 'null']
+        # For SumatraPDF and other targets: reuse the base command (no page-specific flag)
+        return self.get_cmd(pdf_path)
 
     def measure_search(self, pdf_path: Path, query: str = "the") -> Dict[str, Any]:
         """Measure document search time."""
