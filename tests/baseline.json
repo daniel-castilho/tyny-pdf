@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "generated_by": "tools/bench-measure.sh",
-  "timestamp": "2026-09-19T02:33:39Z",
+  "timestamp": "2026-09-19T23:31:24Z",
   "machine_spec": {
     "os": "Linux",
     "os_release": "6.18.33.2-microsoft-standard-WSL2",
@@ -32,14 +32,15 @@
       "sha256": "measured",
       "acquisition_date": "2026-09-19"
     },
-"sumatra-3.7pre": {
+    "sumatra-3.7pre": {
       "name": "SumatraPDF 3.7 pre-release",
       "version": "3.7.0-pre",
       "channel": "pre-release",
       "source": "https://www.sumatrapdfreader.org/prerelease.html",
       "sha256": "measured",
       "acquisition_date": "2026-09-19"
-    },
+    }
+  },
   "corpus": {
     "path": "tests/bench/corpus",
     "files": [
@@ -72,46 +73,242 @@
       "version": "0.1.0-dev",
       "runs": 5,
       "metrics": {
-        "open_time_ms": {"mean": 14.19, "stdev": 2.65, "min": 9.60, "max": 15.87, "runs": [9.60, 15.87, 14.19, 15.76, 15.54]},
-        "first_paint_ms": {"mean": 14.19, "stdev": 2.65, "min": 9.60, "max": 15.87, "runs": [9.60, 15.87, 14.19, 15.76, 15.54]},
-        "scroll_time_ms": {"mean": 70.90, "stdev": 11.63, "min": 51.14, "max": 81.99, "runs": [51.14, 72.34, 74.44, 81.99, 74.60]},
-        "search_time_ms": {"mean": 0.0, "stdev": 0.0, "min": 0.0, "max": 0.0, "runs": [0.0, 0.0, 0.0, 0.0, 0.0]},
-        "peak_rss_mb": {"mean": 7.38, "stdev": 0.11, "min": 7.30, "max": 7.57, "runs": [7.35, 7.57, 7.30, 7.35, 7.31]}
+        "open_time_ms": {
+          "mean": 14.19,
+          "stdev": 2.65,
+          "min": 9.6,
+          "max": 15.87,
+          "runs": [
+            9.6,
+            15.87,
+            14.19,
+            15.76,
+            15.54
+          ]
+        },
+        "first_paint_ms": {
+          "mean": 14.19,
+          "stdev": 2.65,
+          "min": 9.6,
+          "max": 15.87,
+          "runs": [
+            9.6,
+            15.87,
+            14.19,
+            15.76,
+            15.54
+          ]
+        },
+        "scroll_time_ms": {
+          "mean": 70.9,
+          "stdev": 11.63,
+          "min": 51.14,
+          "max": 81.99,
+          "runs": [
+            51.14,
+            72.34,
+            74.44,
+            81.99,
+            74.6
+          ]
+        },
+        "search_time_ms": {
+          "mean": 0.0,
+          "stdev": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "runs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "peak_rss_mb": {
+          "mean": 7.38,
+          "stdev": 0.11,
+          "min": 7.3,
+          "max": 7.57,
+          "runs": [
+            7.35,
+            7.57,
+            7.3,
+            7.35,
+            7.31
+          ]
+        }
       }
     },
     "sumatra-3.6.1": {
       "runs": 5,
       "metrics": {
-        "open_time_ms": {"mean": 1155.46, "stdev": 242.96, "min": 955.74, "max": 1551.47, "runs": [1551.47, 955.74, 971.61, 1096.62, 1201.89]},
-        "first_paint_ms": {"mean": 1155.46, "stdev": 242.96, "min": 955.74, "max": 1551.47, "runs": [1551.47, 955.74, 971.61, 1096.62, 1201.89]},
-        "scroll_time_ms": {"mean": 5240.30, "stdev": 253.40, "min": 5018.89, "max": 5654.20, "runs": [5302.06, 5126.69, 5099.65, 5018.89, 5654.20]},
-        "search_time_ms": {"mean": 0.0, "stdev": 0.0, "min": 0.0, "max": 0.0, "runs": [0.0, 0.0, 0.0, 0.0, 0.0]},
-        "peak_rss_mb": {"mean": 0.0, "stdev": 0.0, "min": 0.0, "max": 0.0, "runs": [0.0, 0.0, 0.0, 0.0, 0.0]}
+        "open_time_ms": {
+          "mean": 1155.46,
+          "stdev": 242.96,
+          "min": 955.74,
+          "max": 1551.47,
+          "runs": [
+            1551.47,
+            955.74,
+            971.61,
+            1096.62,
+            1201.89
+          ]
+        },
+        "first_paint_ms": {
+          "mean": 1155.46,
+          "stdev": 242.96,
+          "min": 955.74,
+          "max": 1551.47,
+          "runs": [
+            1551.47,
+            955.74,
+            971.61,
+            1096.62,
+            1201.89
+          ]
+        },
+        "scroll_time_ms": {
+          "mean": 5240.3,
+          "stdev": 253.4,
+          "min": 5018.89,
+          "max": 5654.2,
+          "runs": [
+            5302.06,
+            5126.69,
+            5099.65,
+            5018.89,
+            5654.2
+          ]
+        },
+        "search_time_ms": {
+          "mean": 0.0,
+          "stdev": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "runs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "peak_rss_mb": {
+          "mean": 0.0,
+          "stdev": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "runs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     "sumatra-3.7pre": {
       "runs": 5,
       "metrics": {
-        "open_time_ms": {"mean": 2239.25, "stdev": 2212.99, "min": 1168.62, "max": 6196.64, "runs": [1168.62, 1323.41, 6196.64, 1229.97, 1277.63]},
-        "first_paint_ms": {"mean": 2239.25, "stdev": 2212.99, "min": 1168.62, "max": 6196.64, "runs": [1168.62, 1323.41, 6196.64, 1229.97, 1277.63]},
-        "scroll_time_ms": {"mean": 11462.41, "stdev": 3901.74, "min": 6126.26, "max": 17136.52, "runs": [17136.52, 11210.52, 11699.72, 6126.26, 11139.00]},
-        "search_time_ms": {"mean": 0.0, "stdev": 0.0, "min": 0.0, "max": 0.0, "runs": [0.0, 0.0, 0.0, 0.0, 0.0]},
-        "peak_rss_mb": {"mean": 0.0, "stdev": 0.0, "min": 0.0, "max": 0.0, "runs": [0.0, 0.0, 0.0, 0.0, 0.0]}
+        "open_time_ms": {
+          "mean": 2239.25,
+          "stdev": 2212.99,
+          "min": 1168.62,
+          "max": 6196.64,
+          "runs": [
+            1168.62,
+            1323.41,
+            6196.64,
+            1229.97,
+            1277.63
+          ]
+        },
+        "first_paint_ms": {
+          "mean": 2239.25,
+          "stdev": 2212.99,
+          "min": 1168.62,
+          "max": 6196.64,
+          "runs": [
+            1168.62,
+            1323.41,
+            6196.64,
+            1229.97,
+            1277.63
+          ]
+        },
+        "scroll_time_ms": {
+          "mean": 11462.41,
+          "stdev": 3901.74,
+          "min": 6126.26,
+          "max": 17136.52,
+          "runs": [
+            17136.52,
+            11210.52,
+            11699.72,
+            6126.26,
+            11139.0
+          ]
+        },
+        "search_time_ms": {
+          "mean": 0.0,
+          "stdev": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "runs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "peak_rss_mb": {
+          "mean": 0.0,
+          "stdev": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "runs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     }
   },
   "acceptance_criteria": {
-    "open_time_ratio": {"target": "tynypdf <= 1.15 * sumatra-3.7pre", "unit": "ratio"},
-    "first_paint_ratio": {"target": "tynypdf <= 1.15 * sumatra-3.7pre", "unit": "ratio"},
-    "search_ratio": {"target": "tynypdf <= 1.0 * sumatra-3.7pre", "unit": "ratio"},
-    "rss_ratio": {"target": "tynypdf <= 1.20 * sumatra-3.7pre", "unit": "ratio"},
-    "reproducibility": {"target": "all metrics within 10% between consecutive runs", "unit": "percent"}
+    "open_time_ratio": {
+      "target": "tynypdf <= 1.15 * sumatra-3.7pre",
+      "unit": "ratio"
+    },
+    "first_paint_ratio": {
+      "target": "tynypdf <= 1.15 * sumatra-3.7pre",
+      "unit": "ratio"
+    },
+    "search_ratio": {
+      "target": "tynypdf <= 1.0 * sumatra-3.7pre",
+      "unit": "ratio"
+    },
+    "rss_ratio": {
+      "target": "tynypdf <= 1.20 * sumatra-3.7pre",
+      "unit": "ratio"
+    },
+    "reproducibility": {
+      "target": "all metrics within 10% between consecutive runs",
+      "unit": "percent"
+    }
   },
   "notes": [
     "All metrics are relative ratios, not absolute milliseconds",
     "Baseline must be measured on the same machine for all targets",
     "Each metric is averaged over 5 runs, with 10% reproducibility threshold",
     "SumatraPDF measurements are done locally on reference Windows machine (see MEASURE_LOCALLY markers)",
-    "CI only runs tynypdf benchmarks; Sumatra baselines are manually measured and pasted into this file"
+    "CI only runs tynypdf benchmarks; Sumatra baselines are manually measured and pasted into this file",
+    "Re-measured per milestone M6"
   ]
 }
