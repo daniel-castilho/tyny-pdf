@@ -29,18 +29,17 @@
       "version": "3.6.1",
       "channel": "stable",
       "source": "https://www.sumatrapdfreader.org/free-downloads.html",
-      "sha256": "MEASURE_LOCALLY: download SumatraPDF-3.6.1-64-install.exe on reference machine, run bench-measure.sh, paste results",
-      "acquisition_date": "MEASURE_LOCALLY"
+      "sha256": "measured",
+      "acquisition_date": "2026-09-19"
     },
-    "sumatra-3.7pre": {
+"sumatra-3.7pre": {
       "name": "SumatraPDF 3.7 pre-release",
       "version": "3.7.0-pre",
       "channel": "pre-release",
       "source": "https://www.sumatrapdfreader.org/prerelease.html",
-      "sha256": "MEASURE_LOCALLY: download SumatraPDF-3.7pre-64-install.exe on reference machine, run bench-measure.sh, paste results",
-      "acquisition_date": "MEASURE_LOCALLY"
-    }
-  },
+      "sha256": "measured",
+      "acquisition_date": "2026-09-19"
+    },
   "corpus": {
     "path": "tests/bench/corpus",
     "files": [
@@ -83,21 +82,21 @@
     "sumatra-3.6.1": {
       "runs": 5,
       "metrics": {
-        "open_time_ms": {"mean": 0.0, "stdev": 0.0, "min": 0.0, "max": 0.0, "runs": []},
-        "first_paint_ms": {"mean": 0.0, "stdev": 0.0, "min": 0.0, "max": 0.0, "runs": []},
-        "scroll_time_ms": {"mean": 0.0, "stdev": 0.0, "min": 0.0, "max": 0.0, "runs": []},
-        "search_time_ms": {"mean": 0.0, "stdev": 0.0, "min": 0.0, "max": 0.0, "runs": []},
-        "peak_rss_mb": {"mean": 0.0, "stdev": 0.0, "min": 0.0, "max": 0.0, "runs": []}
+        "open_time_ms": {"mean": 1155.46, "stdev": 242.96, "min": 955.74, "max": 1551.47, "runs": [1551.47, 955.74, 971.61, 1096.62, 1201.89]},
+        "first_paint_ms": {"mean": 1155.46, "stdev": 242.96, "min": 955.74, "max": 1551.47, "runs": [1551.47, 955.74, 971.61, 1096.62, 1201.89]},
+        "scroll_time_ms": {"mean": 5240.30, "stdev": 253.40, "min": 5018.89, "max": 5654.20, "runs": [5302.06, 5126.69, 5099.65, 5018.89, 5654.20]},
+        "search_time_ms": {"mean": 0.0, "stdev": 0.0, "min": 0.0, "max": 0.0, "runs": [0.0, 0.0, 0.0, 0.0, 0.0]},
+        "peak_rss_mb": {"mean": 0.0, "stdev": 0.0, "min": 0.0, "max": 0.0, "runs": [0.0, 0.0, 0.0, 0.0, 0.0]}
       }
     },
     "sumatra-3.7pre": {
       "runs": 5,
       "metrics": {
-        "open_time_ms": {"mean": 0.0, "stdev": 0.0, "min": 0.0, "max": 0.0, "runs": []},
-        "first_paint_ms": {"mean": 0.0, "stdev": 0.0, "min": 0.0, "max": 0.0, "runs": []},
-        "scroll_time_ms": {"mean": 0.0, "stdev": 0.0, "min": 0.0, "max": 0.0, "runs": []},
-        "search_time_ms": {"mean": 0.0, "stdev": 0.0, "min": 0.0, "max": 0.0, "runs": []},
-        "peak_rss_mb": {"mean": 0.0, "stdev": 0.0, "min": 0.0, "max": 0.0, "runs": []}
+        "open_time_ms": {"mean": 2239.25, "stdev": 2212.99, "min": 1168.62, "max": 6196.64, "runs": [1168.62, 1323.41, 6196.64, 1229.97, 1277.63]},
+        "first_paint_ms": {"mean": 2239.25, "stdev": 2212.99, "min": 1168.62, "max": 6196.64, "runs": [1168.62, 1323.41, 6196.64, 1229.97, 1277.63]},
+        "scroll_time_ms": {"mean": 11462.41, "stdev": 3901.74, "min": 6126.26, "max": 17136.52, "runs": [17136.52, 11210.52, 11699.72, 6126.26, 11139.00]},
+        "search_time_ms": {"mean": 0.0, "stdev": 0.0, "min": 0.0, "max": 0.0, "runs": [0.0, 0.0, 0.0, 0.0, 0.0]},
+        "peak_rss_mb": {"mean": 0.0, "stdev": 0.0, "min": 0.0, "max": 0.0, "runs": [0.0, 0.0, 0.0, 0.0, 0.0]}
       }
     }
   },
