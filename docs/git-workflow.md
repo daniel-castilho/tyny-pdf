@@ -9,7 +9,7 @@ this page holds the commands and the settings. If the two disagree, fix this pag
 git switch main && git pull --ff-only
 git switch -c feat/d6-undo-command-log
 # ... work in small increments, one logical change each ...
-sh tools/check.sh                       # the eight gates, before anything is pushed
+sh tools/check.sh                       # every gate there is, before anything is pushed
 git add -A
 git commit                              # one commit per PR is fine; the merge squashes anyway
 git push -u origin feat/d6-undo-command-log

@@ -65,7 +65,7 @@ CLI, and the Win32/Direct2D presentation layer.
 ### 3.1 The loop that exists today
 
 ```bash
-sh tools/check.sh                    # nine checks, eleven sections, all gates
+sh tools/check.sh                    # every section it has, all gates
 sh tools/gates-selftest.sh           # the checks-on-the-checks, its suite count
 python3 tools/spec-check.py          # requirement shape, orphans, artefacts
 python3 tools/sidecar-fmt.py check tests/fixtures/sidecar

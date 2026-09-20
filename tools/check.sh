@@ -2,11 +2,16 @@
 # Full repository gate, in the order a reviewer reads it. Usage: sh tools/check.sh
 # Everything here is fast and offline; the corpus, sanitizer and fuzz jobs live in CI (ADR-0004).
 set -eu
-cd "$(dirname "$0")/.." || exit 2
+here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+self="$here/$(basename -- "$0")"
+cd "$here/.." || exit 2
 
-total=$(grep -c '^sec ' "tools/check.sh" 2>/dev/null || echo 0)
+# Counted from this file, not from a path typed into it: a renamed or copied runner must still
+# count itself. `|| true` keeps `grep -c` from printing 0 and failing at once, which would hand the
+# guard below a two-line "0" that [ -eq 0 ] cannot even parse.
+total=$(grep -c "^sec '" "$self" || true)
 if [ "$total" -eq 0 ]; then
-    printf 'check.sh: could not count sec() entries\n' >&2
+    printf 'check.sh: no sec() entries found in %s; refusing to run an empty gate\n' "$self" >&2
     exit 2
 fi
 

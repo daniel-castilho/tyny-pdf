@@ -6,6 +6,26 @@ CalVer-compatible SemVer as declared in [docs/release-runbook.md](docs/release-r
 
 ## [Unreleased]
 
+### Changed (completing what PR #30 claimed and did not carry)
+
+- **`docs/release-runbook.md` no longer denies the tree**: it said "there is no code, no build
+  system, no CI history". `CMakeLists.txt`, `src/` and the vendored engine exist and four CI jobs
+  are green on the commit the file was read from; what is still true is that no artefact has been
+  published, and the file says exactly that.
+- **The three surviving counts are gone**: `docs/git-workflow.md`, `docs/testing-playbook.md` and
+  `docs/release-runbook.md` still told the reader "the eight gates", "nine checks, eleven sections"
+  and "ten sections" about a runner that prints fourteen. They now say "every section it has".
+- **`docs/lessons.md` keeps the rule** (a count a command prints is quoted with its command or not
+  quoted at all) and records that a merged PR is not proof a change landed.
+- **`conan.lock.bak` removed**, and `.gitignore` now ignores `*.bak`, `*.orig` and `*~`: the backup
+  landed in `main` because nothing refused it.
+
+### Fixed
+
+- `tests/baseline.json` stays as PR #28/#29 left it. The numbers are not touched here; the
+  cross-machine comparison it encodes and the absent validator are tracked as their own item, per
+  `docs/lessons.md` (a claim needs the command that produces it).
+
 ### Added (supply chain gates, ADR-0004)
 
 - **CycloneDX SBOM**: `tools/sbom.sh` generates a valid SBOM from `conan.lock`, linker inputs, and

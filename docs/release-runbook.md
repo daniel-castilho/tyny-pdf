@@ -6,11 +6,15 @@ release pressure is where the shortcuts get made.
 
 **Official Domain:** [https://tyny.ca](https://tyny.ca) | **App ID:** `ca.tyny.pdf`
 
-> **Executable status: no.** There is no code, no build system, no CI history and no artefact
-> today, so nothing in this file has ever been run end to end. Each step names what it waits on:
-> the milestone in `kickoff.md`, the PR that writes the mechanism, or the open decision in
-> section 9. A step that cannot be executed is still a commitment about how it will be executed -
-> it is not a claim that it has been. The sibling project's runbook documents an auto-updater
+> **Executable status: partly.** The build system and the code exist (`CMakeLists.txt`,
+> `CMakePresets.json`, `src/`, the vendored `third_party/mupdf`), and CI has a history: the four
+> jobs `core-linux`, `gates`, `windows-msvc`, `windows-mingw-cross` are green on the merge commit
+> this file was read from (`562bc9b`, 2026-09-20). What does not exist is a published artefact, so
+> no step below has ever been executed end to end against a real release. Each step names what it
+> waits on: the milestone in `kickoff.md`, the PR that writes the mechanism, or the open
+> decision in section 9. A step that cannot be executed is still a commitment about how it will
+> be executed - it is not a claim that it has been. The sibling project's runbook documents an
+> auto-updater
 > with a `pubkey` and an endpoint on `releases.tyny.ca`;
 > [../adr/0006-product-name-and-identifier.md](../adr/0006-product-name-and-identifier.md)
 > verified that host answers no records, and the updater it describes is not configured in that
@@ -43,7 +47,7 @@ that silently changes what a download URL points at.
 ## 1. Pre-flight: the gates that must be green
 
 ```bash
-sh tools/check.sh                          # ten sections, all gates
+sh tools/check.sh                          # every section it has, all gates
 python3 tools/spec-check.py                # pending ids must be zero before a tag
 cmake --preset linux-core && cmake --build --preset linux-core      # from PR #2
 ctest --preset linux-core --output-on-failure                        # from PR #5
