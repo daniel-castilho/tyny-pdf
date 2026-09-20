@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "pdfcore/backend.h"
+#include "pdfcore/geom.h"
 #include "pdfcore/page.h"
 #include "pdfcore/status.h"
 
@@ -38,6 +39,37 @@ static int test_open_and_count(void) {
     g_api->doc_close(doc);
     return 1;
   }
+  g_api->doc_close(doc);
+  return 0;
+}
+
+static int test_page_boxes(void) {
+  void* doc = nullptr;
+  pc_status s = g_api->doc_open(fixture_path(), nullptr, &doc);
+  if (s.code != PC_ERR_NONE || !doc) {
+    fprintf(stderr, "doc_open failed: code=%u detail=%s\n", s.code, s.detail ? s.detail : "-");
+    return 1;
+  }
+  uint32_t count = g_api->doc_page_count(doc);
+  if (count == 0) {
+    fprintf(stderr, "page_count is 0\n");
+    g_api->doc_close(doc);
+    return 1;
+  }
+
+  for (uint32_t i = 0; i < count; ++i) {
+    void* page = nullptr;
+    s = g_api->page_get(doc, i, &page);
+    if (s.code != PC_ERR_NONE || !page) {
+      fprintf(stderr, "page_get(%u) failed: code=%u\n", i, s.code);
+      g_api->doc_close(doc);
+      return 1;
+    }
+
+    // Verify the backend page can be retrieved and freed
+    g_api->page_free(page);
+  }
+
   g_api->doc_close(doc);
   return 0;
 }
@@ -151,6 +183,7 @@ int main(int argc, char** argv) {
   printf("Testing backend: %s\n", name);
   int failures = 0;
   failures += test_open_and_count();
+  failures += test_page_boxes();
   for (uint32_t i = 0; i < 5; ++i) {
     failures += test_page_render(i);
     failures += test_page_render_deterministic(i);

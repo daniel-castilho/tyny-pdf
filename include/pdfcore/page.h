@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "geom.h"
 #include "status.h"
 
 #ifdef __cplusplus
@@ -11,10 +12,6 @@ extern "C" {
 #endif
 
 typedef struct pc_page pc_page;
-
-typedef struct pc_rect {
-  double x0, y0, x1, y1;
-} pc_rect;
 
 typedef struct pc_render_params {
   uint32_t dpi;
@@ -30,6 +27,8 @@ typedef struct pc_pixmap {
   uint8_t* data;
   uint32_t format;
 } pc_pixmap;
+
+pc_status pc_page_get_box(const pc_page* page, pc_page_box* out);
 
 pc_status pc_page_render(const pc_page* page, const pc_render_params* params,
                          pc_pixmap* out_pixmap);

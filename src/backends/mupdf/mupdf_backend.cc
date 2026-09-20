@@ -74,6 +74,33 @@ static uint32_t mupdf_doc_page_count(void* backend_doc) {
   return fz_count_pages(doc->ctx, doc->doc);
 }
 
+static pc_status mupdf_page_get_box(void* backend_doc, uint32_t index, pc_page_box* out)
+    __attribute__((used));
+static pc_status mupdf_page_get_box(void* backend_doc, uint32_t index, pc_page_box* out) {
+  if (!out) {
+    return {sizeof(pc_status), PC_ERR_ARGUMENT, 0, "null argument"};
+  }
+  MupdfDoc* doc = static_cast<MupdfDoc*>(backend_doc);
+  uint32_t count = fz_count_pages(doc->ctx, doc->doc);
+  if (index >= count) {
+    return {sizeof(pc_status), PC_ERR_RANGE, 0, "page index out of range"};
+  }
+  fz_page* page = fz_load_page(doc->ctx, doc->doc, index);
+  if (!page) {
+    return {sizeof(pc_status), PC_ERR_CORRUPT, 0, "fz_load_page failed"};
+  }
+  fz_rect mediabox = fz_bound_page(doc->ctx, page);
+  fz_drop_page(doc->ctx, page);
+
+  out->mediabox.x0 = mediabox.x0;
+  out->mediabox.y0 = mediabox.y0;
+  out->mediabox.x1 = mediabox.x1;
+  out->mediabox.y1 = mediabox.y1;
+  out->cropbox = out->mediabox;
+  out->rotation = 0;
+  return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
+}
+
 static pc_status mupdf_page_get(void* backend_doc, uint32_t index, void** out_backend_page)
     __attribute__((used));
 static pc_status mupdf_page_get(void* backend_doc, uint32_t index, void** out_backend_page) {
@@ -200,6 +227,7 @@ pc_backend_api pc_mupdf_backend_api = {
     .doc_close = mupdf_doc_close,
     .doc_page_count = mupdf_doc_page_count,
     .page_get = mupdf_page_get,
+    .page_get_box = mupdf_page_get_box,
     .page_render = mupdf_page_render,
     .page_free = mupdf_page_free,
     .pixmap_free = mupdf_pixmap_free,
