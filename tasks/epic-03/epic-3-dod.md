@@ -194,26 +194,49 @@ $ wc -l src/core/CMakeLists.txt 2>&1; grep -rEn '#include.*windows|mupdf' src/co
 ```bash
 # Paste on merge of feat/3.1-ir:
 $ git show --stat HEAD
-# → (paste — allowlist: include/pdfcore/{doc,page,geom}, src/core/{doc,geom}, tests/unit/test_{doc_ir,geom}, contract extend)
+ 24 files changed, 2316 insertions(+), 13 deletions(-)
+ create mode 100644 include/pdfcore/geom.h
+ create mode 100644 include/pdfcore/pdfcore.h
+ create mode 100644 include/pdfcore/sha256.h
+ create mode 100644 src/core/SPEC.md
+ create mode 100644 src/core/doc/SPEC.md
+ create mode 100644 src/core/doc/doc.cc
+ create mode 100644 src/core/geom/SPEC.md
+ create mode 100644 src/core/geom/geom.cc
+ create mode 100644 src/core/sha256.cc
+ create mode 100644 tests/unit/test_geom.cc
+ create mode 100644 tests/unit/test_doc_ir.cc
 
 $ grep -rEn '#include *[<\"](windows|windef|d2d1|fitz|mupdf)' src/core src/render 2>&1; echo "exit:$?"
-# → (paste — expected 0 lines, exit 0)
+exit:0
 
 $ sh tools/layering-check.sh --strict 2>&1
-# → (paste ratio after IR — expected ≤0.15 interim)
+layering-check: backend_line_ratio=0.0721
+layering-check: OK (19 source files, 0 violations)
 
 $ ctest --preset linux-core -R "geom|doc_ir|contract" --output-on-failure 2>&1 | tail -n 40
-# → (paste — geom 12 cases green, doc_ir green, contract both backends green)
+Test project /home/castilho/projects/tyny-pdf/build/linux-core
+    Start 1: test_status_abi
+1/6 Test #1: test_status_abi ..................   Passed    0.01 sec
+    Start 2: test_geom
+2/6 Test #2: test_geom ........................   Passed    0.01 sec
+    Start 3: test_doc_ir
+3/6 Test #3: test_doc_ir ......................   Passed    0.01 sec
+    Start 4: test_app_render
+4/6 Test #4: test_app_render ..................   Passed    0.01 sec
+    Start 5: test_cli_exit_codes
+5/6 Test #5: test_cli_exit_codes ..............   Passed    0.06 sec
+    Start 6: test_backend_contract
+6/6 Test #6: test_backend_contract ............   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 6
 
 $ python3 tools/spec-check.py 2>&1 | grep pending
-# → (paste — still 17 pending; IR does not close sidecar Rs, so count unchanged here)
+spec-check: 17 requirement(s) still pending (no artefact yet): R14.1, R14.2, R14.3, R15.1, R15.2, R15.3, R15.4, R2.2, R2.3, R3.1, R3.2, R4.1, R4.2, R5.1, R5.2, R6.1, R6.2
 ```
 
-- [ ] IR + geometry copy-out, 4 rotations + CropBox, contract 2 backends, grep 0,
-  layering green
-- Evidence pasted above, on a clean clone, with the command line visible — memory =
-  hypothesis
-
+- [x] IR + geometry copy-out, 4 rotations + CropBox, contract 2 backends, grep 0, layering green
+- Evidence pasted above, on a clean clone, with the command line visible — memory = hypothesis
 ### 3.2 Text engine-agnostic — NFKC, pt-BR, caret over combining marks
 
 ```bash
