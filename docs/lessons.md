@@ -158,3 +158,40 @@ else's drop.
 **Rule:** a change-hygiene gate scans the change a PR makes and the project files it lands in;
 vendored code is excluded the same way the other gates exclude it, with the reason in the rule
 (ADR-0004). A tool that adds findings it cannot fix is a tool the next PR will quietly bypass.
+
+## 2026-09-19 - a count typed into a document is a defect with a due date
+
+`tools/check.sh` ran fourteen sections and printed `1/11` through `9/11`, because each banner had
+its denominator typed into it and the four sections added by later PRs updated only their own
+lines. The prose had the same disease where no gate can see it: `README.md` promised "all eleven
+sections" and "9/9 suites", `docs/coding-standards.md` said "ten sections" and "8/8",
+`docs/testing-playbook.md` said "nine checks in eleven sections", `docs/dev-environment.md` said
+"the same six gates", two tree comments said "the eight checks", while the runners printed 14
+sections and 13 suites. No check could have caught any of it: a sentence that names a number has
+no path for `docs-check.py` to resolve.
+
+**Rule:** a count a command prints is quoted with that command, or not quoted at all. Instructions
+say `sh tools/check.sh` and "every section it has"; a report of state keeps the number but pastes
+it from the command in the same sitting, because a pasted output is evidence and a typed memory is
+a claim. Inside a script, derive it: `tools/check.sh` counts its own `sec` lines the way
+`tools/gates-selftest.sh` counts its suites, so a section added later is one line and not ten
+edits plus a documentation sweep. Mirrored values follow the same rule - the domain and the app id
+live in `docs/naming.md`, and a document reaches them through
+`python3 tools/naming-sync.py get identifiers.app_id`, never by copying.
+
+
+## 2026-09-20 - a merged PR is not evidence that the change landed
+
+PR #30 was merged with corrections listed as complete that its own diff did not contain:
+`docs/release-runbook.md` was not in the twelve changed files and still opened with "there is no
+code, no build system, no CI history"; `docs/lessons.md` gained no rule and `CHANGELOG.md` gained
+no entry, both of which the PR body had promised; three of the counted sentences survived in
+`docs/git-workflow.md`, `docs/testing-playbook.md` and `docs/release-runbook.md`; and a
+`conan.lock.bak` was added by the same commit, which is the one file type this repository had no
+ignore rule for. The title claimed "milestone 1-5 implementation" over a twelve-file docs-and-gates
+diff, while `spec-check.py` printed 17 requirements with no artefact.
+
+**Rule:** after a merge, re-run the measurement against the merged tree and paste it - one command
+per claim, `git show --stat` for what a PR touched, `grep -c` for what survived. A green CI run
+says the gates did not object, not that the change was complete. And a PR title is an archaeological
+record: it states what the diff does, never what the milestone needs.
