@@ -144,7 +144,7 @@ The M0 exit criteria from `docs/kickoff.md` section 6:
 
 Coverage numbers would be theatre in a repository whose product is still being built, so the gate
 is structural: every documented claim must be checkable, and every check must be able to fail.
-`sh tools/check.sh` runs all eleven sections in review order; `.github/workflows/gates.yml` runs
+`sh tools/check.sh` runs every section it has in review order; `.github/workflows/gates.yml` runs
 `tools/gates-selftest.sh` and `sh tools/check.sh` on every PR.
 
 | Gate | What it proves | Self-test |
@@ -158,14 +158,16 @@ is structural: every documented claim must be checkable, and every check must be
 | `tools/format-check.sh` | C/C++ style against the committed `.clang-format`, plus `--staged` for the hook | 2 properties |
 | `tools/diff-scan.py` | the D1-D8 change-hygiene scan, on a diff or the whole tree | 17 properties |
 | `tools/layering-check.sh` | ADR-0011 R-M10/R-M11: header/symbol layering and `backend_line_ratio <= 0.15` | 8 properties |
-| `tools/gates-selftest.sh` | every gate's own self-test in one command | 9/9 suites |
+| `tools/gates-selftest.sh` | every gate's own self-test in one command | its printed suite count |
 | `.github/workflows/gates.yml` | `gates-selftest.sh` plus `sh tools/check.sh`, on every PR | - |
 
 ---
 
 ## Current State
 
-**Epic 1: 5/5 stories complete. Epic 2: documentation complete. Epic 3+: not started.**
+**Epic 1: 5 stories delivered; its DoD records 3 of 17 closure boxes**
+
+`grep -c '^\s*- \[x\]' tasks/epic-01/epic-1-dod.md`
 
 **Epic 1 (Stories 1.1-1.5 delivered):**
 

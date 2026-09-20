@@ -17,7 +17,7 @@ shows it is blocked (`docs/kickoff.md` section 7, gate 3 is the only way a crite
 ## 1. Mandatory evidence (real outputs pasted)
 
 ### 2.0 Baseline - the state this epic starts from (measured 2026-09-17T16:33Z, in this
-workspace, after `docs/epics/` gained this epic's five documents; the planning pass at 15:54Z saw
+workspace, after `tasks/epic-02/` gained this epic's five documents; the planning pass at 15:54Z saw
 72 files, 579692 bytes and `OK (30 markdown files, 0 problems)`, and those older numbers are quoted
 here only so the delta is visible)
 
@@ -208,7 +208,7 @@ Read that block as the epic's starting conditions, not as a failure list:
 - [ ] Layering and format gates are pasted from the last commit of each story, not from an earlier
   one
 - [ ] Docs are in English and ASCII-only apart from the allowlist (ADR-0005,
-  `tools/lang-check.py`), and the file counts in section 2.0 were re-measured after `docs/epics/`
+  `tools/lang-check.py`), and the file counts in section 2.0 were re-measured after `tasks/epic-02/`
   gained five more files
 - [ ] No closure claims: this document reports state plus evidence; "epic complete" is not a
   sentence it is allowed to write

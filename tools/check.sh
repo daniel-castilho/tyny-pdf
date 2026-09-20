@@ -4,48 +4,62 @@
 set -eu
 cd "$(dirname "$0")/.." || exit 2
 
-printf '== 1/11 language (ADR-0005)\n'
+total=$(grep -c '^sec ' "tools/check.sh" 2>/dev/null || echo 0)
+if [ "$total" -eq 0 ]; then
+    printf 'check.sh: could not count sec() entries\n' >&2
+    exit 2
+fi
+
+i=0
+
+sec() {
+    i=$((i+1))
+    printf '== %s/%s %s\n' "$i" "$total" "$1"
+}
+
+sec 'language (ADR-0005)'
 python3 tools/lang-check.py
-printf '== 2/11 language self-test (the gate must still detect violations)\n'
+sec 'language self-test (the gate must still detect violations)'
 python3 tools/lang-check.py --self-test >/dev/null && echo 'lang-check self-test: OK'
 
-printf '== 3/11 naming drift (ADR-0006 rules, ADR-0008 name)\n'
+sec 'naming drift (ADR-0006 rules, ADR-0008 name)'
 python3 tools/naming-sync.py check
 
-printf '== 4/11 sidecar format (ADR-0007)\n'
+sec 'sidecar format (ADR-0007)'
 python3 tools/sidecar-fmt.py check tests/fixtures/sidecar
 python3 tools/sidecar-fmt.py self-test >/dev/null && echo 'sidecar-fmt self-test: OK'
 
-printf '== 5/11 byte stability (.gitattributes, .editorconfig)\n'
+sec 'byte stability (.gitattributes, .editorconfig)'
 sh tools/canonical-check.sh
 
-printf '== 6/11 living specs (R-M13)\n'
+sec 'living specs (R-M13)'
 python3 tools/spec-check.py
 
-printf '== 7/11 C and C++ style against .clang-format (the tree has real C now)\n'
+sec 'C and C++ style against .clang-format (the tree has real C now)'
 sh tools/format-check.sh
 sh tools/format-check.sh --self-test >/dev/null && echo 'format-check self-test: OK'
 
-printf '== 8/11 diff and tree hygiene (D1-D8: exec bit, symlink, bidi, confusables, CI\n   events, action pins, dependency names, manifest and lock agreement)\n'
+sec 'diff and tree hygiene (D1-D8: exec bit, symlink, bidi, confusables, CI
+events, action pins, dependency names, manifest and lock agreement)'
 python3 tools/diff-scan.py --tree
 
-printf '== 9/11 diff-scan self-test (a scan that cannot fail is not a gate)\n'
+sec 'diff-scan self-test (a scan that cannot fail is not a gate)'
 python3 tools/diff-scan.py --self-test >/dev/null 2>&1 && echo 'diff-scan self-test: OK'
 
-printf '== 10/14 architecture layering (ADR-0011 R-M10/R-M11)\n'
+sec 'architecture layering (ADR-0011 R-M10/R-M11)'
 sh tools/layering-check.sh --strict
 sh tools/layering-check.sh --self-test >/dev/null && echo 'layering-check self-test: OK'
 
-printf '== 11/14 supply chain: SBOM generation (ADR-0004)\n'
+sec 'supply chain: SBOM generation (ADR-0004)'
 sh tools/sbom.sh --output /tmp/sbom.json
 
-printf '== 12/14 supply chain: dependency refresh (ADR-0004)\n'
+sec 'supply chain: dependency refresh (ADR-0004)'
 sh tools/deps-refresh.sh --dry-run
 
-printf '== 13/14 supply chain: patch report (ADR-0004)\n'
+sec 'supply chain: patch report (ADR-0004)'
 sh tools/patch-report.sh --fail-on-stale
 
-printf '== 14/14 documentation only promises what exists\n'
+sec 'documentation only promises what exists'
 python3 tools/docs-check.py
 
 printf '\ncheck: all gates green\n'

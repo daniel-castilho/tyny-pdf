@@ -5,7 +5,7 @@ building, what we refuse to build, in what order, and how each claim is measured
 business plan and not a vision statement. Where it names a number, that number is a gate a machine
 can evaluate; where a number is not yet measurable, the item says who goes and measures it.
 
-Everything below is derived from 11 accepted ADRs and a decision log of nine rounds of
+Everything below is derived from the adr/ directory and analysis/decision-log.md,
 deliberation. If this document and an ADR disagree, the ADR wins and this file is a bug.
 
 ---
@@ -126,7 +126,7 @@ Exit criteria:
 1. `main` protected (ADR-0009): required checks, no force push, auto-merge on.
 1b. The `gates` workflow ships with PR #1 and is green: the checks plus their self-tests, so CI
    proves the gates can still fail (`/.github/workflows/gates.yml`). PR #2 extends it to the
-   eight checks and six self-tests: `check.sh`'s six, the inline line-ending check, and
+   its checks and their self-tests: `check.sh`'s six, the inline line-ending check, and
    `tools/format-check.sh` (with its own `--self-test`).
 2. CI matrix green: `core-linux`, `windows-mingw-cross`, `windows-msvc` - wired by PR #2 with
    `CMakeLists.txt`, `CMakePresets.json`, `tools/win-probe/` and the toolchain hash. gtest

@@ -6,7 +6,7 @@ CLI, and the Win32/Direct2D presentation layer.
 
 **Official Domain:** [https://tyny.ca](https://tyny.ca) | **App ID:** `ca.tyny.pdf`
 
-> **What runs today.** The gates in `tools/`: `tools/check.sh` runs nine checks in eleven sections
+> **What runs today.** The gates in `tools/`: `tools/check.sh` runs every section it has
 > (canonical-check has no self-test of its own), and `tools/gates-selftest.sh` proves the nine
 > self-tests, wired into `.github/workflows/gates.yml`. Everything else here is
 > the harness that PR #5 lands with the first compiled code, and the milestones it is gated on
@@ -66,7 +66,7 @@ CLI, and the Win32/Direct2D presentation layer.
 
 ```bash
 sh tools/check.sh                    # nine checks, eleven sections, all gates
-sh tools/gates-selftest.sh           # the checks-on-the-checks, 9/9 suites
+sh tools/gates-selftest.sh           # the checks-on-the-checks, its suite count
 python3 tools/spec-check.py          # requirement shape, orphans, artefacts
 python3 tools/sidecar-fmt.py check tests/fixtures/sidecar
 ```

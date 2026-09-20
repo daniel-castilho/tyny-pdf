@@ -108,10 +108,22 @@ def tracked_files(root: Path) -> list:
     try:
         out = subprocess.run(["git", "-C", str(root), "ls-files"], capture_output=True,
                              text=True, check=True).stdout
-        return [root / p for p in out.splitlines() if p]
+        git_files = set(root / p for p in out.splitlines() if p)
+        git_available = True
     except Exception:
-        return [p for p in sorted(root.rglob("*")) if p.is_file()
-                and ".git/" not in str(p) and "__pycache__" not in str(p)]
+        git_files = set()
+        git_available = False
+
+    all_files = sorted(root.rglob("*"))
+    file_only = {p for p in all_files if p.is_file() and ".git/" not in str(p) and "__pycache__" not in str(p)}
+
+    if git_available:
+        skipped = len(git_files - file_only)
+        if skipped:
+            print(f"naming-sync: skipped {skipped} paths from git ls-files that are not regular files, counted here not silently")
+        return list(file_only & git_files)
+    else:
+        return list(file_only)
 
 
 def stale_token_hits(root: Path, flat: dict, files: list) -> list:
