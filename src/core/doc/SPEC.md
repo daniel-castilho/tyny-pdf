@@ -43,3 +43,4 @@ Verification: unit:tests/unit/test_doc_ir.cc
 - Text extraction (story 3.2).
 - Sidecar read/write (stories 3.3/3.4).
 - Undo/redo log (Epic 4).
+

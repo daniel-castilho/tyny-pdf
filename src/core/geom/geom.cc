@@ -1,12 +1,15 @@
 #include "pdfcore/geom.h"
-#include "pdfcore/page.h"
 
 #include <algorithm>
 #include <cmath>
 
+#include "pdfcore/page.h"
+
 static void rect_normalize(pc_rect* r) {
-  if (r->x0 > r->x1) std::swap(r->x0, r->x1);
-  if (r->y0 > r->y1) std::swap(r->y0, r->y1);
+  if (r->x0 > r->x1)
+    std::swap(r->x0, r->x1);
+  if (r->y0 > r->y1)
+    std::swap(r->y0, r->y1);
 }
 
 pc_status pc_rect_to_device(const pc_page_box* box, pc_rect us, pc_rect* dev) {

@@ -1,6 +1,6 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 
 #include "pdfcore/geom.h"
 #include "pdfcore/page.h"
@@ -8,23 +8,26 @@
 static int tests_passed = 0;
 static int tests_failed = 0;
 
-#define ASSERT_EQ(a, b) do { \
-    if ((a) != (b)) { \
-        fprintf(stderr, "FAIL: %s:%d: %s == %s (%d != %d)\n", __FILE__, __LINE__, #a, #b, (a), (b)); \
-        tests_failed++; \
-    } else { \
-        tests_passed++; \
-    } \
-} while(0)
+#define ASSERT_EQ(a, b)                                                                            \
+  do {                                                                                             \
+    if ((a) != (b)) {                                                                              \
+      fprintf(stderr, "FAIL: %s:%d: %s == %s (%d != %d)\n", __FILE__, __LINE__, #a, #b, (a), (b)); \
+      tests_failed++;                                                                              \
+    } else {                                                                                       \
+      tests_passed++;                                                                              \
+    }                                                                                              \
+  } while (0)
 
-#define ASSERT_NEAR(a, b, eps) do { \
-    if (fabs((a) - (b)) > (eps)) { \
-        fprintf(stderr, "FAIL: %s:%d: %s == %s (|%f - %f| > %f)\n", __FILE__, __LINE__, #a, #b, (a), (b), (eps)); \
-        tests_failed++; \
-    } else { \
-        tests_passed++; \
-    } \
-} while(0)
+#define ASSERT_NEAR(a, b, eps)                                                                     \
+  do {                                                                                             \
+    if (fabs((a) - (b)) > (eps)) {                                                                 \
+      fprintf(stderr, "FAIL: %s:%d: %s == %s (|%f - %f| > %f)\n", __FILE__, __LINE__, #a, #b, (a), \
+              (b), (eps));                                                                         \
+      tests_failed++;                                                                              \
+    } else {                                                                                       \
+      tests_passed++;                                                                              \
+    }                                                                                              \
+  } while (0)
 
 // R8.1: pc_rect_to_device converts user-space to device-space for rotation 0
 static void test_rect_to_device_rotation0(void) {

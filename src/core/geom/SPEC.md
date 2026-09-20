@@ -27,3 +27,4 @@ Verification: unit:tests/unit/test_geom.cc
 
 - Rendering (belongs in `src/render`).
 - GPU-specific transforms.
+

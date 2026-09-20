@@ -9,50 +9,57 @@
 static int tests_passed = 0;
 static int tests_failed = 0;
 
-#define ASSERT_INT_EQ(a, b) do { \
-    if ((a) != (b)) { \
-        fprintf(stderr, "FAIL: %s:%d: %s == %s (%d != %d)\n", __FILE__, __LINE__, #a, #b, (a), (b)); \
-        tests_failed++; \
-    } else { \
-        tests_passed++; \
-    } \
-} while(0)
+#define ASSERT_INT_EQ(a, b)                                                                        \
+  do {                                                                                             \
+    if ((a) != (b)) {                                                                              \
+      fprintf(stderr, "FAIL: %s:%d: %s == %s (%d != %d)\n", __FILE__, __LINE__, #a, #b, (a), (b)); \
+      tests_failed++;                                                                              \
+    } else {                                                                                       \
+      tests_passed++;                                                                              \
+    }                                                                                              \
+  } while (0)
 
-#define ASSERT_SIZE_EQ(a, b) do { \
-    if ((a) != (b)) { \
-        fprintf(stderr, "FAIL: %s:%d: %s == %s (%zu != %zu)\n", __FILE__, __LINE__, #a, #b, (a), (b)); \
-        tests_failed++; \
-    } else { \
-        tests_passed++; \
-    } \
-} while(0)
+#define ASSERT_SIZE_EQ(a, b)                                                                   \
+  do {                                                                                         \
+    if ((a) != (b)) {                                                                          \
+      fprintf(stderr, "FAIL: %s:%d: %s == %s (%zu != %zu)\n", __FILE__, __LINE__, #a, #b, (a), \
+              (b));                                                                            \
+      tests_failed++;                                                                          \
+    } else {                                                                                   \
+      tests_passed++;                                                                          \
+    }                                                                                          \
+  } while (0)
 
-#define ASSERT_PTR_NE(a, b) do { \
-    if ((a) == (b)) { \
-        fprintf(stderr, "FAIL: %s:%d: %s != %s (%p == %p)\n", __FILE__, __LINE__, #a, #b, (void*)(a), (void*)(b)); \
-        tests_failed++; \
-    } else { \
-        tests_passed++; \
-    } \
-} while(0)
+#define ASSERT_PTR_NE(a, b)                                                             \
+  do {                                                                                  \
+    if ((a) == (b)) {                                                                   \
+      fprintf(stderr, "FAIL: %s:%d: %s != %s (%p == %p)\n", __FILE__, __LINE__, #a, #b, \
+              (void*)(a), (void*)(b));                                                  \
+      tests_failed++;                                                                   \
+    } else {                                                                            \
+      tests_passed++;                                                                   \
+    }                                                                                   \
+  } while (0)
 
-#define ASSERT_GT_DOUBLE(a, b) do { \
-    if ((a) <= (b)) { \
-        fprintf(stderr, "FAIL: %s:%d: %s > %s (%f <= %f)\n", __FILE__, __LINE__, #a, #b, (a), (b)); \
-        tests_failed++; \
-    } else { \
-        tests_passed++; \
-    } \
-} while(0)
+#define ASSERT_GT_DOUBLE(a, b)                                                                    \
+  do {                                                                                            \
+    if ((a) <= (b)) {                                                                             \
+      fprintf(stderr, "FAIL: %s:%d: %s > %s (%f <= %f)\n", __FILE__, __LINE__, #a, #b, (a), (b)); \
+      tests_failed++;                                                                             \
+    } else {                                                                                      \
+      tests_passed++;                                                                             \
+    }                                                                                             \
+  } while (0)
 
-#define ASSERT_INT_GT(a, b) do { \
-    if ((a) <= (b)) { \
-        fprintf(stderr, "FAIL: %s:%d: %s > %s (%d <= %d)\n", __FILE__, __LINE__, #a, #b, (a), (b)); \
-        tests_failed++; \
-    } else { \
-        tests_passed++; \
-    } \
-} while(0)
+#define ASSERT_INT_GT(a, b)                                                                       \
+  do {                                                                                            \
+    if ((a) <= (b)) {                                                                             \
+      fprintf(stderr, "FAIL: %s:%d: %s > %s (%d <= %d)\n", __FILE__, __LINE__, #a, #b, (a), (b)); \
+      tests_failed++;                                                                             \
+    } else {                                                                                      \
+      tests_passed++;                                                                             \
+    }                                                                                             \
+  } while (0)
 
 static const char* fixture_path(void) {
 #ifdef TEST_FIXTURE_DIR
@@ -107,8 +114,8 @@ static void test_page_get_box(void) {
     ASSERT_GT_DOUBLE(box.mediabox.x1, box.mediabox.x0);
     ASSERT_GT_DOUBLE(box.mediabox.y1, box.mediabox.y0);
     ASSERT_INT_EQ(box.rotation >= 0 && box.rotation <= 3, 1);
-    int valid_rot = (box.rotation == 0 || box.rotation == 90 ||
-                     box.rotation == 180 || box.rotation == 270);
+    int valid_rot =
+        (box.rotation == 0 || box.rotation == 90 || box.rotation == 180 || box.rotation == 270);
     ASSERT_INT_EQ(valid_rot, 1);
   }
 

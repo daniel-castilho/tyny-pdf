@@ -164,7 +164,7 @@ $ sh tools/gates-selftest.sh 2>&1 | tail -n 20
 == deps-refresh: sh tools/deps-refresh.sh --self-test
    deps-refresh self-test: OK
 == patch-report: sh tools/patch-report.sh --self-test
-   
+
 == verapdf: sh tools/verapdf.sh --self-test
    verapdf.sh self-test: SKIPPED (verapdf not installed)
 == diff-scan: python3 tools/diff-scan.py --self-test

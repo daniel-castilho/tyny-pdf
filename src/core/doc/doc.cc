@@ -1,12 +1,13 @@
 #include "pdfcore/doc.h"
-#include "pdfcore/backend.h"
-#include "pdfcore/status.h"
-#include "pdfcore/sha256.h"
 
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <cstdio>
+
+#include "pdfcore/backend.h"
+#include "pdfcore/sha256.h"
+#include "pdfcore/status.h"
 
 struct pc_doc {
   const pc_backend_api* backend;
@@ -104,7 +105,8 @@ const char* pc_doc_sha256(const pc_doc* doc) {
 }
 
 void pc_doc_close(pc_doc* doc) {
-  if (!doc) return;
+  if (!doc)
+    return;
   if (doc->page_boxes) {
     std::free(doc->page_boxes);
   }
