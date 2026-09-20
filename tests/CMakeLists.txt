@@ -7,6 +7,24 @@ if (TYNYPDF_BUILD_TESTS)
     pc_apply_warnings(test_status_abi)
     add_test(NAME test_status_abi COMMAND test_status_abi)
 
+    # geom test
+    add_executable(test_geom unit/test_geom.cc)
+    target_link_libraries(test_geom pdfcore)
+    target_include_directories(test_geom PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_geom)
+    add_test(NAME test_geom COMMAND test_geom)
+
+    # doc_ir test
+    add_executable(test_doc_ir unit/test_doc_ir.cc)
+    target_link_libraries(test_doc_ir pdfcore ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)
+    target_include_directories(test_doc_ir PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    target_compile_definitions(test_doc_ir PRIVATE TEST_FIXTURE_DIR="${CMAKE_SOURCE_DIR}/tests/fixtures")
+    pc_apply_warnings(test_doc_ir)
+    add_test(NAME test_doc_ir COMMAND test_doc_ir)
+    set_tests_properties(test_doc_ir PROPERTIES
+      ENVIRONMENT "TEST_FIXTURE_DIR=${CMAKE_SOURCE_DIR}/tests/fixtures"
+    )
+
     # app_render test - open document and render page 1 via pdfcore
     add_executable(test_app_render unit/test_app_render.cc)
     target_link_libraries(test_app_render pdfcore ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)

@@ -23,6 +23,7 @@ struct pc_backend_api {
   void (*doc_close)(void* backend_doc);
   uint32_t (*doc_page_count)(void* backend_doc);
   pc_status (*page_get)(void* backend_doc, uint32_t index, void** out_backend_page);
+  pc_status (*page_get_box)(void* backend_doc, uint32_t index, pc_page_box* out);
   pc_status (*page_render)(void* backend_page, const pc_render_params* params,
                            pc_pixmap* out_pixmap);
   void (*page_free)(void* backend_page);

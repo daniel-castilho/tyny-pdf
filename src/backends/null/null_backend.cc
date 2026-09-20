@@ -86,6 +86,23 @@ static void null_pixmap_free(pc_pixmap* pixmap) {
   }
 }
 
+static pc_status null_page_get_box(void* backend_doc, uint32_t index, pc_page_box* out) {
+  (void)backend_doc;
+  if (!out) {
+    return {sizeof(pc_status), PC_ERR_ARGUMENT, 0, "null argument"};
+  }
+  if (index >= 5) {
+    return {sizeof(pc_status), PC_ERR_RANGE, 0, "page index out of range"};
+  }
+  out->mediabox.x0 = 0;
+  out->mediabox.y0 = 0;
+  out->mediabox.x1 = 612;
+  out->mediabox.y1 = 792;
+  out->cropbox = out->mediabox;
+  out->rotation = 0;
+  return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
+}
+
 static const char* null_get_last_error(void* backend_doc) {
   (void)backend_doc;
   return nullptr;
@@ -99,6 +116,7 @@ pc_backend_api pc_null_backend_api = {
     .doc_close = null_doc_close,
     .doc_page_count = null_doc_page_count,
     .page_get = null_page_get,
+    .page_get_box = null_page_get_box,
     .page_render = null_page_render,
     .page_free = null_page_free,
     .pixmap_free = null_pixmap_free,
