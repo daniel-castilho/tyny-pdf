@@ -152,7 +152,7 @@ tyny-pdf/
 |-- tests/                      # unit/, contract/, conformance/<iso-clause>/, approvals/, fixtures/
 |-- docs/                       # kickoff, naming, dev-environment, git-workflow, lessons, a11y/
 |-- adr/                        # one file per decision, each with a "Cost of swapping" section
-`-- tools/                      # the gates: check.sh and the eight checks it runs
+`-- tools/                      # the gates: check.sh and the checks it runs
 ```
 
 ### Layer Rules

@@ -87,7 +87,7 @@ tyny-pdf/
 |   `-- approvals/              # golden structured dumps (committed; received files are not)
 |-- docs/                       # this file, kickoff, naming, dev-environment, git-workflow, lessons
 |-- adr/                        # one file per decision, each with a "Cost of swapping" section
-`-- tools/                      # the gates: check.sh plus the eight checks
+`-- tools/                      # the gates: check.sh plus the checks
 ```
 
 ### Boundary Rules
@@ -430,9 +430,9 @@ are both required, the latter with
 whole of it:
 
 ```bash
-sh tools/check.sh                                   # ten sections, all gates (incl. format-check
+sh tools/check.sh                                   # every section it has, all gates (incl. format-check
                                                     # and the diff-scan tree hygiene scan)
-sh tools/gates-selftest.sh                          # the checks-on-the-checks, 8/8 suites
+sh tools/gates-selftest.sh                          # the checks-on-the-checks, its suite count
 python3 tools/lang-check.py --self-test             # 5/5
 python3 tools/naming-sync.py self-test              # 5/5
 python3 tools/sidecar-fmt.py self-test              # 5/5

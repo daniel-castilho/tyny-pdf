@@ -35,7 +35,7 @@ usually requested and refused.
 - [ ] Add the frame-interval source to the CLI's JSON reporter output only if the existing metrics
   do not already carry per-frame data: `tools/bench-measure.sh` derives `scroll_frame_p99_ms` from
   frames, so a second p99 implementation in the spike is a duplicate that will disagree
-- [ ] Open `spike/day-1.md` .. `spike/day-3.md` under `docs/epics/` **only if** the day's outcome
+- [ ] Open `spike/day-1.md` .. `spike/day-3.md` under `tasks/epic-02/` **only if** the day's outcome
   changes what the next day attempts; otherwise the sessions are recorded in the PR descriptions
   and `epic-2-dod.md` section 2. A diary is not an artefact when the PR body already is
 - [ ] `sh tools/check.sh` green at each session boundary

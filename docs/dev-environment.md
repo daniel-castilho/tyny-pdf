@@ -76,7 +76,7 @@ sha256sum ~/.toolchains/llvm-mingw-*/bin/clang | sed 's|.*: ||'   # compare with
 cmake --preset linux-core          # core + CLI, native, ASan/UBSan
 cmake --build --preset linux-core
 ctest --preset linux-core --output-on-failure
-sh tools/check.sh                  # the same six gates the pre-commit hook runs
+sh tools/check.sh                  # every gate the pre-commit hook runs
 sh tools/build-mupdf-windows.sh    # cross-compiled MuPDF for the win-cross-x64 preset
 cmake --preset win-cross-x64 && cmake --build --preset win-cross-x64
 ./build/win-cross-x64/Release/tynypdf.exe ~/tmp/sample.pdf    # WSL interop: real Windows process, real GPU, real spooler

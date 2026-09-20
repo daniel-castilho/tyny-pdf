@@ -14,7 +14,7 @@ sets the wording of the criteria and this epic does not soften it: "Measured, no
 
 Measured in this workspace with the commands pasted in `epic-2-dod.md` section 2.0. Re-taken after
 these five documents were added: the planning measurement (2026-09-17T15:54Z) saw 72 files, 579692
-bytes and `docs-check: OK (30 markdown files, 0 problems)`, and `docs/epics/` has doubled since
+bytes and `docs-check: OK (30 markdown files, 0 problems)`, and `tasks/epic-02/` has doubled since
 then.
 
 - **77 files, 637488 bytes** excluding `build/`. `sh tools/check.sh` -> `check: all gates green`;
@@ -22,7 +22,7 @@ then.
   `canonical-check`, `spec-check`, `format-check`, `diff-scan`, `docs-check` - including the
   diff-scan change-hygiene scan (D1-D8) with its own self-test. `sh tools/gates-selftest.sh` ->
   `gates-selftest: OK (8/8 suites hold)`. `python3
-  tools/docs-check.py` -> `OK (35 markdown files, 0 problems)`: 10 in `docs/epics/` (five per
+  tools/docs-check.py` -> `OK (35 markdown files, 0 problems)`: 10 in `tasks/epic-02/` (five per
   epic), 9 under `docs/`, 11 in `adr/`, plus `README.md`, `AGENTS.md`, `CHANGELOG.md`,
   `.github/PULL_REQUEST_TEMPLATE.md` and `src/features/sidecar/SPEC.md`.
 - **Epic 1's story 1.2 is delivered:** `CMakeLists.txt`, `CMakePresets.json` (`linux-core`,
