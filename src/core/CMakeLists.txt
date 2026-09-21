@@ -3,6 +3,7 @@ add_library(pdfcore STATIC
     doc/doc.cc
     geom/geom.cc
     sha256.cc
+    sidecar/writer.cc
 )
 
 target_include_directories(pdfcore PUBLIC
