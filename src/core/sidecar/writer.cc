@@ -7,6 +7,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "pdfcore/platform.h"
 #include "pdfcore/sha256.h"
 #include "pdfcore/sidecar.h"
 #include "pdfcore/status.h"
