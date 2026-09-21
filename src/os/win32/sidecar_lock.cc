@@ -2,6 +2,7 @@
 #include <inttypes.h>
 #include <io.h>
 #include <stdio.h>
+#include <time.h>
 #include <windows.h>
 
 #include "pdfcore/sidecar.h"
