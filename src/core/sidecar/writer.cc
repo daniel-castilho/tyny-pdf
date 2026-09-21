@@ -500,7 +500,12 @@ pc_status pc_sidecar_try_lock(const char* doc_path) {
 
   // Write PID and timestamp
   char lock_content[128];
-  int len = snprintf(lock_content, sizeof(lock_content), "pid=%d time=%" PRId64 "\n", getpid(),
+#if defined(_WIN32)
+  int pid = _getpid();
+#else
+  int pid = getpid();
+#endif
+  int len = snprintf(lock_content, sizeof(lock_content), "pid=%d time=%" PRId64 "\n", pid,
                      (int64_t)time(nullptr));
   write_all(fd, lock_content, len);
   fsync(fd);
