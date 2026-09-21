@@ -3,6 +3,8 @@
 // never as empty. The backend is selected by argv[1] and registered once per backend in
 // tests/CMakeLists.txt.
 
+// R16.11 - text bytes SHALL be identical through null and mupdf backends
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -6,5 +6,6 @@
 #include "pdfcore/geom.h"
 #include "pdfcore/page.h"
 #include "pdfcore/status.h"
+#include "pdfcore/text.h"
 
 #endif

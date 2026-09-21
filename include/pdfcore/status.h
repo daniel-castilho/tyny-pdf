@@ -35,6 +35,7 @@ typedef enum pc_error {
   PC_ERR_STATE = 13,
   PC_ERR_VERSION = 14,
   PC_ERR_FEATURE = 15,
+  PC_ERR_NOT_FOUND = 16,
 } pc_error;
 
 static inline int pc_status_is_ok(const pc_status* s) {
