@@ -1,5 +1,7 @@
 #include <fcntl.h>
+#include <inttypes.h>
 #include <io.h>
+#include <stdio.h>
 #include <windows.h>
 
 #include "pdfcore/sidecar.h"
