@@ -106,5 +106,16 @@ if (TYNYPDF_BUILD_TESTS)
         target_link_libraries(test_backend_contract ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}mupdf)
         target_compile_definitions(test_backend_contract PRIVATE PC_HAVE_MUPDF)
         add_test(NAME test_backend_contract_mupdf COMMAND test_backend_contract mupdf)
+
+        # R-M2 threaded contract - per-doc lock sets must not serialize across threads.
+        find_package(Threads REQUIRED)
+        add_executable(test_backend_contract_threaded contract/threaded_contract.cc)
+        target_link_libraries(test_backend_contract_threaded
+            pdfcore ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}mupdf Threads::Threads)
+        target_include_directories(test_backend_contract_threaded PRIVATE ${CMAKE_SOURCE_DIR}/include)
+        target_compile_definitions(test_backend_contract_threaded PRIVATE
+            TEST_FIXTURE_DIR="${CMAKE_SOURCE_DIR}/tests/fixtures")
+        pc_apply_warnings(test_backend_contract_threaded)
+        add_test(NAME test_backend_contract_threaded COMMAND test_backend_contract_threaded)
     endif()
 endif()

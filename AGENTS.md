@@ -267,9 +267,10 @@ not silently add an item; flag it in the PR and open it here with the number tha
    `tools/win-probe/`; story 1.4 added `tynypdf-core`, the `null` and `mupdf` backends,
    `tynypdf-cli` and the contract tests, so a green matrix run builds real targets and the
    `windows-mingw-cross` job now cross-compiles MuPDF itself and links it into `tynypdf-cli.exe`
-   (fz symbol and import table checks in the job). What is still missing is everything above the
-   IR: `src/core` has no C++ yet, and Story 1.5's baseline is blocked (item 5), so "builds" is
-   not yet "does the job".
+   (fz symbol and import table checks in the job). Epic 3 landed `src/core`'s first C++ (doc IR,
+   geom, sidecar encode/decode, sha256, per-document MuPDF locks) and closed the backend swap
+   budget (item 8). What is still missing is everything above the IR: no viewer, no undo, and
+   Story 1.5's baseline is blocked (item 5), so "builds" is not yet "does the job".
 2. **Only the doc gates and the matrix's first runs are recorded:** `gates` ran green on `main`
    since run `35170901622` (at `94f1950`) and `35171544840` (at `0d64999`); the build matrix
    arrived with PR #2 (`2ec9977`) and its first all-four-green run is `35179132038` (head
@@ -281,8 +282,10 @@ not silently add an item; flag it in the PR and open it here with the number tha
    holds in import tables; the host/cross symbol tables are identical; a hardware GPU adapter and
    a `D3D_FEATURE_LEVEL` were observed through WSL interop). What stays open is version drift of
    the pinned toolchain - the hash gate catches it, CI verifies it each run.
-4. **Seventeen SPEC requirements have no artefact** (R14.1-R14.3, R15.1-R15.4, R2.2, R2.3, R3.1,
-   R3.2, R4.1, R4.2, R5.1, R5.2, R6.1, R6.2); some are enforced by committed tools today.
+4. **Four SPEC requirements have no artefact** (R15.1-R15.4); they are all in the tables/text
+   capability that story 3.5 deliberately shows as `PC_ERR_CAPABILITY` (R-M5), and R16.1 (the
+   capability contract) is the artefact that guards them. The rest of the original 17 were retired
+   by epic 3 stories (R14.1-R14.3, R2.2, R2.3, R3.1, R3.2, R4.1, R4.2, R5.1, R5.2, R6.1, R6.2).
    `tools/spec-check.py` prints the list on every run, so the debt cannot be forgotten by scrolling
    past it.
 5. **`tynypdf-cli sidecar gc` is out of v1:** tombstones accumulate until that command exists
@@ -294,11 +297,12 @@ not silently add an item; flag it in the PR and open it here with the number tha
 7. **Two toolchains on one source is a permanent tax** (ADR-0010 negative consequence): warning
    sets, header coverage and link differences will keep producing `build:` PRs that look like
    noise.
-8. **The swap budget sits close to its limit because `src/core` is empty:**
-   `tools/layering-check.sh` measures `backend_line_ratio = 0.1418` against the 0.15 ceiling
-   (query: `sh tools/layering-check.sh --strict`, 2026-09-17), so the number falls only as core
-   code lands, not as the backend shrinks. Until then a non-vtable backend helper can trip R-M11
-   for a reason that says more about the empty core than about the adapter.
+8. **The swap budget is under the 0.07 target but the core is still thin:**
+   `tools/layering-check.sh` now measures `backend_line_ratio = 0.0683` against the 0.07 target set
+   by story 3.5 (query: `sh tools/layering-check.sh --strict`, 2026-09-21), down from 0.1014 at the
+   epic 3 baseline. The fall came from trimming backend non-vtable code (per-doc lock helpers
+   inlined into the vtable bodies, `exception_bridge.h` shrunk), not from core growth; the
+   budget starts to mean something only when `src/core`'s C++ outgrows it.
 
 ---
 

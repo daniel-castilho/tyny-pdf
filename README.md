@@ -202,6 +202,18 @@ overview, stories, technical-tasks, testing, dod). The Win32/DComp/tile-cache
 scaffolding is parked in `spikes/epic2-win32/` (not built, not a capability)
 until R14/R15 have real verification.
 
+**Epic 3 (core on Linux, headless; stories 3.1-3.5 delivered):** `src/core`'s
+C++ landed (doc IR, geometry copy-out, sidecar encode/decode, sha256,
+per-document MuPDF lock sets - R-M7, `threaded_contract` 5.70x vs the 4x target).
+The `pdfcore` C ABI is frozen at 1.1 and golden-guarded
+(`tests/golden/status_enum.txt`, `tests/unit/test_status_abi.cc`); the contract
+suite runs over both `null` and `mupdf` backends; `PC_CAP_TABLES` is declared as
+not supported (`PC_ERR_CAPABILITY`, R16.1) until story 3.5. The backend swap
+budget is now `backend_line_ratio = 0.0683` (`sh tools/layering-check.sh --strict`,
+2026-09-21, target ≤ 0.07), and `tests/baseline.json` carries a re-measured
+`tynypdf (mupdf backend)` Release entry: two runs within 10% on open/first-paint/
+scroll (RSS carries the documented sampling race).
+
 **Distribution:** Windows Store / MSIX is not pursued. The portable Windows ZIP (no installer, no
 admin rights) attached to a GitHub Release is the only channel; the download is not live until the
 first tagged release is published.

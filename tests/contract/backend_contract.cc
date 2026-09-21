@@ -167,6 +167,54 @@ static int test_page_render_deterministic(uint32_t index) {
   return rc;
 }
 
+// R16.1 (R-M5) - an unsupported capability is reported as unsupported (has_capability == 0 or
+// find_tables -> PC_ERR_CAPABILITY), never as an empty list of tables.
+static int test_capability(void) {
+  void* doc = nullptr;
+  pc_status s = g_api->doc_open(fixture_path(), nullptr, &doc);
+  if (s.code != PC_ERR_NONE || !doc) {
+    fprintf(stderr, "doc_open failed: code=%u\n", s.code);
+    return 1;
+  }
+
+  int supported = g_api->doc_has_capability(doc, PC_CAP_TABLES);
+  if (supported != 0 && supported != 1) {
+    fprintf(stderr, "doc_has_capability returned an invalid value: %d\n", supported);
+    g_api->doc_close(doc);
+    return 1;
+  }
+
+  pc_rect rects[4] = {};
+  size_t count = (size_t)-1;
+  s = g_api->doc_find_tables(doc, rects, &count, 4);
+  if (supported == 0) {
+    if (s.code != PC_ERR_CAPABILITY || count != 0) {
+      fprintf(stderr,
+              "unsupported capability must report PC_ERR_CAPABILITY and count 0, "
+              "got code=%u count=%zu\n",
+              s.code, count);
+      g_api->doc_close(doc);
+      return 1;
+    }
+  } else {
+    if (s.code != PC_ERR_NONE) {
+      fprintf(stderr, "supported capability must succeed, got code=%u\n", s.code);
+      g_api->doc_close(doc);
+      return 1;
+    }
+  }
+
+  s = g_api->doc_find_tables(doc, rects, nullptr, 4);
+  if (s.code != PC_ERR_ARGUMENT) {
+    fprintf(stderr, "null out_count must report PC_ERR_ARGUMENT, got code=%u\n", s.code);
+    g_api->doc_close(doc);
+    return 1;
+  }
+
+  g_api->doc_close(doc);
+  return 0;
+}
+
 int main(int argc, char** argv) {
   const char* name = argc > 1 ? argv[1] : "null";
   if (strcmp(name, "null") == 0) {
@@ -184,6 +232,7 @@ int main(int argc, char** argv) {
   int failures = 0;
   failures += test_open_and_count();
   failures += test_page_boxes();
+  failures += test_capability();
   for (uint32_t i = 0; i < 5; ++i) {
     failures += test_page_render(i);
     failures += test_page_render_deterministic(i);

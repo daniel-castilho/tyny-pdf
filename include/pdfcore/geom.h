@@ -20,6 +20,8 @@ typedef struct pc_page_box {
   int rotation;
 } pc_page_box;
 
+/// Convert a user-space rectangle to device space using MediaBox/CropBox/rotation (R8.1).
+/// PC_ERR_NONE on success, PC_ERR_ARGUMENT for a null box or dev.
 pc_status pc_rect_to_device(const pc_page_box* box, pc_rect us, pc_rect* dev);
 
 #ifdef __cplusplus

@@ -25,17 +25,19 @@ import json
 
 
 class BenchmarkRunner:
-    def __init__(self, target: str, corpus_dir: Path, runs: int = 1):
+    def __init__(self, target: str, corpus_dir: Path, runs: int = 1, backend: str = "null"):
         self.target = target
         self.corpus_dir = Path(corpus_dir)
         self.runs = runs
+        self.backend = backend
         self.results = {}
 
         # Target configurations
         self.targets = {
             'tynypdf': {
-                'cmd': ['tynypdf-cli', 'render', '--page', '0', '--dpi', '72', '--backend', 'null'],
-                'name': 'tynypdf (null backend)',
+                'cmd': ['tynypdf-cli', 'render', '--page', '0', '--dpi', '72',
+                        '--backend', self.backend],
+                'name': f'tynypdf ({self.backend} backend)',
             },
             'sumatra-3.6.1': {
                 'cmd': ['SumatraPDF.exe', '-print-to-default', '-silent'],
@@ -178,8 +180,10 @@ class BenchmarkRunner:
                             binary = Path(root) / f
                             break
             if binary.exists():
-                return [str(binary), 'render', '--page', str(page_idx), '--dpi', '72', '--backend', 'null']
-            return ['tynypdf-cli', 'render', '--page', str(page_idx), '--dpi', '72', '--backend', 'null']
+                return [str(binary), 'render', '--page', str(page_idx), '--dpi', '72',
+                        '--backend', self.backend, str(pdf_path)]
+            return ['tynypdf-cli', 'render', '--page', str(page_idx), '--dpi', '72',
+                    '--backend', self.backend, str(pdf_path)]
         # For SumatraPDF and other targets: reuse the base command (no page-specific flag)
         return self.get_cmd(pdf_path)
 
@@ -292,13 +296,15 @@ class BenchmarkRunner:
 def main():
     parser = argparse.ArgumentParser(description='M0.4 Benchmark runner')
     parser.add_argument('--target', required=True, choices=['tynypdf', 'sumatra-3.6.1', 'sumatra-3.7pre'])
+    parser.add_argument('--backend', choices=['null', 'mupdf'], default='null',
+                        help='tynypdf backend to benchmark')
     parser.add_argument('--corpus', required=True, type=Path)
     parser.add_argument('--runs', type=int, default=1)
     parser.add_argument('--output', type=Path)
 
     args = parser.parse_args()
 
-    runner = BenchmarkRunner(args.target, args.corpus, args.runs)
+    runner = BenchmarkRunner(args.target, args.corpus, args.runs, args.backend)
 
     print(f"Running benchmarks for {runner.target}...")
     results = runner.run_benchmarks(args.corpus, args.runs)

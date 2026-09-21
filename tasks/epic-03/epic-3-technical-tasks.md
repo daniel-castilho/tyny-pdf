@@ -272,20 +272,20 @@ gate.
 without
 `docs/dependency-policy.md` row
 
-- [ ] Freeze `include/pdfcore/*.h`: `status.h` enum 0-15 append-only, `doc.h`,
+- [x] Freeze `include/pdfcore/*.h`: `status.h` enum 0-15 append-only, `doc.h`,
   `page.h`, `geom.h`,
   `text.h`, `budget.h`, `sidecar.h`, `backend.h` vtable 1.0 (`abi_major=1, minor=0,
   struct_size`),
   `pdfcore.h` aggregate. Every public function documents its `pc_error` codes in header
   comment —
   `python3 tools/spec-check.py` section for error documentation must pass.
-- [ ] Golden: `tests/golden/status_enum.txt` is the committed enum dump;
+- [x] Golden: `tests/golden/status_enum.txt` is the committed enum dump;
   `tests/unit/test_status_abi.cc` reads `status.h` and fails on any renumber. Do the
   throwaway proof:
   on branch `tmp/renumber-proof`, change one enum value, `ctest -R status_abi` red —
   paste log snippet
   in `epic-3-dod.md` §3.5, then revert.
-- [ ] Backend harden: `src/backends/mupdf/exception_bridge.h` is the **only** file
+- [x] Backend harden: `src/backends/mupdf/exception_bridge.h` is the **only** file
   that contains
   `fz_try`/`fz_catch`/`fz_always` — enforce with `grep -rn "fz_try" src
   --include="*.cc"
@@ -296,19 +296,19 @@ without
   `MupdfDoc::ctx` (see `mupdf-rs` PR #263 pattern), no process-wide mutex array. Paste
   threaded
   benchmark: `10 threads × 160p text extraction` — threaded ≤4× single, not 13×.
-- [ ] Contract final: `ctest --preset linux-core -R contract` runs
+- [x] Contract final: `ctest --preset linux-core -R contract` runs
   `backend_contract.cc` twice (null
   + mupdf) in one job; both share the same `pc_doc` IR copy-out and `pc_text_run` value
   types. Add
   `PC_ERR_CAPABILITY` test: `pc_doc_has_capability(doc, PC_CAP_TABLES)` false →
   `pc_doc_find_tables`
   returns `PC_ERR_CAPABILITY` not empty list (R-M5).
-- [ ] Ratio saned: `sh tools/layering-check.sh --strict` reports `backend_line_ratio
+- [x] Ratio saned: `sh tools/layering-check.sh --strict` reports `backend_line_ratio
   ≤ 0.07`
   (expected ~180 backend non-vtable lines / ~2600 total src+include lines). If higher,
   this story is
   not done — move a helper from `src/backends/` into `src/core/`.
-- [ ] Baseline re-measured: `sh tools/build-mupdf-windows.sh 2>&1 | tail -n 20` (if
+- [x] Baseline re-measured: `sh tools/build-mupdf-windows.sh 2>&1 | tail -n 20` (if
   cross), then
   `python3 tests/bench/harness/run_benchmark.py --target tynypdf --backend mupdf --runs
   5 --output
@@ -319,14 +319,14 @@ without
   backend)` and keeping both Sumatra channels. Second run within 10% per metric — paste
   both JSON
   blocks. `tests/bench/corpus` sha256s pasted.
-- [ ] Final gates: `sh tools/check.sh` 14/14, `sh tools/gates-selftest.sh` 13/13,
+- [x] Final gates: `sh tools/check.sh` 14/14, `sh tools/gates-selftest.sh` 13/13,
   `ctest --preset
   linux-core --output-on-failure` 0 failed, `python3 tools/docs-check.py` 0 problems
   over the 5 new
   epic docs, `python3 tools/lang-check.py` 0 problems, `python3 tools/naming-sync.py
   check` 0
   problems, `sh tools/canonical-check.sh` 0 problems.
-- [ ] Evidence pack in `epic-3-dod.md` §3.5: `wc -l` per new src/core file, `grep -c`
+- [x] Evidence pack in `epic-3-dod.md` §3.5: `wc -l` per new src/core file, `grep -c`
   for
   `windows.h` 0 proof, threaded benchmark table, golden red proof, ratio line, two
   baseline JSONs side
@@ -372,11 +372,11 @@ without
 - [ ] 3.3: budget struct + R3.1 atomic + R3.2 lock + R4.1 preserve + R6 exclusions,
   sidecar-fmt
   green
-- [ ] 3.4: R2.2 version gate + R2.3 id validation + R5.1/R5.2 staleness with golden,
-  pending 17→7
-- [ ] 3.5: API freeze + golden guard + backend harden (isolated locks) + contract 2
+- [x] 3.4: R2.2 version gate + R2.3 id validation + R5.1/R5.2 staleness with golden,
+  pending 17→4
+- [x] 3.5: API freeze + golden guard + backend harden (isolated locks) + contract 2
   backends + ratio
-  ≤0.07 + baseline re-measured
+  0.0683 ≤0.07 + baseline re-measured (mupdf Release, run 1 merged into tests/baseline.json)
 - [ ] Final gates green on `main`, evidence pasted in `epic-3-dod.md`
 
 ---

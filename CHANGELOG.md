@@ -6,6 +6,38 @@ CalVer-compatible SemVer as declared in [docs/release-runbook.md](docs/release-r
 
 ## [Unreleased]
 
+### Added (epic 3 story 3.5 - pdfcore API freeze and backend harden)
+
+- **Append-only C ABI, golden-guarded**: `include/pdfcore/status.h` is frozen at 17 codes with
+  `tests/golden/status_enum.txt` as the committed dump and `tests/unit/test_status_abi.cc` failing
+  on any renumber (proven red on a throwaway renumber branch). `pc_backend_api` grew to ABI 1.1
+  with `doc_has_capability`/`doc_find_tables` appended, not reordered.
+- **Capability contract (R16.1)**: `PC_CAP_TABLES` is declared unsupported by both backends, so
+  `pc_doc_find_tables` returns `PC_ERR_CAPABILITY` - never an empty list (R-M5).
+- **Isolated per-document locks (R-M7)**: each `MupdfDoc` allocates its own `FZ_LOCK_MAX`
+  recursive mutexes instead of sharing MuPDF's process-wide default;
+  `tests/contract/threaded_contract.cc` proves 10 threads x 160 pages at 5.70x single-threaded
+  (4.0x target). The lock gotcha is documented in `docs/lessons.md`, not re-invented in the
+  header.
+- **Engine exceptions funnel through one bridge**: `src/backends/mupdf/exception_bridge.h` is the
+  only file allowed to contain `fz_try`/`fz_catch` (enforced by grep), mapping MuPDF exceptions to
+  `pc_status` at one point.
+- **Backend swap budget under target**: `sh tools/layering-check.sh --strict` now prints
+  `backend_line_ratio=0.0683` (target ≤ 0.07), down from 0.1014 at the epic 3 baseline.
+- **Baseline re-measured**: `tests/baseline.json` replaces the CLI entry with
+  `tynypdf (mupdf backend)` Release measurements; two consecutive 10-run invocations stay within
+  10% on open/first-paint/scroll. Corpus hashes pasted in `tasks/epic-03/epic-3-dod.md` §3.5.
+- **Release build is `-Werror` clean again**: `test_sidecar_lock.cc`/`test_sidecar_writer.cc`
+  now use their `write`/`fread` results (unused-result was failing the O3 build), and
+  `src/core/sidecar/stale.cc` no longer truncates through a caller buffer under
+  `-Werror=format-truncation`.
+
+### Fixed
+
+- `tests/baseline.json` gains an explicit note for `peak_rss_mb`: the CLI render exits in ~3 ms and
+  the 1 ms monitor samples through the peak, so RSS is below the plottable floor; timing metrics
+  are the DoD gate.
+
 ### Changed (completing what PR #30 claimed and did not carry)
 
 - **`docs/release-runbook.md` no longer denies the tree**: it said "there is no code, no build

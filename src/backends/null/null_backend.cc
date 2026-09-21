@@ -108,6 +108,26 @@ static const char* null_get_last_error(void* backend_doc) {
   return nullptr;
 }
 
+// R-M5: the null backend declares no capability; a capability query is answered 0 (unsupported)
+// and find_tables reports PC_ERR_CAPABILITY, never an empty "no tables" list.
+static int null_doc_has_capability(void* backend_doc, uint32_t capability) {
+  (void)backend_doc;
+  (void)capability;
+  return 0;
+}
+
+static pc_status null_doc_find_tables(void* backend_doc, pc_rect* out_rects, size_t* out_count,
+                                      size_t capacity) {
+  (void)backend_doc;
+  (void)out_rects;
+  (void)capacity;
+  if (!out_count) {
+    return {sizeof(pc_status), PC_ERR_ARGUMENT, 0, "null argument"};
+  }
+  *out_count = 0;
+  return {sizeof(pc_status), PC_ERR_CAPABILITY, 0, "capability not supported"};
+}
+
 pc_backend_api pc_null_backend_api = {
     .abi_major = 1,
     .abi_minor = 0,
@@ -121,6 +141,8 @@ pc_backend_api pc_null_backend_api = {
     .page_free = null_page_free,
     .pixmap_free = null_pixmap_free,
     .get_last_error = null_get_last_error,
+    .doc_has_capability = null_doc_has_capability,
+    .doc_find_tables = null_doc_find_tables,
 };
 
 const pc_backend_api* pc_null_backend_get_api(void) {

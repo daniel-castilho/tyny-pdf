@@ -17,7 +17,8 @@
         "CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
         "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
         "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined",
-        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address,undefined"
+        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address,undefined",
+        "MUPDF_BUILD_DIR": "build/mupdf-linux-x64"
       }
     },
     {
