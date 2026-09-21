@@ -211,9 +211,11 @@ gate.
 ## 3.4 Version gate, id validation and staleness
 
 **Allowlist:** `src/core/sidecar/reader.cc`, `src/core/sidecar/stale.cc` (new),
+`src/core/sidecar/writer.cc`, `src/core/CMakeLists.txt`, `tests/CMakeLists.txt`,
 `include/pdfcore/sidecar.h`, `tests/unit/test_sidecar_reader.cc`,
 `tests/unit/test_sidecar_ids.cc`,
-`tests/unit/test_sidecar_staleness.cc`, `tests/golden/sidecar-stale-report.txt`
+`tests/unit/test_sidecar_staleness.cc`, `tests/unit/test_sidecar_schema.cc`,
+`tests/unit/test_sidecar_unknown_keys.cc`, `tests/golden/sidecar-stale-report.txt`
 **Denylist:** `src/app/*`, `src/render/*`
 
 - [ ] **R2.2 version gate:** `reader.cc` reads `format_version` (int). If `>
