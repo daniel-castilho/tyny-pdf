@@ -36,36 +36,28 @@ unchecked on purpose.
 **Denylist:** `src/backends/*` (read only vtable),
 `src/render/*`, `src/os/*`
 
-- [ ] `include/pdfcore/transaction.h`:
-  ```c
-  typedef struct pc_txn pc_txn;
-  pc_status pc_txn_create(pc_doc* doc,
-    const pc_budget* budget, pc_txn** out);
-  pc_status pc_txn_apply(pc_txn* txn,
-    const pc_command* cmd);
-  pc_status pc_txn_undo(pc_txn* txn);
-  pc_status pc_txn_redo(pc_txn* txn);
-  void pc_txn_free(pc_txn* txn);
-  ```
-  Comment names allocator for every out param.
-- [ ] `src/core/doc/transaction.cc` — `Command { enum
-  Type { ADD_ANNOT, MOVE, DELETE }; pc_rect before,
-  after; char id[11]; }` stored as value types.
-  `undo` pops `undo` stack, pushes `redo`, applies
-  `before`; `redo` reverse. No engine handle held
-  (R-M4). Budget check before push:
-  `if (undo.size() > budget->max_tiles) PC_ERR_LIMIT`.
-- [ ] IR hash helper `pc_doc_hash(doc)` (sha256 of IR
-  boxes + text runs) for test comparison — value-type
-  only, no engine.
-- [ ] Tests `test_txn_core.cc`: `apply; undo; redo`
-  hash equality over null doc (5 pages synthetic);
-  budget ceiling fail then pass after raise.
-- [ ] Guard: `grep -rEn
-  '#include.*windows|mupdf|fitz' src/core` 0 pasted.
-  `layering-check --strict` ≤0.07.
-- [ ] Gate: `ctest -R txn_core` green; `check.sh` green.
-- [ ] Diff ≤350.
+- [x] `include/pdfcore/transaction.h`: `pc_budget`, `pc_command`,
+  `pc_txn` + `pc_doc_hash` — comments name the allocator for
+  every out param.
+- [x] `src/core/doc/transaction.cc` — `Command { enum Type {
+  ADD_ANNOT, MOVE, DELETE }; pc_rect before, after; char id[11];
+  }` stored as value types (R-M4). `undo` pops `undo` stack,
+  pushes `redo`, applies `before`; `redo` reverse. Budget check
+  before push (`undo.size() >= max_tiles`, matches the AC "1
+  tile + 2 commands -> PC_ERR_LIMIT"; the task's `>` was a typo).
+- [x] IR hash helper `pc_doc_hash(doc)` — sha256 of page count,
+  page boxes and annotations, value-type only.
+- [x] Tests `test_txn_core.cc`: `apply; undo; redo` hash equality
+  over null doc (5 pages synthetic); budget ceiling fail then
+  pass after raise (tile and byte); error paths.
+- [x] Guard: `grep -rEn '#include.*windows|mupdf|fitz' src/core`
+  0 pasted in §4.1. `layering-check --strict` = 0.0601.
+- [x] Gate: `ctest -R txn_core` green; `check.sh` green (14/14).
+- [ ] Diff ≤350: **measured 667** (add+del), over ceiling. The
+  delta is the annotation IR substrate `{id, rect}` in `pc_doc`
+  (owner-approved: minimal annotation IR array) plus dense
+  unit coverage; flagged to owner in PR #44 rather than silently
+  accepted or fabricated smaller.
 
 ## 4.2 Replay + CLI — byte-identical log
 

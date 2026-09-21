@@ -43,10 +43,33 @@ capability) and `pc_doc_find_tables`, where an unsupported capability is reporte
 
 Verification: unit:tests/contract/backend_contract.cc
 
+### R18.1 The core SHALL keep the transaction log as command value types (type + annotation id +
+before/after rect) that hold no engine handle and mutate only the IR (R-M4, R-M8).
+
+Verification: unit:tests/unit/test_txn_core.cc
+
+### R18.2 The core SHALL provide `pc_txn_create` that borrows a `pc_doc` and an optional
+`pc_budget` (0 fields = no ceiling), naming the allocator for `*out_txn`.
+
+Verification: unit:tests/unit/test_txn_core.cc
+
+### R18.3 The core SHALL provide `pc_txn_apply`, `pc_txn_undo` and `pc_txn_redo` so that the IR
+after `apply; undo; redo` is byte-identical to the IR after `apply`, as measured by `pc_doc_hash`
+(sha256 of page boxes and annotations).
+
+Verification: unit:tests/unit/test_txn_core.cc
+
+### R18.4 The core SHALL reject a command that would push the undo log past the `pc_budget`
+tile or byte ceiling with `PC_ERR_LIMIT` and detail `"undo budget exceeded"`, leaving the IR
+unchanged.
+
+Verification: unit:tests/unit/test_txn_core.cc
+
 ## Out of scope
 
 - Rendering (belongs in `src/render` and backend vtable).
 - Text extraction (story 3.2).
 - Sidecar read/write (stories 3.3/3.4).
-- Undo/redo log (Epic 4).
+- Annotation form rules and page anchoring (D-2, Epics 5/6).
+- Transaction replay and CLI `txn replay` (Epic 4 story 4.2).
 

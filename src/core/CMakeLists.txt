@@ -1,12 +1,13 @@
 # pdfcore is a static library implementing the core IR and public API
 add_library(pdfcore STATIC
-    doc/doc.cc
     geom/geom.cc
     sha256.cc
     sidecar/reader.cc
     sidecar/stale.cc
     sidecar/writer.cc
 )
+
+add_subdirectory(doc)
 
 # Platform-specific OS implementations for sidecar lock
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")

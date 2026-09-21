@@ -25,6 +25,13 @@ if (TYNYPDF_BUILD_TESTS)
       ENVIRONMENT "TEST_FIXTURE_DIR=${CMAKE_SOURCE_DIR}/tests/fixtures"
     )
 
+    # txn_core test - undo/redo transaction log over the IR and budget ceiling
+    add_executable(test_txn_core unit/test_txn_core.cc)
+    target_link_libraries(test_txn_core pdfcore ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)
+    target_include_directories(test_txn_core PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_txn_core)
+    add_test(NAME test_txn_core COMMAND test_txn_core)
+
     # app_render test - open document and render page 1 via pdfcore
     add_executable(test_app_render unit/test_app_render.cc)
     target_link_libraries(test_app_render pdfcore ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)
