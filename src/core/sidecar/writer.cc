@@ -1,10 +1,18 @@
 #include <fcntl.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
+
+#if defined(_WIN32)
+#include <io.h>
+#define fsync _commit
+#define F_OK 0
+#else
 #include <unistd.h>
+#endif
 
 #include "pdfcore/sha256.h"
 #include "pdfcore/sidecar.h"
@@ -81,7 +89,7 @@ static void json_append_str(char* buf, size_t* pos, size_t cap, const char* s) {
 
 static void json_append_int(char* buf, size_t* pos, size_t cap, int64_t v) {
   char tmp[32];
-  int len = snprintf(tmp, sizeof(tmp), "%ld", v);
+  int len = snprintf(tmp, sizeof(tmp), "%" PRId64, v);
   if (*pos + len >= cap)
     return;
   memcpy(buf + *pos, tmp, len);
@@ -492,8 +500,8 @@ pc_status pc_sidecar_try_lock(const char* doc_path) {
 
   // Write PID and timestamp
   char lock_content[128];
-  int len =
-      snprintf(lock_content, sizeof(lock_content), "pid=%d time=%ld\n", getpid(), time(nullptr));
+  int len = snprintf(lock_content, sizeof(lock_content), "pid=%d time=%" PRId64 "\n", getpid(),
+                     (int64_t)time(nullptr));
   write_all(fd, lock_content, len);
   fsync(fd);
   close(fd);
