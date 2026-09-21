@@ -78,11 +78,13 @@ if (TYNYPDF_BUILD_TESTS)
     pc_apply_warnings(test_sidecar_ids)
     add_test(NAME test_sidecar_ids COMMAND test_sidecar_ids)
 
+    if (NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")
     add_executable(test_sidecar_staleness unit/test_sidecar_staleness.cc)
     target_link_libraries(test_sidecar_staleness pdfcore)
     target_include_directories(test_sidecar_staleness PRIVATE ${CMAKE_SOURCE_DIR}/include)
     pc_apply_warnings(test_sidecar_staleness)
     add_test(NAME test_sidecar_staleness COMMAND test_sidecar_staleness)
+    endif()
 
     add_executable(test_sidecar_reader unit/test_sidecar_reader.cc)
     target_link_libraries(test_sidecar_reader pdfcore)
