@@ -1,4 +1,6 @@
 // R3.2: .tynypdf.lock freshness check (5 minutes)
+// R24.1: Windows OS abstraction provides sidecar lock operations using Win32 APIs
+// R25.1: Linux OS abstraction provides sidecar lock operations using POSIX APIs
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>

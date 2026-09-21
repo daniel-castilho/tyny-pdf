@@ -1,21 +1,15 @@
-# Win32 OS Layer Capability Specification
+# OS Win32 - platform-specific implementations
+
+Status: drafted before implementation. This directory contains Windows-specific implementations
+for the OS abstraction layer. Design and rationale: ADR-0002, ADR-0011.
 
 ## Requirements
 
-### R14.1 The Win32 OS layer SHALL create a Per-Monitor V2 DPI-aware window.
+### R24.1 The Windows OS abstraction SHALL provide sidecar lock operations using Win32 APIs.
 
-Verification: manual: implementation in progress
-
-### R14.2 The Win32 OS layer SHALL create a DComp/D3D11 swapchain and present frames.
-
-Verification: manual: implementation in progress
-
-### R14.3 The Win32 OS layer SHALL forward DPI change events to the render layer.
-
-Verification: manual: implementation in progress
+Verification: unit:tests/unit/test_sidecar_lock.cc
 
 ## Out of scope
 
-- Direct2D rendering (handled by src/render)
-- Input handling (handled by src/os/win32/input.cc)
-- Accessibility (UIA provider in src/os/win32/uia.cc)
+- Linux-specific implementations (see src/os/linux).
+- Higher-level sidecar semantics (see src/core/sidecar).
