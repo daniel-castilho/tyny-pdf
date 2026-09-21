@@ -52,11 +52,13 @@ if (TYNYPDF_BUILD_TESTS)
     pc_apply_warnings(test_sidecar_writer)
     add_test(NAME test_sidecar_writer COMMAND test_sidecar_writer)
 
+    if (NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")
     add_executable(test_sidecar_lock unit/test_sidecar_lock.cc)
     target_link_libraries(test_sidecar_lock pdfcore)
     target_include_directories(test_sidecar_lock PRIVATE ${CMAKE_SOURCE_DIR}/include)
     pc_apply_warnings(test_sidecar_lock)
     add_test(NAME test_sidecar_lock COMMAND test_sidecar_lock)
+    endif()
 
     add_executable(test_sidecar_unknown_keys unit/test_sidecar_unknown_keys.cc)
     target_link_libraries(test_sidecar_unknown_keys pdfcore)
