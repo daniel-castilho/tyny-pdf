@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <mutex>
+#include <new>
 
 #include "exception_bridge.h"
 #include "pdfcore/backend.h"
