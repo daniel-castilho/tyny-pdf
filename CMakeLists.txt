@@ -24,6 +24,7 @@ function(pc_apply_core_flags target)
 endfunction()
 
 add_subdirectory(src)
+add_subdirectory(src/os)
 add_subdirectory(tools/win-probe)
 
 if (TYNYPDF_BUILD_TESTS)

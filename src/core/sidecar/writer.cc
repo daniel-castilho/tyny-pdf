@@ -5,14 +5,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
-
-#if defined(_WIN32)
-#include <io.h>
-#define fsync _commit
-#define F_OK 0
-#else
 #include <unistd.h>
-#endif
 
 #include "pdfcore/sha256.h"
 #include "pdfcore/sidecar.h"
@@ -485,42 +478,8 @@ void pc_sidecar_free(pc_sidecar* sidecar) {
   free(sidecar);
 }
 
-pc_status pc_sidecar_try_lock(const char* doc_path) {
-  if (!doc_path) {
-    return make_status(PC_ERR_ARGUMENT, "null argument");
-  }
-
-  char lock_path[4096];
-  snprintf(lock_path, sizeof(lock_path), "%s.tynypdf.lock", doc_path);
-
-  int fd = open(lock_path, O_WRONLY | O_CREAT | O_EXCL, 0644);
-  if (fd < 0) {
-    return make_status(PC_ERR_STATE, "lock exists");
-  }
-
-  // Write PID and timestamp
-  char lock_content[128];
-#if defined(_WIN32)
-  int pid = _getpid();
-#else
-  int pid = getpid();
-#endif
-  int len = snprintf(lock_content, sizeof(lock_content), "pid=%d time=%" PRId64 "\n", pid,
-                     (int64_t)time(nullptr));
-  write_all(fd, lock_content, len);
-  fsync(fd);
-  close(fd);
-
-  return make_status(PC_ERR_NONE, nullptr);
-}
-
-void pc_sidecar_unlock(const char* doc_path) {
-  if (!doc_path)
-    return;
-  char lock_path[4096];
-  snprintf(lock_path, sizeof(lock_path), "%s.tynypdf.lock", doc_path);
-  unlink(lock_path);
-}
+// pc_sidecar_try_lock is implemented in platform-specific files:
+// src/os/win32/sidecar_lock.cc and src/os/linux/sidecar_lock.cc
 
 /// Compute SHA256 fingerprint of document
 /// Returns PC_ERR_NONE on success, out_fingerprint must be freed by caller
