@@ -84,6 +84,22 @@ static void cleanup_doc(const char* doc) {
   free((void*)doc);
 }
 
+// Helper: write doc content and compute the real fingerprint so a read-back sidecar stays fresh
+static char* setup_doc_with_fingerprint(const char* doc, const char* content) {
+  FILE* f = fopen(doc, "wb");
+  if (!f)
+    return nullptr;
+  fwrite(content, 1, strlen(content), f);
+  fclose(f);
+
+  char* fingerprint = nullptr;
+  pc_status s = pc_sidecar_compute_fingerprint(doc, &fingerprint);
+  if (s.code != PC_ERR_NONE || !fingerprint) {
+    return nullptr;
+  }
+  return fingerprint;
+}
+
 int main(void) {
   // Test 1: PreservesUnknownKeysOnWrite
   {
@@ -123,9 +139,13 @@ int main(void) {
     char* doc = make_temp_doc();
     ASSERT_TRUE(doc != nullptr);
 
+    // A real fingerprint keeps the read-back sidecar fresh, so the roundtrip write passes.
+    char* fingerprint = setup_doc_with_fingerprint(doc, "test content");
+    ASSERT_TRUE(fingerprint != nullptr);
+
     pc_sidecar sc = {};
     sc.format_version = 1;
-    sc.document_sha256 = strdup("deadbeef");
+    sc.document_sha256 = strdup(fingerprint);
     sc.document_path = strdup(doc);
     sc.modified_time = time(nullptr);
     sc.page_count = 5;
@@ -141,6 +161,7 @@ int main(void) {
     s = pc_sidecar_read(doc, &read_sc);
     ASSERT_EQ(s.code, PC_ERR_NONE);
     ASSERT_NE(read_sc, nullptr);
+    ASSERT_EQ(read_sc->is_stale, 0);
 
     s = pc_sidecar_write(doc, read_sc);
     ASSERT_EQ(s.code, PC_ERR_NONE);
@@ -157,6 +178,7 @@ int main(void) {
     pc_sidecar_free(read_sc);
     pc_sidecar_free(read_sc2);
     FREE_SC_FIELDS(sc);
+    free(fingerprint);
     cleanup_doc(doc);
   }
 

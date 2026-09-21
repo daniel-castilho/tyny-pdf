@@ -12,6 +12,10 @@ extern "C" {
 
 typedef struct pc_sidecar pc_sidecar;
 
+/// The highest format_version this build can mutate. A sidecar declaring a higher
+/// version is loaded read-only and pc_sidecar_read returns PC_ERR_VERSION (R2.2).
+#define PC_SIDECAR_FORMAT_VERSION_SUPPORTED 1
+
 /// Staleness reason codes
 typedef enum pc_staleness_reason {
   PC_STALE_NONE = 0,
@@ -22,23 +26,34 @@ typedef enum pc_staleness_reason {
 
 struct pc_sidecar {
   int format_version;
+  int read_only;          // set when format_version > PC_SIDECAR_FORMAT_VERSION_SUPPORTED (R2.2)
   char* document_sha256;  // stored fingerprint
   char* document_path;
   int64_t modified_time;  // stored modification time
   int page_count;         // stored page count
   char* annotations_json;
   char* unknown_json;
-  int is_stale;                      // 1 if stale detected
-  pc_staleness_reason stale_reason;  // why it's stale
+  int is_stale;                      // 1 if stale detected (R5.1, R5.2)
+  pc_staleness_reason stale_reason;  // why it is stale
+  char* stale_detail;                // owned; formatted report when stale
 };
 
 /// Write sidecar atomically (R3.1 tmp->rename + fsync, R3.2 lock, R4.1 unknown preserve, R6
-/// exclusions) Returns PC_ERR_NONE on success, PC_ERR_ARGUMENT if path mismatch (R4.2),
-/// PC_ERR_STATE if locked
+/// exclusions). Refuses a stale sidecar (R5.1: returns PC_ERR_STATE) and a sidecar whose
+/// format_version exceeds PC_SIDECAR_FORMAT_VERSION_SUPPORTED (R2.2: read-only, PC_ERR_STATE).
+/// Returns PC_ERR_NONE on success, PC_ERR_ARGUMENT if path mismatch (R4.2),
+/// PC_ERR_STATE if locked, stale, or read-only
 pc_status pc_sidecar_write(const char* doc_path, const pc_sidecar* sidecar);
 
-/// Read sidecar; populates is_stale/stale_reason by checking current document (R5.1, R5.2)
-/// Returns PC_ERR_NONE on success, PC_ERR_IO if not found
+/// Write like pc_sidecar_write, but an explicit force bypasses the stale guard only
+/// (R5.1: "writes disabled until the caller passes force=true"). The read-only guard
+/// (future format_version) is absolute and cannot be forced.
+pc_status pc_sidecar_write_force(const char* doc_path, const pc_sidecar* sidecar);
+
+/// Read sidecar; populates is_stale/stale_reason/stale_detail by checking current document
+/// (R5.1, R5.2). When format_version > PC_SIDECAR_FORMAT_VERSION_SUPPORTED, returns
+/// PC_ERR_VERSION with detail "format_version X > supported Y" and *out_sidecar set to a
+/// valid read-only view (R2.2). Returns PC_ERR_NONE on success, PC_ERR_IO if not found.
 /// Caller owns *out_sidecar, must free with pc_sidecar_free
 pc_status pc_sidecar_read(const char* doc_path, pc_sidecar** out_sidecar);
 
@@ -52,14 +67,21 @@ pc_status pc_sidecar_try_lock(const char* doc_path);
 /// Release .tynypdf.lock
 void pc_sidecar_unlock(const char* doc_path);
 
-/// Validate an annotation ID per RFC 4648 (lowercase base32, 10 chars, no padding) (R2.3)
-/// Returns PC_ERR_NONE if valid, PC_ERR_ARGUMENT if invalid
+/// Validate an annotation or reply ID per R2.3: ^[a-z2-7]{10}$ (RFC 4648 base32 lowercase,
+/// no padding). Returns PC_ERR_NONE if valid, PC_ERR_ARGUMENT if invalid.
 pc_status pc_sidecar_validate_annotation_id(const char* annotation_id);
 
-/// Check staleness of sidecar against current document (R5.1, R5.2)
-/// Sets is_stale and stale_reason on the sidecar
-/// Returns PC_ERR_NONE on success, PC_ERR_IO if document not accessible
+/// Check staleness of sidecar against current document (R5.1, R5.2).
+/// Sets is_stale, stale_reason and stale_detail. Returns PC_ERR_STATE (with stale_detail as
+/// the message) when stale, PC_ERR_NONE when fresh.
 pc_status pc_sidecar_check_staleness(const char* doc_path, pc_sidecar* sidecar);
+
+/// 1 if the sidecar was found stale by a previous read/check, 0 otherwise (R5.1)
+int pc_sidecar_is_stale(const pc_sidecar* sidecar);
+
+/// Copy the frozen stale report (stale_detail) into buf. Empty when not stale.
+/// Returns PC_ERR_NONE on success.
+pc_status pc_sidecar_stale_report(const pc_sidecar* sidecar, char* buf, size_t cap);
 
 /// Compute SHA256 fingerprint of document (R5.2 strong signal)
 /// Returns PC_ERR_NONE on success, out_fingerprint must be freed by caller

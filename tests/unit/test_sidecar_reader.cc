@@ -110,13 +110,14 @@ int main(void) {
     ASSERT_TRUE(read_sc != nullptr);
 
     ASSERT_EQ(read_sc->format_version, 1);
+    ASSERT_EQ(read_sc->read_only, 0);
 
     pc_sidecar_free(read_sc);
     FREE_SC_FIELDS(sc);
     cleanup_doc(doc);
   }
 
-  // Test 2: FutureVersionReadOnly
+  // Test 2: FutureVersionReadOnly (R2.2)
   {
     char* doc = make_temp_doc();
     ASSERT_TRUE(doc != nullptr);
@@ -143,12 +144,17 @@ int main(void) {
     fclose(f);
 
     pc_sidecar* read_sc = nullptr;
-    pc_status s = pc_sidecar_read(doc, &read_sc);
-    ASSERT_EQ(s.code, PC_ERR_NONE);
+    pc_status read_st = pc_sidecar_read(doc, &read_sc);
+    ASSERT_EQ(read_st.code, PC_ERR_VERSION);
     ASSERT_TRUE(read_sc != nullptr);
+    ASSERT_STREQ(read_st.detail, "format_version 99 > supported 1");
 
     ASSERT_EQ(read_sc->format_version, 99);
-    ASSERT_EQ(read_sc->is_stale, 1);
+    ASSERT_EQ(read_sc->read_only, 1);
+
+    // A read-only view may be rendered but not mutated: write must refuse (R2.2).
+    pc_status wr_st = pc_sidecar_write(doc, read_sc);
+    ASSERT_EQ(wr_st.code, PC_ERR_STATE);
 
     pc_sidecar_free(read_sc);
     cleanup_doc(doc);

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "pdfcore/sidecar.h"
 #include "pdfcore/status.h"
@@ -28,6 +29,16 @@ static int tests_failed = 0;
     } else {                                                                                     \
       tests_passed++;                                                                            \
     }                                                                                            \
+  } while (0)
+
+#define ASSERT_TRUE(expr)                                              \
+  do {                                                                 \
+    if (!(expr)) {                                                     \
+      fprintf(stderr, "FAIL: %s:%d: %s\n", __FILE__, __LINE__, #expr); \
+      tests_failed++;                                                  \
+    } else {                                                           \
+      tests_passed++;                                                  \
+    }                                                                  \
   } while (0)
 
 int main(void) {
@@ -86,7 +97,7 @@ int main(void) {
 
   // Test 6: AllCharsInAlphabet
   {
-    const char* alphabet = "abcdefghijkmnopqrstuvwxyz234567";
+    const char* alphabet = "abcdefghijklmnopqrstuvwxyz234567";
     for (int i = 0; alphabet[i]; ++i) {
       char id[11];
       memset(id, alphabet[i], 10);
@@ -107,6 +118,103 @@ int main(void) {
       pc_status s = pc_sidecar_validate_annotation_id(id);
       ASSERT_EQ(s.code, PC_ERR_ARGUMENT);
     }
+  }
+
+  // Test 8: RejectsPadding (RFC 4648 padding is not part of the 10-char id)
+  {
+    const char* invalid_ids[] = {"abcdefghij=", "abcdefghij==", "aaaaaaaa==", "=abcdefghi"};
+
+    for (int i = 0; i < 4; ++i) {
+      pc_status s = pc_sidecar_validate_annotation_id(invalid_ids[i]);
+      ASSERT_EQ(s.code, PC_ERR_ARGUMENT);
+    }
+  }
+
+  // Test 9: ReplyIdsUseSameValidation (a reply id and in_reply_to pass the same rule)
+  {
+    pc_status s = pc_sidecar_validate_annotation_id("m3n4p5q6r7");
+    ASSERT_EQ(s.code, PC_ERR_NONE);
+
+    s = pc_sidecar_validate_annotation_id("ttuuvvww88");
+    ASSERT_EQ(s.code, PC_ERR_ARGUMENT);
+
+    s = pc_sidecar_validate_annotation_id("TTUUVVWWXX");
+    ASSERT_EQ(s.code, PC_ERR_ARGUMENT);
+  }
+
+  // Test 10: CrossCheckSidecarFmt - the same fixture is rejected by the C validator and by
+  // tools/sidecar-fmt.py, so the two validators agree on what a bad id looks like (R2.3)
+  {
+    // Load the canonical example fixture, then corrupt a single annotation id.
+    char fixture_path[4096];
+    snprintf(fixture_path, sizeof(fixture_path), "%s/sidecar/example.tynypdf.json",
+             TEST_FIXTURE_DIR);
+
+    FILE* f = fopen(fixture_path, "rb");
+    ASSERT_TRUE(f != nullptr);
+    fseek(f, 0, SEEK_END);
+    long size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    ASSERT_TRUE(size > 0);
+    char* content = (char*)malloc(size + 1);
+    ASSERT_TRUE(content != nullptr);
+    ASSERT_EQ((int)fread(content, 1, size, f), (int)size);
+    fclose(f);
+    content[size] = '\0';
+
+    const char bad_id[] = "abcdefgh81";
+    char* p = strstr(content, "aaaa2222bb");
+    ASSERT_TRUE(p != nullptr);
+    memcpy(p, bad_id, strlen(bad_id));  // same length (10 chars), content now has an 8
+
+    // The C validator rejects the corrupted id and still accepts the fixture's other ids.
+    pc_status s = pc_sidecar_validate_annotation_id(bad_id);
+    ASSERT_EQ(s.code, PC_ERR_ARGUMENT);
+    s = pc_sidecar_validate_annotation_id("abc2d3e4f5");
+    ASSERT_EQ(s.code, PC_ERR_NONE);
+
+    // Write the corrupted fixture to a temp path and let the canonicalizer gate judge it.
+    char tmp_json[4096];
+    snprintf(tmp_json, sizeof(tmp_json), "/tmp/tynypdf_crosscheck_%ld.tynypdf.json",
+             (long)getpid());
+    f = fopen(tmp_json, "wb");
+    ASSERT_TRUE(f != nullptr);
+    ASSERT_EQ((int)fwrite(content, 1, size, f), (int)size);
+    fclose(f);
+    free(content);
+
+    char cmd[16384];
+    // TEST_FIXTURE_DIR is <repo>/tests/fixtures; the tool lives at <repo>/tools/sidecar-fmt.py.
+    char repo_root[4096];
+    snprintf(repo_root, sizeof(repo_root), "%s", TEST_FIXTURE_DIR);
+    char* suffix = strstr(repo_root, "/tests/fixtures");
+    if (suffix)
+      *suffix = '\0';
+    snprintf(cmd, sizeof(cmd), "python3 %s/tools/sidecar-fmt.py check \"%s\" 2>&1", repo_root,
+             tmp_json);
+    FILE* pipe = popen(cmd, "r");
+    ASSERT_TRUE(pipe != nullptr);
+    char out[4096] = {0};
+    size_t got = fread(out, 1, sizeof(out) - 1, pipe);
+    out[got] = '\0';
+    int exit_code = pclose(pipe);
+
+    // Rejected, the tool ran cleanly (no python traceback), and the stated reason is the id.
+    ASSERT_TRUE(exit_code != 0);
+    ASSERT_TRUE(strstr(out, "Traceback") == nullptr);
+    ASSERT_STRSTR(out, "base32");
+
+    unlink(tmp_json);
+  }
+
+  // Test 11: CrossCheckConsistentUppercase - sidecar-fmt and the C validator both reject
+  // an uppercase id even though it decodes to the same bytes.
+  {
+    pc_status s = pc_sidecar_validate_annotation_id("ABCDEFGHIJ");
+    ASSERT_EQ(s.code, PC_ERR_ARGUMENT);
+
+    s = pc_sidecar_validate_annotation_id("M3N4P5Q6R7");
+    ASSERT_EQ(s.code, PC_ERR_ARGUMENT);
   }
 
   fprintf(stderr, "PASSED: %d, FAILED: %d\n", tests_passed, tests_failed);

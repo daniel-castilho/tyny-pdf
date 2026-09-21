@@ -226,7 +226,7 @@ int main(void) {
     sc.document_sha256 = strdup(fingerprint);
     sc.document_path = strdup(doc);
     sc.modified_time = time(nullptr);
-    sc.page_count = 1;
+    sc.page_count = 5;  // null backend reports 5 pages, so a read stays fresh
     sc.annotations_json = strdup("[]");
     sc.unknown_json = strdup("{\"allowed_custom\":\"value\"}");
     sc.is_stale = 0;
@@ -243,7 +243,7 @@ int main(void) {
     ASSERT_EQ(read_sc->format_version, 1);
     ASSERT_STREQ(read_sc->document_path, doc);
     ASSERT_STREQ(read_sc->document_sha256, fingerprint);
-    ASSERT_EQ(read_sc->page_count, 1);
+    ASSERT_EQ(read_sc->page_count, 5);
     ASSERT_STREQ(read_sc->annotations_json, "[]");
     ASSERT_STREQ(read_sc->unknown_json, "{\"allowed_custom\":\"value\"}");
     ASSERT_EQ(read_sc->is_stale, 0);
