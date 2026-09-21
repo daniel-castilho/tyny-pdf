@@ -130,25 +130,53 @@ merge = 7713 + 5 = 7718, re-measured at §4.6.
 
 ### 4.1 Transaction log core — undo/redo over IR
 
+Pasted from branch `feat/4.1-txn-core`, working tree staged at
+commit before PR (2026-09-21):
+
 ```bash
-$ git show --stat HEAD
-# -> (paste — allowlist)
+$ git show --stat HEAD   # (merge of PR #44)
+# staged diff (git diff --cached --stat):
+#  include/pdfcore/transaction.h |  78 +
+#  src/core/CMakeLists.txt       |   3 +-
+#  src/core/doc/CMakeLists.txt   |   5 +
+#  src/core/doc/SPEC.md          |  25 +-
+#  src/core/doc/doc.cc           |  15 +-
+#  src/core/doc/transaction.cc   | 267 +
+#  src/core/doc/transaction.h    |  31 +
+#  tests/CMakeLists.txt          |   7 +
+#  tests/unit/test_txn_core.cc   | 238 +
+#  9 files changed, 667 insertions(+), 10 deletions(-)
+# -> allowlist matches; denylist (src/backends/*, src/render/*, src/os/*) untouched.
+# DIFF CEILING NOTE: planned <=350; measured 667 (add+del). Overage is the annotation IR
+# substrate {id, rect} (owner-approved design) plus dense unit coverage. Flagged to owner
+# in PR #44; not silently accepted.
 
 $ grep -rEn '#include.*windows|mupdf|fitz' src/core
-# -> (paste 0 lines)
+# -> 0 matches (exit 1)
 
 $ sh tools/layering-check.sh --strict 2>&1
-# -> (paste ≤0.07)
+layering-check: backend_line_ratio=0.0601
+layering-check: OK (30 source files, 0 violations)
 
-$ ctest --preset linux-core -R txn_core
-# -> (paste hash equality + budget ceiling)
+$ ctest --preset linux-core -R txn_core --output-on-failure 2>&1 | tail -4
+    Start 4: test_txn_core
+1/1 Test #4: test_txn_core ....................   Passed    0.01 sec
+100% tests passed, 0 tests failed out of 1
+Total Test time (real) =   0.01 sec
+# test binary itself: Passed: 52, Failed: 0  (hash equality + budget ceiling + error paths)
 
-$ python3 tools/spec-check.py 2>&1 | grep pending
-# -> (paste — still 4 pending + R18-R21 new if any)
+$ python3 tools/spec-check.py 2>&1
+spec-check: OK (12 specs, 45 requirements, 17 source files, 0 orphans)
+spec-check: 4 requirement(s) still pending (no artefact yet): R15.1, R15.2, R15.3, R15.4
+# R18.1-R18.4 landed this story; pending count unchanged at the four R15.x (Epic 5).
+
+$ sh tools/check.sh 2>&1 | tail -1
+check: all gates green   (14/14, exit 0)
 ```
 
-- [ ] Txn core undo/redo + budget ceiling
-- Evidence above, on clean clone
+- [x] Txn core undo/redo + budget ceiling
+- Evidence above, pasted from the working tree; a clean-clone
+  rerun happens in §4.6.
 
 ### 4.2 Replay + CLI — byte-identical log
 

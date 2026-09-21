@@ -6,6 +6,22 @@ CalVer-compatible SemVer as declared in [docs/release-runbook.md](docs/release-r
 
 ## [Unreleased]
 
+### Added (epic 4 story 4.1 - transaction log core)
+
+- **Undoable IR, byte-identical**: `src/core/doc/transaction.cc` holds the undo/redo stacks as
+  command value types (type, annotation id, before/after rect) that mutate only the IR and never
+  touch an engine (R-M4/R-M8). `pc_doc_hash` hashes the IR deterministically, and
+  `tests/unit/test_txn_core.cc` proves `apply; undo; redo` is byte-identical to `apply` over a
+  5-page null-backend synthetic document.
+- **Budget gates undo (R18.4)**: `pc_budget { max_tiles, max_bytes }` ceilings the undo stack;
+  pushing past either returns `PC_ERR_LIMIT` with detail `"undo budget exceeded"` and leaves the
+  IR untouched. The unit test fails on a tight ceiling and passes after raising it.
+- **Minimal annotation IR substrate**: the document IR now carries `{ id, rect }` annotation
+  elements (base32 id per R2.3, sidecar mirror) as the mutation target for `pc_txn_apply`;
+  form rules, anchoring and rendering extras stay D-2 (Epics 5/6).
+- **Layering improved**: `backend_line_ratio` dropped from 0.0686 to 0.0601 with the new core
+  lines; `src/core` grew from 1090 to 1388 lines.
+
 ### Added (epic 3 story 3.5 - pdfcore API freeze and backend harden)
 
 - **Append-only C ABI, golden-guarded**: `include/pdfcore/status.h` is frozen at 17 codes with

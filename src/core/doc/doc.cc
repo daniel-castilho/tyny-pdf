@@ -8,14 +8,7 @@
 #include "pdfcore/backend.h"
 #include "pdfcore/sha256.h"
 #include "pdfcore/status.h"
-
-struct pc_doc {
-  const pc_backend_api* backend;
-  void* backend_doc;
-  uint32_t page_count;
-  pc_page_box* page_boxes;
-  char sha256_hex[65];
-};
+#include "transaction.h"
 
 static void sha256_file(const char* path, char* out_hex) {
   FILE* f = fopen(path, "rb");
@@ -82,6 +75,9 @@ pc_status pc_doc_open(const char* path, const char* password, pc_doc** out_doc) 
   doc->backend_doc = nullptr;
   doc->page_count = count;
   doc->page_boxes = boxes;
+  doc->annotation_count = 0;
+  doc->annotation_cap = 0;
+  doc->annotations = nullptr;
   sha256_file(path, doc->sha256_hex);
 
   *out_doc = doc;
@@ -109,6 +105,9 @@ void pc_doc_close(pc_doc* doc) {
     return;
   if (doc->page_boxes) {
     std::free(doc->page_boxes);
+  }
+  if (doc->annotations) {
+    std::free(doc->annotations);
   }
   std::free(doc);
 }
