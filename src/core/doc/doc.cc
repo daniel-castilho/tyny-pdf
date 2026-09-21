@@ -8,8 +8,14 @@
 #include "pdfcore/backend.h"
 #include "pdfcore/sha256.h"
 #include "pdfcore/status.h"
-#include "pdfcore/annotation.h"
-#include "doc_internal.h"
+
+struct pc_doc {
+  const pc_backend_api* backend;
+  void* backend_doc;
+  uint32_t page_count;
+  pc_page_box* page_boxes;
+  char sha256_hex[65];
+};
 
 static void sha256_file(const char* path, char* out_hex) {
   FILE* f = fopen(path, "rb");
@@ -63,19 +69,20 @@ pc_status pc_doc_open(const char* path, const char* password, pc_doc** out_doc) 
     boxes[i] = box;
   }
 
+  backend->doc_close(backend_doc);
+  backend_doc = nullptr;
+
   pc_doc* doc = (pc_doc*)std::malloc(sizeof(pc_doc));
   if (!doc) {
     std::free(boxes);
-    backend->doc_close(backend_doc);
     return {sizeof(pc_status), PC_ERR_MEMORY, 0, "OOM"};
   }
 
-  doc->backend = backend;
-  doc->backend_doc = backend_doc;
+  doc->backend = pc_null_backend_get_api();
+  doc->backend_doc = nullptr;
   doc->page_count = count;
   doc->page_boxes = boxes;
   sha256_file(path, doc->sha256_hex);
-  doc->annotations = pc_annotation_list_create();
 
   *out_doc = doc;
   return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
@@ -100,14 +107,8 @@ const char* pc_doc_sha256(const pc_doc* doc) {
 void pc_doc_close(pc_doc* doc) {
   if (!doc)
     return;
-  if (doc->backend_doc && doc->backend) {
-    doc->backend->doc_close(doc->backend_doc);
-  }
   if (doc->page_boxes) {
     std::free(doc->page_boxes);
-  }
-  if (doc->annotations) {
-    pc_annotation_list_free(doc->annotations);
   }
   std::free(doc);
 }
