@@ -45,6 +45,49 @@ if (TYNYPDF_BUILD_TESTS)
       ENVIRONMENT "CLI_BINARY=${CMAKE_BINARY_DIR}/Debug/tynypdf-cli;TEST_FIXTURE_DIR=${CMAKE_SOURCE_DIR}/tests/fixtures"
     )
 
+    # sidecar tests
+    add_executable(test_sidecar_writer unit/test_sidecar_writer.cc)
+    target_link_libraries(test_sidecar_writer pdfcore)
+    target_include_directories(test_sidecar_writer PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_sidecar_writer)
+    add_test(NAME test_sidecar_writer COMMAND test_sidecar_writer)
+
+    add_executable(test_sidecar_lock unit/test_sidecar_lock.cc)
+    target_link_libraries(test_sidecar_lock pdfcore)
+    target_include_directories(test_sidecar_lock PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_sidecar_lock)
+    add_test(NAME test_sidecar_lock COMMAND test_sidecar_lock)
+
+    add_executable(test_sidecar_unknown_keys unit/test_sidecar_unknown_keys.cc)
+    target_link_libraries(test_sidecar_unknown_keys pdfcore)
+    target_include_directories(test_sidecar_unknown_keys PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_sidecar_unknown_keys)
+    add_test(NAME test_sidecar_unknown_keys COMMAND test_sidecar_unknown_keys)
+
+    add_executable(test_sidecar_schema unit/test_sidecar_schema.cc)
+    target_link_libraries(test_sidecar_schema pdfcore)
+    target_include_directories(test_sidecar_schema PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_sidecar_schema)
+    add_test(NAME test_sidecar_schema COMMAND test_sidecar_schema)
+
+    add_executable(test_sidecar_ids unit/test_sidecar_ids.cc)
+    target_link_libraries(test_sidecar_ids pdfcore)
+    target_include_directories(test_sidecar_ids PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_sidecar_ids)
+    add_test(NAME test_sidecar_ids COMMAND test_sidecar_ids)
+
+    add_executable(test_sidecar_staleness unit/test_sidecar_staleness.cc)
+    target_link_libraries(test_sidecar_staleness pdfcore)
+    target_include_directories(test_sidecar_staleness PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_sidecar_staleness)
+    add_test(NAME test_sidecar_staleness COMMAND test_sidecar_staleness)
+
+    add_executable(test_sidecar_reader unit/test_sidecar_reader.cc)
+    target_link_libraries(test_sidecar_reader pdfcore)
+    target_include_directories(test_sidecar_reader PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_sidecar_reader)
+    add_test(NAME test_sidecar_reader COMMAND test_sidecar_reader)
+
     # contract test - one binary, the same assertions against every installed backend
     add_executable(test_backend_contract contract/backend_contract.cc)
     target_link_libraries(test_backend_contract pdfcore ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)
