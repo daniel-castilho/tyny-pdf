@@ -246,10 +246,10 @@ without a guard is a suggestion; this one is a gate.
 - [ ] 3.4 version gate + id table 12 cases + staleness fingerprint vs mtime + golden
   stale report
 - [x] 3.5 status golden red proof + capability R-M5 + threaded 10×160p <4× + ratio
-  0.0683 ≤0.07 + baseline
+  0.0683 ≤0.07 (merge commit re-measures 0.0686) + baseline
   mupdf Release 2 runs within 10%
-- [ ] Final gates green on `main`, not on a working copy, with pasted evidence per
-  level
+- [x] Final gates green on `main`, not on a working copy, with pasted evidence per
+  level (clone `/tmp/tyny-epic3-final` @ `007663c`, evidence in `epic-3-dod.md` §3.6)
 
 ---
 
