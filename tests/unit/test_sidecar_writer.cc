@@ -197,7 +197,8 @@ int main(void) {
     long sz = ftell(f);
     fseek(f, 0, SEEK_SET);
     char* buf = (char*)malloc(sz + 1);
-    fread(buf, 1, sz, f);
+    size_t got = fread(buf, 1, sz, f);
+    ASSERT_EQ((int)got, (int)sz);
     buf[sz] = '\0';
     fclose(f);
 

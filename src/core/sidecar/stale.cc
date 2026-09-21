@@ -33,8 +33,15 @@ static void format_rfc3339(char* buf, size_t cap, int64_t t) {
 #else
   gmtime_r(&tt, &utc);
 #endif
-  snprintf(buf, cap, "%04d-%02d-%02dT%02d:%02d:%02dZ", utc.tm_year + 1900, utc.tm_mon + 1,
-           utc.tm_mday, utc.tm_hour, utc.tm_min, utc.tm_sec);
+  char local[32];
+  int n = snprintf(local, sizeof(local), "%04d-%02d-%02dT%02d:%02d:%02dZ", utc.tm_year + 1900,
+                   utc.tm_mon + 1, utc.tm_mday, utc.tm_hour, utc.tm_min, utc.tm_sec);
+  if (n < 0 || (size_t)n >= cap) {
+    if (cap > 0)
+      buf[0] = '\0';
+    return;
+  }
+  memcpy(buf, local, (size_t)n + 1);
 }
 
 static void set_stale(pc_sidecar* sidecar, pc_staleness_reason reason, const char* fmt, ...) {

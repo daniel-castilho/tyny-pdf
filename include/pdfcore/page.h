@@ -28,11 +28,15 @@ typedef struct pc_pixmap {
   uint32_t format;
 } pc_pixmap;
 
+/// Page box of the held page. PC_ERR_NONE or PC_ERR_ARGUMENT.
 pc_status pc_page_get_box(const pc_page* page, pc_page_box* out);
 
+/// Render the page into *out_pixmap. PC_ERR_NONE, PC_ERR_ARGUMENT, PC_ERR_MEMORY, PC_ERR_CORRUPT.
+/// The pixmap buffer is owned by the caller and released with pc_pixmap_free.
 pc_status pc_page_render(const pc_page* page, const pc_render_params* params,
                          pc_pixmap* out_pixmap);
 
+/// Free a pixmap produced by pc_page_render (R-M6: the backend allocated it).
 void pc_pixmap_free(pc_pixmap* pixmap);
 
 #ifdef __cplusplus

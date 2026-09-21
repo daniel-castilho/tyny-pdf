@@ -15,7 +15,9 @@ typedef struct pc_sha256 {
 } pc_sha256;
 
 void pc_sha256_init(pc_sha256* ctx);
+/// Feed data into the running hash. No return code: state corruption is a programming error.
 void pc_sha256_update(pc_sha256* ctx, const uint8_t* data, size_t len);
+/// Finalize into digest[32]. No return code: ctx must have been initialized.
 void pc_sha256_final(pc_sha256* ctx, uint8_t digest[32]);
 
 #ifdef __cplusplus

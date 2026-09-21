@@ -4,6 +4,17 @@
 
 #include "pdfcore/status.h"
 
+// The API freeze (ADR-0003): every pc_error constant matches its golden number in
+// tests/golden/status_enum.txt. Golden drift and header drift are both build failures. A
+// renumbering like PC_ERR_NONE 0 -> 99 trips these pins (throwaway proof in epic-3-dod §3.5).
+#define PIN_STATUS(name, expected)                                                        \
+  do {                                                                                    \
+    if ((int)(name) != (expected)) {                                                      \
+      fprintf(stderr, "Mismatch: " #name " = %d expected %d\n", (int)(name), (expected)); \
+      errors++;                                                                           \
+    }                                                                                     \
+  } while (0)
+
 int main(void) {
   FILE* f = fopen(TEST_GOLDEN_DIR "/status_enum.txt", "r");
   if (!f) {
@@ -28,6 +39,30 @@ int main(void) {
     expected++;
   }
   fclose(f);
+  // 0..16 = 17 constants. A golden file that lost or grew a trailing entry changes this count,
+  // so the golden cannot silently keep an outdated tail.
+  if (expected != 17) {
+    fprintf(stderr, "Golden covers %d constants, expected 17\n", expected);
+    errors++;
+  }
+
+  PIN_STATUS(PC_ERR_NONE, 0);
+  PIN_STATUS(PC_ERR_ARGUMENT, 1);
+  PIN_STATUS(PC_ERR_UNSUPPORTED, 2);
+  PIN_STATUS(PC_ERR_BACKEND, 3);
+  PIN_STATUS(PC_ERR_CORRUPT, 4);
+  PIN_STATUS(PC_ERR_IO, 5);
+  PIN_STATUS(PC_ERR_MEMORY, 6);
+  PIN_STATUS(PC_ERR_CRYPTO, 7);
+  PIN_STATUS(PC_ERR_PERMISSION, 8);
+  PIN_STATUS(PC_ERR_DAMAGED, 9);
+  PIN_STATUS(PC_ERR_PASSWORD, 10);
+  PIN_STATUS(PC_ERR_RANGE, 11);
+  PIN_STATUS(PC_ERR_LIMIT, 12);
+  PIN_STATUS(PC_ERR_STATE, 13);
+  PIN_STATUS(PC_ERR_VERSION, 14);
+  PIN_STATUS(PC_ERR_FEATURE, 15);
+  PIN_STATUS(PC_ERR_CAPABILITY, 16);
 
   if (errors) {
     fprintf(stderr, "FAIL: %d mismatches\n", errors);

@@ -83,6 +83,11 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           cmake --version | head -1
 
+      - name: build native MuPDF (linux-core)
+        run: |
+          set -e
+          sh tools/build-mupdf-linux.sh --jobs 4
+
       - name: configure
         run: |
           export PATH="$HOME/.local/bin:$PATH"

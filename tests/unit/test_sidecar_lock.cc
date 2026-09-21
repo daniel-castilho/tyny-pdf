@@ -166,7 +166,8 @@ int main(void) {
     time_t old_time = time(nullptr) - 400;
     char lock_content[128];
     int len = snprintf(lock_content, sizeof(lock_content), "pid=999 time=%ld\n", (long)old_time);
-    write(fd, lock_content, len);
+    ssize_t written = write(fd, lock_content, len);
+    ASSERT_EQ((int)written, len);
     close(fd);
 
     struct timespec ts[2];

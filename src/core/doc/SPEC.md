@@ -37,6 +37,12 @@ Verification: unit:tests/unit/test_doc_ir.cc
 
 Verification: unit:tests/unit/test_doc_ir.cc
 
+### R16.1 The core SHALL expose `pc_doc_has_capability` (supported or unsupported per backend
+capability) and `pc_doc_find_tables`, where an unsupported capability is reported as
+`PC_ERR_CAPABILITY`, never as an empty list of tables (R-M5).
+
+Verification: unit:tests/contract/backend_contract.cc
+
 ## Out of scope
 
 - Rendering (belongs in `src/render` and backend vtable).

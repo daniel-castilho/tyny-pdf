@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "generated_by": "tools/bench-measure.sh",
-  "timestamp": "2026-09-19T23:31:24Z",
+  "timestamp": "2026-09-21T15:54:39Z",
   "machine_spec": {
     "os": "Linux",
     "os_release": "6.18.33.2-microsoft-standard-WSL2",
@@ -18,11 +18,12 @@
   },
   "targets": {
     "tynypdf": {
-      "name": "tynypdf (null backend)",
+      "name": "tynypdf (mupdf backend)",
       "version": "0.1.0-dev",
-      "build_type": "Debug",
-      "asan": true,
-      "ubsan": true
+      "backend": "mupdf",
+      "build_type": "Release",
+      "asan": false,
+      "ubsan": false
     },
     "sumatra-3.6.1": {
       "name": "SumatraPDF 3.6.1",
@@ -70,75 +71,102 @@
   },
   "benchmarks": {
     "tynypdf": {
-      "version": "0.1.0-dev",
-      "runs": 5,
+      "backend": "mupdf",
+      "build_type": "Release",
+      "runs": 10,
       "metrics": {
         "open_time_ms": {
-          "mean": 14.19,
-          "stdev": 2.65,
-          "min": 9.6,
-          "max": 15.87,
+          "mean": 3.244671299762558,
+          "stdev": 0.17332979178475916,
+          "min": 3.0630260007455945,
+          "max": 3.646807002951391,
           "runs": [
-            9.6,
-            15.87,
-            14.19,
-            15.76,
-            15.54
+            3.1414830009453,
+            3.092598999501206,
+            3.1314630032284185,
+            3.3444440050516278,
+            3.1767479958944023,
+            3.215327989892103,
+            3.3566540078027174,
+            3.646807002951391,
+            3.0630260007455945,
+            3.278160991612822
           ]
         },
         "first_paint_ms": {
-          "mean": 14.19,
-          "stdev": 2.65,
-          "min": 9.6,
-          "max": 15.87,
+          "mean": 3.244671299762558,
+          "stdev": 0.17332979178475916,
+          "min": 3.0630260007455945,
+          "max": 3.646807002951391,
           "runs": [
-            9.6,
-            15.87,
-            14.19,
-            15.76,
-            15.54
+            3.1414830009453,
+            3.092598999501206,
+            3.1314630032284185,
+            3.3444440050516278,
+            3.1767479958944023,
+            3.215327989892103,
+            3.3566540078027174,
+            3.646807002951391,
+            3.0630260007455945,
+            3.278160991612822
           ]
         },
         "scroll_time_ms": {
-          "mean": 70.9,
-          "stdev": 11.63,
-          "min": 51.14,
-          "max": 81.99,
+          "mean": 15.006285901472438,
+          "stdev": 1.2880522412953783,
+          "min": 12.459120000130497,
+          "max": 17.10844101035036,
           "runs": [
-            51.14,
-            72.34,
-            74.44,
-            81.99,
-            74.6
+            13.980711999465711,
+            14.74334100203123,
+            12.459120000130497,
+            15.287111993529834,
+            14.52845499443356,
+            15.996875008568168,
+            14.39661999756936,
+            17.10844101035036,
+            15.634697003406473,
+            15.927486005239189
           ]
         },
         "search_time_ms": {
-          "mean": 0.0,
+          "mean": 0,
           "stdev": 0.0,
-          "min": 0.0,
-          "max": 0.0,
+          "min": 0,
+          "max": 0,
           "runs": [
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "peak_rss_mb": {
-          "mean": 7.38,
-          "stdev": 0.11,
-          "min": 7.3,
-          "max": 7.57,
+          "mean": 2.65859375,
+          "stdev": 1.657100639786837,
+          "min": 0.01171875,
+          "max": 4.5078125,
           "runs": [
-            7.35,
-            7.57,
-            7.3,
-            7.35,
-            7.31
+            0.01171875,
+            0.015625,
+            4.5078125,
+            4.41015625,
+            4.4140625,
+            2.66796875,
+            3.44140625,
+            2.0859375,
+            2.22265625,
+            2.80859375
           ]
         }
-      }
+      },
+      "note": "RSS sampling race: CLI render exits in ~3ms, monitor polls at 1ms and misses the peak (see docs/lessons.md); timing metrics are the DoD gate."
     },
     "sumatra-3.6.1": {
       "runs": 5,
@@ -309,6 +337,7 @@
     "Each metric is averaged over 5 runs, with 10% reproducibility threshold",
     "SumatraPDF measurements are done locally on reference Windows machine (see MEASURE_LOCALLY markers)",
     "CI only runs tynypdf benchmarks; Sumatra baselines are manually measured and pasted into this file",
-    "Re-measured per milestone M6"
+    "Re-measured per milestone M6",
+    "RSS for the tynypdf mupdf target is not reproducible: the CLI exits in ~3ms and the harness's 1ms VmRSS sampler misses the process window (values drop to 0.02). The 10% reproducibility criterion holds for open/first_paint/scroll; RSS is a harness limitation for sub-5ms processes, consistent with the seed harness. search_time_ms is unimplemented for CLI targets (0)."
   ]
 }

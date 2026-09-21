@@ -112,3 +112,22 @@ void pc_doc_close(pc_doc* doc) {
   }
   std::free(doc);
 }
+
+int pc_doc_has_capability(const pc_doc* doc, uint32_t capability) {
+  if (!doc || !doc->backend || !doc->backend->doc_has_capability) {
+    return 0;
+  }
+  return doc->backend->doc_has_capability(doc->backend_doc, capability);
+}
+
+pc_status pc_doc_find_tables(const pc_doc* doc, pc_rect* out_rects, size_t* out_count,
+                             size_t capacity) {
+  if (!doc || !out_count) {
+    return {sizeof(pc_status), PC_ERR_ARGUMENT, 0, "null argument"};
+  }
+  if (!doc->backend || !doc->backend->doc_find_tables) {
+    *out_count = 0;
+    return {sizeof(pc_status), PC_ERR_CAPABILITY, 0, "capability not supported"};
+  }
+  return doc->backend->doc_find_tables(doc->backend_doc, out_rects, out_count, capacity);
+}

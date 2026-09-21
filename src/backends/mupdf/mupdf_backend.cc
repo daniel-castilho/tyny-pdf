@@ -3,14 +3,47 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <mutex>
+#include <new>
 
+#include "exception_bridge.h"
 #include "pdfcore/backend.h"
 #include "pdfcore/page.h"
 #include "pdfcore/status.h"
 
+// R-M2 (ADR-0011 R-M7): per-document contexts MUST NOT share one lock set - fz_locks_default is a
+// single process-wide mutex array that serialises every context (mupdf-rs #260: 13.3x under 10
+// threads). Each doc allocates its own FZ_LOCK_MAX recursive mutexes (mupdf-rs #263 pattern).
+static void mupdf_ctx_lock(void* user, int lock);
+static void mupdf_ctx_unlock(void* user, int lock);
+
+struct MupdfLocks {
+  std::recursive_mutex mutex[FZ_LOCK_MAX];
+  fz_locks_context locks;
+
+  MupdfLocks() {
+    locks.user = this;
+    locks.lock = &mupdf_ctx_lock;
+    locks.unlock = &mupdf_ctx_unlock;
+  }
+};
+
+static void mupdf_ctx_lock(void* user, int lock) {
+  MupdfLocks* m = static_cast<MupdfLocks*>(user);
+  if (lock >= 0 && lock < FZ_LOCK_MAX)
+    m->mutex[lock].lock();
+}
+
+static void mupdf_ctx_unlock(void* user, int lock) {
+  MupdfLocks* m = static_cast<MupdfLocks*>(user);
+  if (lock >= 0 && lock < FZ_LOCK_MAX)
+    m->mutex[lock].unlock();
+}
+
 struct MupdfDoc {
   fz_context* ctx;
   fz_document* doc;
+  MupdfLocks* locks;
 };
 
 struct MupdfPage {
@@ -22,38 +55,55 @@ struct MupdfPage {
 static pc_status mupdf_doc_open(const char* path, const char* password, void** out_backend_doc)
     __attribute__((used));
 static pc_status mupdf_doc_open(const char* path, const char* password, void** out_backend_doc) {
-  fz_context* ctx = fz_new_context(nullptr, nullptr, FZ_STORE_UNLIMITED);
+  if (!path || !out_backend_doc) {
+    return {sizeof(pc_status), PC_ERR_ARGUMENT, 0, "null argument"};
+  }
+
+  void* mem = std::malloc(sizeof(MupdfLocks));
+  if (!mem) {
+    return {sizeof(pc_status), PC_ERR_MEMORY, 0, "OOM allocating per-doc lock set"};
+  }
+  MupdfLocks* locks = new (mem) MupdfLocks();
+
+  fz_context* ctx = fz_new_context(nullptr, &locks->locks, FZ_STORE_UNLIMITED);
   if (!ctx) {
+    locks->~MupdfLocks();
+    std::free(locks);
     return {sizeof(pc_status), PC_ERR_MEMORY, 0, "fz_new_context failed"};
   }
 
   fz_register_document_handlers(ctx);
-  fz_try(ctx) {
-    fz_document* doc = fz_open_document(ctx, path);
-    if (password && *password) {
-      if (!fz_authenticate_password(ctx, doc, password)) {
-        fz_drop_document(ctx, doc);
-        fz_drop_context(ctx);
-        return {sizeof(pc_status), PC_ERR_PASSWORD, 0, "Invalid password"};
-      }
-    }
 
-    MupdfDoc* doc_wrapper = (MupdfDoc*)std::malloc(sizeof(MupdfDoc));
-    if (!doc_wrapper) {
-      fz_drop_document(ctx, doc);
-      fz_drop_context(ctx);
-      return {sizeof(pc_status), PC_ERR_MEMORY, 0, "OOM"};
-    }
-    doc_wrapper->ctx = ctx;
-    doc_wrapper->doc = doc;
-    *out_backend_doc = doc_wrapper;
-    return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
-  }
-  fz_catch(ctx) {
+  void* out_doc = nullptr;
+  fz_var(out_doc);
+  pc_status s = mupdf::run_guarded(
+      ctx,
+      [&]() -> pc_status {
+        fz_document* doc = fz_open_document(ctx, path);
+        if (password && *password && !fz_authenticate_password(ctx, doc, password)) {
+          fz_drop_document(ctx, doc);
+          return {sizeof(pc_status), PC_ERR_PASSWORD, 0, "Invalid password"};
+        }
+        MupdfDoc* wrapper = (MupdfDoc*)std::malloc(sizeof(MupdfDoc));
+        if (!wrapper) {
+          fz_drop_document(ctx, doc);
+          return {sizeof(pc_status), PC_ERR_MEMORY, 0, "OOM"};
+        }
+        wrapper->ctx = ctx;
+        wrapper->doc = doc;
+        wrapper->locks = locks;
+        out_doc = wrapper;
+        return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
+      },
+      "open failed");
+  if (s.code != PC_ERR_NONE) {
     fz_drop_context(ctx);
-    return {sizeof(pc_status), PC_ERR_CORRUPT, 0, fz_caught_message(ctx)};
+    locks->~MupdfLocks();
+    std::free(locks);
+    return s;
   }
-  return {sizeof(pc_status), PC_ERR_CORRUPT, 0, "unreachable"};
+  *out_backend_doc = out_doc;
+  return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
 }
 
 static void mupdf_doc_close(void* backend_doc) __attribute__((used));
@@ -65,13 +115,27 @@ static void mupdf_doc_close(void* backend_doc) {
     fz_drop_document(doc->ctx, doc->doc);
   if (doc->ctx)
     fz_drop_context(doc->ctx);
+  doc->locks->~MupdfLocks();
+  std::free(doc->locks);
   std::free(doc);
 }
 
 static uint32_t mupdf_doc_page_count(void* backend_doc) __attribute__((used));
 static uint32_t mupdf_doc_page_count(void* backend_doc) {
   MupdfDoc* doc = static_cast<MupdfDoc*>(backend_doc);
-  return fz_count_pages(doc->ctx, doc->doc);
+  uint32_t count = 0;
+  fz_var(count);
+  pc_status s = mupdf::run_guarded(
+      doc->ctx,
+      [&]() -> pc_status {
+        count = fz_count_pages(doc->ctx, doc->doc);
+        return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
+      },
+      "count pages failed");
+  if (s.code != PC_ERR_NONE) {
+    return 0;
+  }
+  return count;
 }
 
 static pc_status mupdf_page_get_box(void* backend_doc, uint32_t index, pc_page_box* out)
@@ -81,16 +145,24 @@ static pc_status mupdf_page_get_box(void* backend_doc, uint32_t index, pc_page_b
     return {sizeof(pc_status), PC_ERR_ARGUMENT, 0, "null argument"};
   }
   MupdfDoc* doc = static_cast<MupdfDoc*>(backend_doc);
-  uint32_t count = fz_count_pages(doc->ctx, doc->doc);
+  uint32_t count = mupdf_doc_page_count(backend_doc);
   if (index >= count) {
     return {sizeof(pc_status), PC_ERR_RANGE, 0, "page index out of range"};
   }
-  fz_page* page = fz_load_page(doc->ctx, doc->doc, index);
-  if (!page) {
-    return {sizeof(pc_status), PC_ERR_CORRUPT, 0, "fz_load_page failed"};
+  fz_rect mediabox{};
+  fz_var(mediabox);
+  pc_status s = mupdf::run_guarded(
+      doc->ctx,
+      [&]() -> pc_status {
+        fz_page* page = fz_load_page(doc->ctx, doc->doc, index);
+        mediabox = fz_bound_page(doc->ctx, page);
+        fz_drop_page(doc->ctx, page);
+        return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
+      },
+      "load page failed");
+  if (s.code != PC_ERR_NONE) {
+    return s;
   }
-  fz_rect mediabox = fz_bound_page(doc->ctx, page);
-  fz_drop_page(doc->ctx, page);
 
   out->mediabox.x0 = mediabox.x0;
   out->mediabox.y0 = mediabox.y0;
@@ -104,29 +176,40 @@ static pc_status mupdf_page_get_box(void* backend_doc, uint32_t index, pc_page_b
 static pc_status mupdf_page_get(void* backend_doc, uint32_t index, void** out_backend_page)
     __attribute__((used));
 static pc_status mupdf_page_get(void* backend_doc, uint32_t index, void** out_backend_page) {
+  if (!out_backend_page) {
+    return {sizeof(pc_status), PC_ERR_ARGUMENT, 0, "null argument"};
+  }
   MupdfDoc* doc = static_cast<MupdfDoc*>(backend_doc);
-  uint32_t count = fz_count_pages(doc->ctx, doc->doc);
+  uint32_t count = mupdf_doc_page_count(backend_doc);
   if (index >= count) {
     return {sizeof(pc_status), PC_ERR_RANGE, 0, "page index out of range"};
   }
-  fz_page* page = fz_load_page(doc->ctx, doc->doc, index);
-  if (!page) {
-    return {sizeof(pc_status), PC_ERR_CORRUPT, 0, "fz_load_page failed"};
+  void* out_page = nullptr;
+  fz_var(out_page);
+  pc_status s = mupdf::run_guarded(
+      doc->ctx,
+      [&]() -> pc_status {
+        fz_page* page = fz_load_page(doc->ctx, doc->doc, index);
+        MupdfPage* wrapper = (MupdfPage*)std::malloc(sizeof(MupdfPage));
+        if (!wrapper) {
+          fz_drop_page(doc->ctx, page);
+          return {sizeof(pc_status), PC_ERR_MEMORY, 0, "OOM"};
+        }
+        wrapper->ctx = doc->ctx;
+        wrapper->page = page;
+        wrapper->mediabox = fz_bound_page(doc->ctx, page);
+        out_page = wrapper;
+        return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
+      },
+      "load page failed");
+  if (s.code != PC_ERR_NONE) {
+    return s;
   }
-  MupdfPage* page_wrapper = (MupdfPage*)std::malloc(sizeof(MupdfPage));
-  if (!page_wrapper) {
-    fz_drop_page(doc->ctx, page);
-    return {sizeof(pc_status), PC_ERR_MEMORY, 0, "OOM"};
-  }
-  page_wrapper->ctx = doc->ctx;
-  page_wrapper->page = page;
-  page_wrapper->mediabox = fz_bound_page(doc->ctx, page);
-  *out_backend_page = page_wrapper;
+  *out_backend_page = out_page;
   return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
 }
 
-// R13.1 - the mupdf backend SHALL render a PDF page using the MuPDF engine.
-// R13.2 - the mupdf backend SHALL return deterministic pixels for the same page index.
+// R13.1/R13.2 - the mupdf backend SHALL render a page with MuPDF and SHALL repeat bytes.
 static pc_status mupdf_page_render(void* backend_page, const pc_render_params* params,
                                    pc_pixmap* out_pixmap) __attribute__((used));
 static pc_status mupdf_page_render(void* backend_page, const pc_render_params* params,
@@ -155,22 +238,26 @@ static pc_status mupdf_page_render(void* backend_page, const pc_render_params* p
   fz_var(pix);
   fz_var(dev);
 
-  fz_try(ctx) {
-    pix = fz_new_pixmap_with_bbox(ctx, fz_device_rgb(ctx), bbox, nullptr, 1);
-    fz_clear_pixmap_with_value(ctx, pix, 0xff);
-    dev = fz_new_draw_device(ctx, ctm, pix);
-    fz_run_page(ctx, page->page, dev, fz_identity, nullptr);
-    if (params->render_annots) {
-      fz_run_page_annots(ctx, page->page, dev, fz_identity, nullptr);
-    }
-    fz_close_device(ctx, dev);
-  }
-  fz_catch(ctx) {
+  pc_status r = mupdf::run_guarded(
+      ctx,
+      [&]() -> pc_status {
+        pix = fz_new_pixmap_with_bbox(ctx, fz_device_rgb(ctx), bbox, nullptr, 1);
+        fz_clear_pixmap_with_value(ctx, pix, 0xff);
+        dev = fz_new_draw_device(ctx, ctm, pix);
+        fz_run_page(ctx, page->page, dev, fz_identity, nullptr);
+        if (params->render_annots) {
+          fz_run_page_annots(ctx, page->page, dev, fz_identity, nullptr);
+        }
+        fz_close_device(ctx, dev);
+        return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
+      },
+      "render failed");
+  if (r.code != PC_ERR_NONE) {
     if (dev)
       fz_drop_device(ctx, dev);
     if (pix)
       fz_drop_pixmap(ctx, pix);
-    return {sizeof(pc_status), PC_ERR_CORRUPT, 0, fz_caught_message(ctx)};
+    return r;
   }
   fz_drop_device(ctx, dev);
 
@@ -219,6 +306,29 @@ static const char* mupdf_get_last_error(void* backend_doc) {
   return "MuPDF error";
 }
 
+// R-M5 (R16.1): the mupdf backend declares no capability today; find_tables reports
+// PC_ERR_CAPABILITY, never an empty list.
+static int mupdf_doc_has_capability(void* backend_doc, uint32_t capability) __attribute__((used));
+static int mupdf_doc_has_capability(void* backend_doc, uint32_t capability) {
+  (void)backend_doc;
+  (void)capability;
+  return 0;
+}
+
+static pc_status mupdf_doc_find_tables(void* backend_doc, pc_rect* out_rects, size_t* out_count,
+                                       size_t capacity) __attribute__((used));
+static pc_status mupdf_doc_find_tables(void* backend_doc, pc_rect* out_rects, size_t* out_count,
+                                       size_t capacity) {
+  (void)backend_doc;
+  (void)out_rects;
+  (void)capacity;
+  if (!out_count) {
+    return {sizeof(pc_status), PC_ERR_ARGUMENT, 0, "null argument"};
+  }
+  *out_count = 0;
+  return {sizeof(pc_status), PC_ERR_CAPABILITY, 0, "capability not supported"};
+}
+
 pc_backend_api pc_mupdf_backend_api = {
     .abi_major = 1,
     .abi_minor = 0,
@@ -232,6 +342,8 @@ pc_backend_api pc_mupdf_backend_api = {
     .page_free = mupdf_page_free,
     .pixmap_free = mupdf_pixmap_free,
     .get_last_error = mupdf_get_last_error,
+    .doc_has_capability = mupdf_doc_has_capability,
+    .doc_find_tables = mupdf_doc_find_tables,
 };
 
 const pc_backend_api* pc_mupdf_backend_get_api(void) {
