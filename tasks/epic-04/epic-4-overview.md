@@ -25,9 +25,12 @@ from. Every number pasted from command output in
   0 orphans / 4 pending (R15.1-R15.4)`, `layering 0.0686`
   on 27 files, 0 violations.
 - **Core heart beats.** `src/core` now ~1090 lines (doc,
-  geom, text NFKC, budget, sidecar reader/writer/stale)
-  with `pdfcore` API frozen at 1.0 and
-  `backend_line_ratio` sanado (0.0683 → 0.0686 in merge).
+  geom, sha256, sidecar reader/writer/stale) with
+  `pdfcore` API frozen at 1.0 and `backend_line_ratio`
+  sanado (0.0683 → 0.0686 in merge). No `text/` or
+  `budget/` module exists yet — 4.3 creates the text
+  module; the RSS ceiling lives inside the transaction
+  log (4.1/4.2).
 - **Sidecar R1-R6 closed.** `writer.cc` atomic tmp->rename
   + fsync, `lock` 5-min, `R2.2` version gate, `R2.3`
   base32 ids, `R5.1/5.2` stale (fingerprint vs mtime),
@@ -50,11 +53,12 @@ from. Every number pasted from command output in
   orders D-6 first for a reason: without `pc_txn_undo`,
   sidecar merge and redaction are irreversible and
   `git merge` of two sidecars must pick a side.
-- **Text without fallback is tofu.** `src/core/text`
-  from Epic 3 does NFKC + casefold + break, but
-  `font fallback per run` and `missing glyph report`
-  are still stubbed — D-4 closes the pt-BR promise
-  before forms (D-2) and search need it.
+- **Text without fallback is tofu.** There is no
+  `src/core/text` module yet — not NFKC, not break, not
+  caret. Story 4.3 creates the module with
+  `font fallback per run` and `missing glyph report`;
+  4.4 adds break and caret. D-4 closes the pt-BR
+  promise before forms (D-2) and search need it.
 - **Undo gates the next two deltas.** D-2 (forms) and
   D-1 (sidecar re-anchoring ladder) both become
   transactions. Doing them before the log would put
@@ -70,7 +74,7 @@ from. Every number pasted from command output in
 - `src/core/doc/transaction.cc` — command log, undo/redo
   stacks, `pc_txn_*` C API, JSON serialization for
   `tynypdf-cli txn replay` byte-identical.
-- `src/core/text` completion — fallback face per run,
+- `src/core/text` creation — fallback face per run,
   tofu → `PC_ERR_LIMIT` with glyph report, pt-BR
   break golden, ABNT2, caret over combining marks.
 - Public API extension by appending to vtable
@@ -83,22 +87,24 @@ from. Every number pasted from command output in
 - Not D-2 form rules, D-5 UIA, D-1 re-anchoring ladder,
   D-3 redaction proof — Epics 5/6.
 - Not a second backend or new dep — R-M9 holds;
-  `font fallback` reuses `third_party/mupdf` face
-  enumeration, no ICU/harfbuzz dep without ADR.
+  `font fallback` probes `third_party/mupdf` bundled
+  fonts through a curated face table on the mupdf
+  adapter side (the engine exposes no enumeration API),
+  no ICU/harfbuzz dep without ADR.
 
 ## Architecture impact
 
 ```
 include/pdfcore/      # append-only after 3.5, now extended
   transaction.h  — pc_txn_* (new, versioned)
-  text.h         — pc_text_run + fallback report (extended)
+  text.h         — pc_text_run + fallback report (new, 4.3)
 
 src/core/
   doc/transaction.cc/h  — NEW, owns undo semantics (R-M8)
   text/fallback.cc/h    — NEW, per-run face pick
-  text/break.cc/h       — COMPLETED, pt-BR golden
-  text/caret.cc/h       — COMPLETED, grapheme step
-  budget/               — READ by transaction for RSS ceiling
+  text/break.cc/h       — NEW (4.4), pt-BR golden
+  text/caret.cc/h       — NEW (4.4), grapheme step
+  (RSS ceiling lives inside doc/transaction.h — no budget/)
 
 src/cli/
   txn.cc — NEW, `tynypdf-cli txn replay <log.json>`
