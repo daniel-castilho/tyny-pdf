@@ -99,13 +99,13 @@ append lives in the ABI header), `src/backends/null/`
 **Denylist:** no `harfbuzz`/`ICU`/`freetype` include in
 `src/core`; no logic changes elsewhere in backends.
 
-- [ ] Extend `backend.h` vtable with
+- [x] Extend `backend.h` vtable with
   `face_count(void*) -> uint32_t` +
   `face_coverage(void*, face, cp, &has)` appended
   (R-M3), `PC_CAP_FACE_COVERAGE` negotiable via the
   existing `doc_has_capability`; keep the "iterated
   faces" shape from the 4.1 review. No renumber.
-- [ ] MuPDF exposes no enumeration API — the probe
+- [x] MuPDF exposes no enumeration API — the probe
   list is a **curated ~8-10 face table** (SIL + Noto
   math/symbols + base14) in `src/backends/mupdf/`,
   probed via `fz_lookup_builtin_font`
@@ -113,7 +113,7 @@ append lives in the ABI header), `src/backends/null/`
   with `fz_drop_font` (R-M6), lock per-doc. Null
   backend declares the capability off -> stubs answer
   `PC_ERR_CAPABILITY` (R-M5).
-- [ ] `fallback.cc` — UTF-8 decode, per run scan faces
+- [x] `fallback.cc` — UTF-8 decode, per run scan faces
   via `pc_backend_face_coverage`; pick first face
   with glyph. If none, return `PC_ERR_LIMIT` with
   `detail "missing glyph U+XXXX"` and caller skips
@@ -121,15 +121,19 @@ append lives in the ABI header), `src/backends/null/`
   `fallback-ptbr.txt` with `U+0301/0327/0303` +
   `U+2014` + one symbol run — asserts face ids via
   golden `text-fallback-faces.txt`, not tofu.
-- [ ] Guard: `grep -rn harfbuzz\|ICU\|freetype
+- [x] Guard: `grep -rn harfbuzz\|ICU\|freetype
   src/core` 0; `grep '#include' src/core` no engine
   header.
-- [ ] Gate: `ctest -R text_fallback` green; `check.sh`
+- [x] Gate: `ctest -R text_fallback` green; `check.sh`
   green; `layering-check --strict` ≤0.07 epic target
   (hard gate 0.15).
-- [ ] Diff: flag expected ~700-850 (measured number in
-  PR body), ceiling ≤300 the known-out baseline
-  (4.1: 667, 4.2: 1685).
+- [ ] Diff ≤300: **measured 895** (add+del), over ceiling
+  (as 4.1: 667, 4.2: 1685). The delta is the
+  owner-approved ABI append (backend.h vtable rows +
+  curated MuPDF face table, R-M3/R-M6) plus the
+  26-test golden face suite; flagged to owner in
+  PR #48 rather than silently accepted or
+  fabricated smaller.
 
 ## 4.4 Break and caret pt-BR — golden
 
@@ -204,9 +208,9 @@ append lives in the ABI header), `src/backends/null/`
 
 **Checklist (for `epic-4-dod.md` §4.6):**
 
-- [ ] 4.1: txn core undo/redo + budget ceiling
-- [ ] 4.2: replay + CLI byte-identical
-- [ ] 4.3: fallback per run no tofu
+- [x] 4.1: txn core undo/redo + budget ceiling
+- [x] 4.2: replay + CLI byte-identical
+- [x] 4.3: fallback per run no tofu
 - [ ] 4.4: break + caret pt-BR golden
 - [ ] 4.5: freeze + golden + ratio ≤0.07 +
   gates green

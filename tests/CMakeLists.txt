@@ -45,6 +45,22 @@ if (TYNYPDF_BUILD_TESTS)
       ENVIRONMENT "CLI_BINARY=$<TARGET_FILE:${TYNYPDF_EXECUTABLES_CLI}>"
     )
 
+    # text_fallback test - font fallback per run: null reports capability not supported (R-M5),
+    # mupdf splits the pt-BR fixture into face-pinned runs pinned against a byte golden, and a
+    # missing glyph fails all-or-nothing with "missing glyph U+XXXX" (R20.x)
+    add_executable(test_text_fallback unit/test_text_fallback.cc)
+    target_link_libraries(test_text_fallback pdfcore ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)
+    target_include_directories(test_text_fallback PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    target_compile_definitions(test_text_fallback PRIVATE
+        TEST_FIXTURE_DIR="${CMAKE_SOURCE_DIR}/tests/fixtures"
+        TEST_GOLDEN_DIR="${CMAKE_SOURCE_DIR}/tests/golden")
+    pc_apply_warnings(test_text_fallback)
+    add_test(NAME test_text_fallback COMMAND test_text_fallback)
+    if (TARGET ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}mupdf)
+        target_link_libraries(test_text_fallback ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}mupdf)
+        target_compile_definitions(test_text_fallback PRIVATE PC_HAVE_MUPDF)
+    endif()
+
     # app_render test - open document and render page 1 via pdfcore
     add_executable(test_app_render unit/test_app_render.cc)
     target_link_libraries(test_app_render pdfcore ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)

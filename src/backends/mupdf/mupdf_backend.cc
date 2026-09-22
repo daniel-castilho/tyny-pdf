@@ -306,13 +306,12 @@ static const char* mupdf_get_last_error(void* backend_doc) {
   return "MuPDF error";
 }
 
-// R-M5 (R16.1): the mupdf backend declares no capability today; find_tables reports
-// PC_ERR_CAPABILITY, never an empty list.
+// R-M5 (R16.1): the mupdf backend declares PC_CAP_FACE_COVERAGE (R13.3) and nothing else;
+// find_tables reports PC_ERR_CAPABILITY, never an empty list.
 static int mupdf_doc_has_capability(void* backend_doc, uint32_t capability) __attribute__((used));
 static int mupdf_doc_has_capability(void* backend_doc, uint32_t capability) {
   (void)backend_doc;
-  (void)capability;
-  return 0;
+  return capability == PC_CAP_FACE_COVERAGE ? 1 : 0;
 }
 
 static pc_status mupdf_doc_find_tables(void* backend_doc, pc_rect* out_rects, size_t* out_count,
@@ -329,9 +328,70 @@ static pc_status mupdf_doc_find_tables(void* backend_doc, pc_rect* out_rects, si
   return {sizeof(pc_status), PC_ERR_CAPABILITY, 0, "capability not supported"};
 }
 
+// R13.3 - font fallback faces. MuPDF has no face-enumeration API: the inbuilt font table (source/
+// fitz/font-table.h) is static, so the probe list is OUR curated table of bundled faces, probed
+// via fz_lookup_builtin_font + fz_encode_character. Order is policy: the first face that draws a
+// codepoint wins. The report (text-fallback-faces.txt) pins these indexes, so the table changes
+// only with that golden.
+struct MupdfFace {
+  const char* name;
+};
+
+static const MupdfFace kCuratedFaces[] = {
+    {"Helvetica"},         {"Times"},      {"Courier"},    {"Symbol"},
+    {"ZapfDingbats"},      {"Charis SIL"}, {"Noto Serif"}, {"Noto Sans Math"},
+    {"Noto Sans Symbols"}, {"Noto Emoji"},
+};
+
+static constexpr uint32_t kNcuratedFaces = sizeof(kCuratedFaces) / sizeof(kCuratedFaces[0]);
+static_assert(kNcuratedFaces > 0, "face table must not be empty");
+
+static uint32_t mupdf_face_count(void* backend_doc) __attribute__((used));
+static uint32_t mupdf_face_count(void* backend_doc) {
+  (void)backend_doc;
+  return kNcuratedFaces;
+}
+
+static pc_status mupdf_face_coverage(void* backend_doc, uint32_t face, uint32_t codepoint,
+                                     int* out_has) __attribute__((used));
+static pc_status mupdf_face_coverage(void* backend_doc, uint32_t face, uint32_t codepoint,
+                                     int* out_has) {
+  if (!out_has) {
+    return {sizeof(pc_status), PC_ERR_ARGUMENT, 0, "null argument"};
+  }
+  if (face >= kNcuratedFaces) {
+    return {sizeof(pc_status), PC_ERR_RANGE, 0, "face index out of range"};
+  }
+  MupdfDoc* doc = static_cast<MupdfDoc*>(backend_doc);
+
+  int has = 0;
+  fz_var(has);
+  pc_status s = mupdf::run_guarded(
+      doc->ctx,
+      [&]() -> pc_status {
+        int len = 0;
+        const unsigned char* data =
+            fz_lookup_builtin_font(doc->ctx, kCuratedFaces[face].name, 0, 0, &len);
+        if (!data || len <= 0) {
+          return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};  // face absent -> has stays 0
+        }
+        fz_font* font =
+            fz_new_font_from_memory(doc->ctx, kCuratedFaces[face].name, data, len, 0, 1);
+        has = fz_encode_character(doc->ctx, font, (int)codepoint) != 0;
+        fz_drop_font(doc->ctx, font);
+        return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
+      },
+      "face probe failed");
+  if (s.code != PC_ERR_NONE) {
+    return s;
+  }
+  *out_has = has;
+  return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
+}
+
 pc_backend_api pc_mupdf_backend_api = {
-    .abi_major = 1,
-    .abi_minor = 0,
+    .abi_major = PC_BACKEND_API_VERSION_MAJOR,
+    .abi_minor = PC_BACKEND_API_VERSION_MINOR,
     .struct_size = sizeof(pc_backend_api),
     .doc_open = mupdf_doc_open,
     .doc_close = mupdf_doc_close,
@@ -344,6 +404,8 @@ pc_backend_api pc_mupdf_backend_api = {
     .get_last_error = mupdf_get_last_error,
     .doc_has_capability = mupdf_doc_has_capability,
     .doc_find_tables = mupdf_doc_find_tables,
+    .face_count = mupdf_face_count,
+    .face_coverage = mupdf_face_coverage,
 };
 
 const pc_backend_api* pc_mupdf_backend_get_api(void) {

@@ -10,6 +10,10 @@ Verification: unit:tests/contract/backend_contract.cc
 
 Verification: unit:tests/contract/backend_contract.cc
 
+### R11.3 The null backend SHALL declare no `PC_CAP_FACE_COVERAGE`; `face_count` SHALL answer 0 and `face_coverage` SHALL answer `PC_ERR_CAPABILITY` (never "nothing to cover", R-M5).
+
+Verification: unit:tests/unit/test_text_fallback.cc
+
 ## Out of scope
 
 - actual PDF parsing

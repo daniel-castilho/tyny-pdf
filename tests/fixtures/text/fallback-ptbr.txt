@@ -1,0 +1,2 @@
+combinando: á ç ã — em dash
+simbolo: ∑ soma

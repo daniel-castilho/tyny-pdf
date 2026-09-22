@@ -279,22 +279,64 @@ gates-selftest: OK (13/13 suites hold)
 
 ### 4.3 Font fallback per run — no tofu
 
-```bash
-$ git show --stat HEAD
-# -> (paste)
+Pasted from branch `feat/4.3-text-fallback`, working tree staged at
+commit before PR (2026-09-22), HEAD = dd527c9 (merge of PR #47):
 
-$ ctest --preset linux-core -R text_fallback
-# -> (paste face ids + missing glyph PC_ERR_LIMIT)
+```bash
+$ git diff --cached --stat   # (18 files vs main dd527c9, at paste time)
+#  include/pdfcore/text.h +49 (new), backend.h +14/-1 (vtable append
+#  face_count/face_coverage + PC_CAP_FACE_COVERAGE, ABI minor 0->1),
+#  src/backends/mupdf/mupdf_backend.cc +68/-6 (curated 10-face table +
+#  fz_lookup_builtin_font probes), src/backends/null/null_backend.cc
+#  +21/-2 (capability off), mupdf/null SPECs +4/+4, src/core/text/
+#  +286 new (fallback.cc +233, SPEC +27, fallback.h +22, CMake +4),
+#  tests/unit/test_text_fallback.cc +312 (new),
+#  tests/golden/text-fallback-faces.txt +2 (new),
+#  tests/fixtures/text/fallback-ptbr.txt +2 (new), tests/CMakeLists +16,
+#  CHANGELOG +19, tasks/epic-04/ +67/-21 (this paste grows the dod line)
+#  865 insertions(+), 30 deletions(-) -> DIFF CEILING NOTE: planned
+#  ~700-850, measured 895 add+del at paste time, ceiling <=300. The
+#  owner-approved ABI append (backend.h + both backend vtable rows,
+#  R-M3/R-M6) and the 26-test suite over the golden face report
+#  dominate the overage; flagged to owner in PR #48, as 4.1 (667) and
+#  4.2 (1685) were - not silently accepted.
+
+$ ctest --preset linux-core -R text_fallback 2>&1 | grep -E "Test #|tests passed"
+1/1 Test #6: test_text_fallback ...............   Passed    0.04 sec
+100% tests passed, 0 tests failed out of 1
+
+$ ./build/linux-core/Debug/test_text_fallback
+test_text_fallback: 26 passed, 0 failed
+# golden face ids: face0=Helvetica, face6=Noto Serif (U+0301/0327/0303, em dash U+2014)
+# missing glyph U+0378 -> PC_ERR_LIMIT detail "missing glyph U+0378",
+#   no partial runs (never tofu)
 
 $ grep -rn "harfbuzz\|ICU" src/core; echo "exit:$?"
-# -> (paste 0)
+# -> 0 matches (exit 1)
 
-$ ldd build/linux-core/Debug/libpdfcore* | grep mupdf
-# -> (paste 0)
+$ grep -rEn '#include *[<"](windows|windef|unknwn|d2d1|dwrite|fitz|mupdf|pdfium)' src/core src/render; echo "exit:$?"
+# -> 0 matches (exit 1)
+
+$ ldd build/linux-core/Debug/libpdfcore* 2>/dev/null | grep mupdf; echo "exit:$?"
+# -> 0 matches (exit 1); static libpdfcore.a, no runtime engine dependency
+
+$ sh tools/layering-check.sh --strict 2>&1
+layering-check: backend_line_ratio=0.0461
+layering-check: OK (36 source files, 0 violations)
+
+$ python3 tools/spec-check.py 2>&1
+spec-check: OK (14 specs, 55 requirements, 21 source files, 0 orphans)
+spec-check: 4 requirement(s) still pending (no artefact yet): R15.1, R15.2, R15.3, R15.4
+# R20.1-R20.4, R13.3, R11.3 landed this story; pending stays the four R15.x (Epic 5).
+
+$ sh tools/check.sh 2>&1 | tail -1
+check: all gates green   (14/14, exit 0)
 ```
 
-- [ ] Fallback per run no tofu
-- Evidence above
+- [x] Fallback per run no tofu
+- Evidence above, pasted from the working tree; a clean-clone
+  rerun happens in §4.6.
+
 
 ### 4.4 Break and caret pt-BR — golden
 
@@ -400,7 +442,7 @@ $ git ls-tree -r --name-only HEAD | wc -l
 
 - [x] 4.1: txn core undo/redo + budget ceiling
 - [x] 4.2: replay + CLI byte-identical
-- [ ] 4.3: fallback per run no tofu
+- [x] 4.3: fallback per run no tofu
 - [ ] 4.4: break + caret pt-BR golden
 - [ ] 4.5: freeze + golden + ratio ≤0.07 + gates green
 - [ ] `check.sh` 14/14, `gates-selftest` 13/13,

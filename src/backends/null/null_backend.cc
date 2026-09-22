@@ -128,9 +128,26 @@ static pc_status null_doc_find_tables(void* backend_doc, pc_rect* out_rects, siz
   return {sizeof(pc_status), PC_ERR_CAPABILITY, 0, "capability not supported"};
 }
 
+// R-M5: the null backend declares PC_CAP_FACE_COVERAGE off (has_capability -> 0), so
+// face_count reports 0 faces and face_coverage is capability not supported, never a "nothing
+// can be covered" lie that would render tofu in a strict sequence.
+static uint32_t null_face_count(void* backend_doc) {
+  (void)backend_doc;
+  return 0;
+}
+
+static pc_status null_face_coverage(void* backend_doc, uint32_t face, uint32_t codepoint,
+                                    int* out_has) {
+  (void)backend_doc;
+  (void)face;
+  (void)codepoint;
+  (void)out_has;
+  return {sizeof(pc_status), PC_ERR_CAPABILITY, 0, "capability not supported"};
+}
+
 pc_backend_api pc_null_backend_api = {
-    .abi_major = 1,
-    .abi_minor = 0,
+    .abi_major = PC_BACKEND_API_VERSION_MAJOR,
+    .abi_minor = PC_BACKEND_API_VERSION_MINOR,
     .struct_size = sizeof(pc_backend_api),
     .doc_open = null_doc_open,
     .doc_close = null_doc_close,
@@ -143,6 +160,8 @@ pc_backend_api pc_null_backend_api = {
     .get_last_error = null_get_last_error,
     .doc_has_capability = null_doc_has_capability,
     .doc_find_tables = null_doc_find_tables,
+    .face_count = null_face_count,
+    .face_coverage = null_face_coverage,
 };
 
 const pc_backend_api* pc_null_backend_get_api(void) {

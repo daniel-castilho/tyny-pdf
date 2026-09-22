@@ -1,0 +1,2 @@
+combinando: aU+0301 cU+0327 aU+0303 U+2014 em dash -> face0="combinando: a" face6="U+0301" face0=" c" face6="U+0327" face0=" a" face6="U+0303" face0=" U+2014 em dash"
+simbolo: U+2211 soma -> face0="simbolo: U+2211 soma"
