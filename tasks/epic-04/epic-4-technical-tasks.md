@@ -87,28 +87,49 @@ unchecked on purpose.
 ## 4.3 Font fallback per run — no tofu
 
 **Allowlist:** `src/core/text/fallback.cc/h` (new),
-`include/pdfcore/text.h` (extend),
+`include/pdfcore/text.h` (new), `include/pdfcore/backend.h`
+(`PC_CAP_FACE_COVERAGE` + vtable append, owner-approved
+widening of the `src/backends/*` denylist — the R-M3
+append lives in the ABI header), `src/backends/null/`
+(`face_count`/`face_coverage` stubs only),
+`src/backends/mupdf/` (curated face table + probing only),
 `tests/unit/test_text_fallback.cc`,
 `tests/fixtures/text/fallback-ptbr.txt`,
 `tests/golden/text-fallback-*.txt`
-**Denylist:** no `harfbuzz`/`ICU` include, `src/backends/*`
+**Denylist:** no `harfbuzz`/`ICU`/`freetype` include in
+`src/core`; no logic changes elsewhere in backends.
 
 - [ ] Extend `backend.h` vtable with
-  `pc_backend_caps { bool has_face_coverage; }` +
-  `get_face_coverage(codepoint, &has)` appended
-  (R-M3). No renumber.
-- [ ] `fallback.cc` — per run scan faces via
-  `pc_backend_get_face_coverage`; pick first face
+  `face_count(void*) -> uint32_t` +
+  `face_coverage(void*, face, cp, &has)` appended
+  (R-M3), `PC_CAP_FACE_COVERAGE` negotiable via the
+  existing `doc_has_capability`; keep the "iterated
+  faces" shape from the 4.1 review. No renumber.
+- [ ] MuPDF exposes no enumeration API — the probe
+  list is a **curated ~8-10 face table** (SIL + Noto
+  math/symbols + base14) in `src/backends/mupdf/`,
+  probed via `fz_lookup_builtin_font`
+  + `fz_encode_character != 0` inside `run_guarded`
+  with `fz_drop_font` (R-M6), lock per-doc. Null
+  backend declares the capability off -> stubs answer
+  `PC_ERR_CAPABILITY` (R-M5).
+- [ ] `fallback.cc` — UTF-8 decode, per run scan faces
+  via `pc_backend_face_coverage`; pick first face
   with glyph. If none, return `PC_ERR_LIMIT` with
   `detail "missing glyph U+XXXX"` and caller skips
   run (no tofu). Test `test_text_fallback.cc` over
   `fallback-ptbr.txt` with `U+0301/0327/0303` +
-  `U+2014` — asserts face ids not tofu.
+  `U+2014` + one symbol run — asserts face ids via
+  golden `text-fallback-faces.txt`, not tofu.
 - [ ] Guard: `grep -rn harfbuzz\|ICU\|freetype
-  src/core` 0; `ldd pdfcore` no mupdf.
+  src/core` 0; `grep '#include' src/core` no engine
+  header.
 - [ ] Gate: `ctest -R text_fallback` green; `check.sh`
-  green.
-- [ ] Diff ≤300.
+  green; `layering-check --strict` ≤0.07 epic target
+  (hard gate 0.15).
+- [ ] Diff: flag expected ~700-850 (measured number in
+  PR body), ceiling ≤300 the known-out baseline
+  (4.1: 667, 4.2: 1685).
 
 ## 4.4 Break and caret pt-BR — golden
 
