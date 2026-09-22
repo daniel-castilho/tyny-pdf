@@ -143,18 +143,18 @@ append lives in the ABI header), `src/backends/null/`
 `tests/golden/text-*.txt`
 **Denylist:** `src/backends/*`
 
-- [ ] `break.cc` — UAX #29 grapheme + pt-BR hyphen
+- [x] `break.cc` — UAX #29 grapheme + pt-BR hyphen
   exceptions from `ptbr-break-golden.txt`. Approval
   `tests/golden/text-break-positions.txt` V2
   (hash of positions).
-- [ ] `caret.cc` — `caret_left/right(doc, pos)` moves
+- [x] `caret.cc` — `caret_left/right(doc, pos)` moves
   one grapheme cluster over combining sequence
   (`e + U+0301` one step). Test `test_caret.cc`
   headless: `e + U+0301` [0,1] not [0,1,2],
   `a + U+0303` + `o` break not inside.
-- [ ] ABNT2 `abnt2-golden.txt` — `~ + a -> a with
+- [x] ABNT2 `abnt2-golden.txt` — `~ + a -> a with
   tilde` as one run; `test_caret.cc` covers.
-- [ ] Gate: `ctest -R "break|caret"` green; `check.sh`
+- [x] Gate: `ctest -R "break|caret"` green; `check.sh`
   green.
 - [ ] Diff ≤300.
 
