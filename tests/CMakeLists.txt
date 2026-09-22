@@ -61,6 +61,27 @@ if (TYNYPDF_BUILD_TESTS)
         target_compile_definitions(test_text_fallback PRIVATE PC_HAVE_MUPDF)
     endif()
 
+    # text_break test - grapheme break positions with pt-BR hyphen and ABNT2 exceptions over the
+    # golden pt-BR corpus, headless with no backend (R21.x)
+    add_executable(test_text_break unit/test_text_break.cc)
+    target_link_libraries(test_text_break pdfcore)
+    target_include_directories(test_text_break PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    target_compile_definitions(test_text_break PRIVATE
+        TEST_FIXTURE_DIR="${CMAKE_SOURCE_DIR}/tests/fixtures"
+        TEST_GOLDEN_DIR="${CMAKE_SOURCE_DIR}/tests/golden")
+    pc_apply_warnings(test_text_break)
+    add_test(NAME test_text_break COMMAND test_text_break)
+
+    # caret test - caret moves one grapheme cluster per step, never inside a combining sequence
+    # or an ABNT2 composition, headless with no backend (R23.x)
+    add_executable(test_caret unit/test_caret.cc)
+    target_link_libraries(test_caret pdfcore)
+    target_include_directories(test_caret PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    target_compile_definitions(test_caret PRIVATE
+        TEST_FIXTURE_DIR="${CMAKE_SOURCE_DIR}/tests/fixtures")
+    pc_apply_warnings(test_caret)
+    add_test(NAME test_caret COMMAND test_caret)
+
     # app_render test - open document and render page 1 via pdfcore
     add_executable(test_app_render unit/test_app_render.cc)
     target_link_libraries(test_app_render pdfcore ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)
