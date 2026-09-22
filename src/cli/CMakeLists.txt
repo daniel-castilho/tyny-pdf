@@ -1,5 +1,5 @@
 if (TYNYPDF_EXECUTABLES_CLI)
-    add_executable(${TYNYPDF_EXECUTABLES_CLI} main.cc png_writer.cc)
+    add_executable(${TYNYPDF_EXECUTABLES_CLI} main.cc png_writer.cc txn.cc)
     target_link_libraries(${TYNYPDF_EXECUTABLES_CLI} PRIVATE pdfcore ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)
     if (TARGET ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}mupdf)
         target_link_libraries(${TYNYPDF_EXECUTABLES_CLI} PRIVATE ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}mupdf)

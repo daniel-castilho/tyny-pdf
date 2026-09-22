@@ -32,6 +32,19 @@ if (TYNYPDF_BUILD_TESTS)
     pc_apply_warnings(test_txn_core)
     add_test(NAME test_txn_core COMMAND test_txn_core)
 
+    # txn_replay test - replay + CLI byte-identical JSON
+    add_executable(test_txn_replay unit/test_txn_replay.cc)
+    target_link_libraries(test_txn_replay pdfcore ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)
+    target_include_directories(test_txn_replay PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_txn_replay)
+    if (TYNYPDF_EXECUTABLES_CLI)
+      add_dependencies(test_txn_replay ${TYNYPDF_EXECUTABLES_CLI})
+    endif()
+    add_test(NAME test_txn_replay COMMAND test_txn_replay)
+    set_tests_properties(test_txn_replay PROPERTIES
+      ENVIRONMENT "CLI_BINARY=$<TARGET_FILE:${TYNYPDF_EXECUTABLES_CLI}>"
+    )
+
     # app_render test - open document and render page 1 via pdfcore
     add_executable(test_app_render unit/test_app_render.cc)
     target_link_libraries(test_app_render pdfcore ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)

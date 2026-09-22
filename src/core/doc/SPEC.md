@@ -71,5 +71,5 @@ Verification: unit:tests/unit/test_txn_core.cc
 - Text extraction (story 3.2).
 - Sidecar read/write (stories 3.3/3.4).
 - Annotation form rules and page anchoring (D-2, Epics 5/6).
-- Transaction replay and CLI `txn replay` (Epic 4 story 4.2).
+- Transaction JSON round-trip lives in `src/core/json/SPEC.md` (R22.1-R22.3, story 4.2).
 

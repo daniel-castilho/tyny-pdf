@@ -10,6 +10,13 @@ Verification: unit:tests/unit/test_cli_exit_codes.cc
 
 Verification: unit:tests/unit/test_cli_exit_codes.cc
 
+### R12.3 The CLI SHALL provide `txn replay <log.json> --out <out.json>` that deserializes a
+canonical transaction log, replays it on a null-backend document, and writes canonical JSON
+byte-identical to `pc_txn_to_json`. Exit 0 on success, 1 on a corrupt log, 2 on usage error
+(ADR-0003 §6).
+
+Verification: unit:tests/unit/test_txn_replay.cc
+
 ## Out of scope
 
 - batch processing
