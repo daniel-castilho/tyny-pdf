@@ -180,22 +180,102 @@ check: all gates green   (14/14, exit 0)
 
 ### 4.2 Replay + CLI — byte-identical log
 
+Pasted from branch `feat/4.2-replay` working tree over `1f2dbb1`
+(2026-09-21), before PR #45:
+
 ```bash
-$ git show --stat HEAD
-# -> (paste)
+$ git diff --cached --stat   # (16 files vs main 1f2dbb1)
+#  CHANGELOG.md +8, include/pdfcore/json.h +68 (new),
+#  include/pdfcore/transaction.h +10, src/cli/CMakeLists.txt +2,
+#  src/cli/SPEC.md +7, src/cli/main.cc +7, src/cli/txn.cc +110 (new),
+#  src/core/CMakeLists.txt +1, src/core/doc/SPEC.md +2,
+#  src/core/doc/transaction.cc +304, src/core/json/CMakeLists.txt +4 (new),
+#  src/core/json/SPEC.md +22 (new), src/core/json/canonical.cc +726 (new),
+#  tasks/epic-04/epic-4-technical-tasks.md +11, tests/CMakeLists.txt +13,
+#  tests/unit/test_txn_replay.cc +326 (new)
+#  1610 insertions(+), 11 deletions(-) -> DIFF CEILING NOTE: planned <=300,
+#  measured 1621 add+del. The owner-approved canonical JSON module
+#  (src/core/json/canonical.cc, "extract to canonical.cc" decision) plus the
+#  CLI-integrated test dominate the overage; flagged to owner in PR #45.
+#  The sidecar writer was NOT rewired: its bytes are golden-frozen
+#  (ADR-0007 trailing-comma format pinned by sidecar-fmt/golden tests);
+#  rewiring writer.cc through canonical.cc needs its own PR with re-baselined
+#  goldens.
 
-$ ctest --preset linux-core -R txn_replay
-# -> (paste sha256 equal + CLI diff 0)
+$ ctest --preset linux-core --output-on-failure 2>&1 | tail -2
+100% tests passed, 0 tests failed out of 17
+Total Test time (real) = 1.23 sec
 
-$ ./build/linux-core/Debug/tynypdf-cli txn replay
-# -> (paste exit 0/1/2 cases)
+$ ctest --preset linux-core -R txn_replay -V 2>&1 | grep "Passed:"
+5: Passed: 53, Failed: 0
+# covers: 5-cmd round-trip (to_json -> from_json -> to_json byte-identical,
+# IR hash equality, undo 5 -> redo 5 hash equality), unknown keys preserved
+# ("future_flag", "keep-me"), from_json(to_json(x))==x over 20 generated logs,
+# CLI replay output == core to_json bytes, CLI exit 0/2/1.
 
-$ python3 tools/check.sh 2>&1 | grep -A2 "living specs"
-# -> (paste)
+$ ./build/linux-core/Debug/tynypdf-cli txn replay /tmp/txn-empty.json --out /tmp/txn-out.json; echo $?
+0
+$ diff /tmp/txn-empty.json /tmp/txn-out.json; echo $?
+0
+$ ./build/linux-core/Debug/tynypdf-cli txn replay; echo $?
+Usage: ./build/linux-core/Debug/tynypdf-cli txn replay <log.json> --out <out.json>
+2
+$ ./build/linux-core/Debug/tynypdf-cli txn replay /tmp/does-not-exist.json --out /tmp/txn-out.json; echo $?
+Failed to open log file
+1
+$ printf '{not json' > /tmp/txn-bad.json && ./build/linux-core/Debug/tynypdf-cli txn replay /tmp/txn-bad.json --out /tmp/txn-out.json; echo $?
+1
+
+$ python3 tools/spec-check.py 2>&1
+spec-check: OK (13 specs, 49 requirements, 19 source files, 0 orphans)
+spec-check: 4 requirement(s) still pending (no artefact yet): R15.1, R15.2, R15.3, R15.4
+
+$ sh tools/layering-check.sh --strict 2>&1
+layering-check: backend_line_ratio=0.0429
+layering-check: OK (33 source files, 0 violations)
+
+$ sh tools/check.sh 2>&1 | tail -1
+check: all gates green   (14/14, exit 0)
 ```
 
-- [ ] Replay byte-identical
-- Evidence above
+- [x] Replay byte-identical
+- Evidence above; clean-clone rerun pasted at §4.6
+
+Clean clone (the §4.6-style rerun, done pre-merge at the owner's
+request — `git clone -b feat/4.2-replay` of the local repo to
+`/tmp/tyny-epic4-42-clean`, submodule init, native MuPDF build):
+
+```bash
+$ git -C /tmp/tyny-epic4-42-clean rev-parse HEAD
+b14712c7dec8afec6f727ff13f0bba4f1e04317d
+
+$ sh tools/build-mupdf-linux.sh; echo $?
+0   # libmupdf.a + third + threads built
+
+$ cmake --preset linux-core && cmake --build --preset linux-core; echo $?
+0   # [54/54] Linking CXX executable Debug/test_txn_replay
+
+$ ctest --preset linux-core --output-on-failure 2>&1 | tail -2
+100% tests passed, 0 tests failed out of 17
+Total Test time (real) = 1.36 sec
+
+$ ctest --preset linux-core -R txn_replay -V 2>&1 | grep "Passed:"
+5: Passed: 53, Failed: 0
+
+$ sh tools/check.sh; echo $?
+check: all gates green   (14/14, exit 0)
+
+$ python3 tools/spec-check.py 2>&1
+spec-check: OK (13 specs, 49 requirements, 19 source files, 0 orphans)
+spec-check: 4 requirement(s) still pending (no artefact yet): R15.1, R15.2, R15.3, R15.4
+
+$ sh tools/layering-check.sh --strict 2>&1
+layering-check: backend_line_ratio=0.0429
+layering-check: OK (33 source files, 0 violations)
+
+$ sh tools/gates-selftest.sh 2>&1 | tail -1
+gates-selftest: OK (13/13 suites hold)
+```
 
 ### 4.3 Font fallback per run — no tofu
 

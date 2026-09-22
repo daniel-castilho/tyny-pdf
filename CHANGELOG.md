@@ -6,6 +6,14 @@ CalVer-compatible SemVer as declared in [docs/release-runbook.md](docs/release-r
 
 ## [Unreleased]
 
+### Added (epic 4 story 4.2 - replay + CLI byte-identical log)
+
+- **Canonical txn JSON**: `pc_txn_to_json` / `pc_txn_from_json` round-trip the undo/redo stacks
+  and budget through `src/core/json/canonical.cc` (keys sorted, 2-space, LF, 3 decimal places).
+  Unknown keys are preserved. `from_json(to_json(x))` is byte-identical for 20 generated logs.
+- **CLI replay**: `tynypdf-cli txn replay <log.json> --out <out.json>` exits 0/1/2 per ADR-0003
+  §6; CLI output bytes equal core `pc_txn_to_json`.
+
 ### Added (epic 4 story 4.1 - transaction log core)
 
 - **Undoable IR, byte-identical**: `src/core/doc/transaction.cc` holds the undo/redo stacks as

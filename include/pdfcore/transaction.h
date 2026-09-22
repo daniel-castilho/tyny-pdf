@@ -71,6 +71,16 @@ void pc_txn_free(pc_txn* txn);
 /// doc or out_hex; on error out_hex[0] is set to '\0'.
 pc_status pc_doc_hash(const pc_doc* doc, char out_hex[65]);
 
+/// Serialize the transaction log (undo + redo stacks + budget) to canonical JSON.
+/// The caller owns *out_json and must free it with free(). Returns PC_ERR_NONE,
+/// PC_ERR_MEMORY, or PC_ERR_ARGUMENT.
+pc_status pc_txn_to_json(const pc_txn* txn, char** out_json);
+
+/// Deserialize a canonical JSON transaction log and recreate the txn object bound to `doc`.
+/// The caller owns *out_txn and must free it with pc_txn_free. Returns PC_ERR_NONE,
+/// PC_ERR_ARGUMENT (malformed JSON or type mismatch), or PC_ERR_MEMORY.
+pc_status pc_txn_from_json(const char* json, pc_doc* doc, pc_txn** out_txn);
+
 #ifdef __cplusplus
 }
 #endif

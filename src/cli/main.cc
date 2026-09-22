@@ -21,7 +21,10 @@ static void print_usage(const char* prog) {
   fprintf(stderr, "Usage: %s render <in.pdf> --page N [--dpi D] [--out F] [--backend null|mupdf]\n",
           prog);
   fprintf(stderr, "       %s sidecar gc <sidecar.json> [--days N]\n", prog);
+  fprintf(stderr, "       %s txn replay <log.json> --out <out.json>\n", prog);
 }
+
+int replay_command(int argc, char** argv);
 
 int main(int argc, char** argv) {
   if (argc < 3) {
@@ -172,6 +175,10 @@ int main(int argc, char** argv) {
       return get_exit_code(rc);
     }
     return 0;
+  }
+
+  if (strcmp(cmd, "txn") == 0) {
+    return replay_command(argc, argv);
   }
 
   print_usage(argv[0]);

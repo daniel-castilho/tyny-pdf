@@ -66,22 +66,23 @@ unchecked on purpose.
 `tests/unit/test_txn_replay.cc`
 **Denylist:** `src/backends/*`, `third_party/*`
 
-- [ ] `pc_txn_to_json` / `from_json` — canonical JSON
+- [x] `pc_txn_to_json` / `from_json` — canonical JSON
   (keys sorted, 2-space, LF, 3 decimals) same as
   sidecar. `unknown keys` preserved via
   `std::map<string, json>` round-trip. No new dep;
   reuse sidecar json helper extracted to
   `src/core/json/canonical.cc` (move, not copy).
-- [ ] `src/cli/txn.cc` — `tynypdf-cli txn replay
+- [x] `src/cli/txn.cc` — `tynypdf-cli txn replay
   <log.json> --out <out.json>` — read log, recreate
   doc via null backend, replay, write out. Exit 0
   success, 1 corrupt, 2 usage (ADR-0003 §6).
-- [ ] Test `test_txn_replay.cc`: `apply 5 -> to_json ->
+- [x] Test `test_txn_replay.cc`: `apply 5 -> to_json ->
   from_json -> redo 5` sha256 equal; CLI replay output
   equals core `to_json` bytes (`diff` 0). Property
   `from_json(to_json(x))==x` over 20 random logs.
-- [ ] Gate: `ctest -R txn_replay` green; `check.sh` green.
-- [ ] Diff ≤300.
+- [x] Gate: `ctest -R txn_replay` green; `check.sh` green.
+- [ ] Diff ≤300. (working tree ~1600 insertions; sidecar
+  serializer was not moved, a new helper was added.)
 
 ## 4.3 Font fallback per run — no tofu
 
