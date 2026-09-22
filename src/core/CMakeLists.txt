@@ -9,6 +9,7 @@ add_library(pdfcore STATIC
 
 add_subdirectory(doc)
 add_subdirectory(json)
+add_subdirectory(text)
 
 # Platform-specific OS implementations for sidecar lock
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")

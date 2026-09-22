@@ -15,11 +15,15 @@ extern "C" {
 /// Frozen backend vtable ABI (ADR-0011 R-M3). Entries are append-only; bumping abi_major is an
 /// explicit project decision that ships a migration note.
 #define PC_BACKEND_API_VERSION_MAJOR 1
-#define PC_BACKEND_API_VERSION_MINOR 0
+#define PC_BACKEND_API_VERSION_MINOR 1
 
 /// Document capabilities a backend declares rather than guesses (R-M5). A backend that does not
 /// declare PC_CAP_TABLES MUST answer doc_find_tables with PC_ERR_CAPABILITY, never an empty list.
 #define PC_CAP_TABLES 1u
+/// Declares font fallback coverage: face_count lists the probe faces and face_coverage answers
+/// per face whether it draws a codepoint. A backend that does not declare PC_CAP_FACE_COVERAGE
+/// MUST answer face_count with 0 (R-M5) - the caller reports "not supported", never tofu.
+#define PC_CAP_FACE_COVERAGE 2u
 
 typedef struct pc_backend_api pc_backend_api;
 
@@ -57,6 +61,15 @@ struct pc_backend_api {
   /// Supported capabilities return PC_ERR_NONE. PC_ERR_ARGUMENT for null out_count.
   pc_status (*doc_find_tables)(void* backend_doc, pc_rect* out_rects, size_t* out_count,
                                size_t capacity);
+
+  /// Face count for font fallback (R-M5, PC_CAP_FACE_COVERAGE). Returns 0 when the backend
+  /// declares no face coverage. The faces are backend-defined, 0-based, stable per build, and
+  /// every entry names the index in detail strings.
+  uint32_t (*face_count)(void* backend_doc);
+  /// Per-face codepoint coverage. `out_has` is 1 when `face` draws `codepoint`, 0 otherwise.
+  /// PC_ERR_NONE, PC_ERR_ARGUMENT for null out_has or a non-negative face index, PC_ERR_RANGE
+  /// for an out-of-range face (>= face_count). Added at abi 1.1.
+  pc_status (*face_coverage)(void* backend_doc, uint32_t face, uint32_t codepoint, int* out_has);
 };
 
 #define PC_BACKEND_API_INIT \

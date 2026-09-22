@@ -6,6 +6,25 @@ CalVer-compatible SemVer as declared in [docs/release-runbook.md](docs/release-r
 
 ## [Unreleased]
 
+### Added (epic 4 story 4.3 - font fallback per run, no tofu)
+
+- **Public text-fallback API**: `include/pdfcore/text.h` exposes `pc_text_fallback_runs` /
+  `pc_text_run_free`. `src/core/text/fallback.cc` (own UTF-8 decoder, no engine include) splits a
+  string into maximal runs covered by one backend face, choosing the first face in declaration
+  order; a codepoint no face draws fails all-or-nothing with `PC_ERR_LIMIT` and detail
+  `"missing glyph U+XXXX"` - never tofu. `tests/golden/text-fallback-faces.txt` pins the
+  per-face run report against the pt-BR fixture (`U+0301`/`U+0327`/`U+0303`, em dash `U+2014`,
+  `U+2211`).
+- **Vtable append (R-M3, ABI minor 0 -> 1)**: `face_count` + `face_coverage(face, cp, &has)`
+  appended to `pc_backend_api` alongside capability `PC_CAP_FACE_COVERAGE = 2`, negotiated via
+  `doc_has_capability`. MuPDF exposes no face-enumeration API, so the probe list is a curated
+  ~8-10-face table in `src/backends/mupdf`, each face loaded per query with
+  `fz_lookup_builtin_font` + `fz_encode_character` and dropped (R-M6); the null backend declares
+  the capability off and answers capability not supported (R-M5).
+- **Layering stays healthy**: `backend_line_ratio` measured 0.0429 before this story; the new
+  core lines and the small adapter probe keep it under the 0.07 epic target and the 0.15 hard
+  gate.
+
 ### Added (epic 4 story 4.2 - replay + CLI byte-identical log)
 
 - **Canonical txn JSON**: `pc_txn_to_json` / `pc_txn_from_json` round-trip the undo/redo stacks
