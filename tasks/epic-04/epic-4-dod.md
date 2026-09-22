@@ -398,8 +398,8 @@ $ git ls-tree -r --name-only HEAD | wc -l
 
 ## 5. Epic 4 completion checklist
 
-- [ ] 4.1: txn core undo/redo + budget ceiling
-- [ ] 4.2: replay + CLI byte-identical
+- [x] 4.1: txn core undo/redo + budget ceiling
+- [x] 4.2: replay + CLI byte-identical
 - [ ] 4.3: fallback per run no tofu
 - [ ] 4.4: break + caret pt-BR golden
 - [ ] 4.5: freeze + golden + ratio ≤0.07 + gates green
