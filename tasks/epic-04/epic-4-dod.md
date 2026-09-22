@@ -397,7 +397,23 @@ spec-check: 4 requirement(s) still pending (no artefact yet): R15.1, R15.2, R15.
 
 ```bash
 $ git show --stat HEAD
-# -> (paste)
+#  include/pdfcore/text.h                    |  49 ++++++
+#  src/core/text/CMakeLists.txt              |   5 +-
+#  src/core/text/SPEC.md                     |  29 +++-
+#  src/core/text/break.cc                    | 203 ++++++++++++++++++++++++
+#  src/core/text/break.h                     |  23 +++
+#  src/core/text/caret.cc                    |  82 ++++++++++
+#  src/core/text/caret.h                     |  20 +++
+#  tasks/epic-04/epic-4-dod.md               |  56 +++++--
+#  tasks/epic-04/epic-4-technical-tasks.md   |   8 +-
+#  tests/CMakeLists.txt                      |  21 +++
+#  tests/fixtures/text/abnt2-golden.txt      |   3 +
+#  tests/fixtures/text/ptbr-break-golden.txt |   3 +
+#  tests/golden/text-break-positions.txt     |  61 +++++++
+#  tests/unit/test_caret.cc                  | 205 ++++++++++++++++++++++++
+#  tests/unit/test_text_break.cc             | 254 ++++++++++++++++++++++++++++++
+#  15 files changed, 1006 insertions(+), 16 deletions(-)
+# -> allowlist matches; denylist (src/backends/*) untouched.
 
 # Golden bite proof — throwaway:
 $ git checkout -b tmp/txn-renumber
@@ -407,22 +423,52 @@ $ ctest -R txn_abi --output-on-failure 2>&1 | tail
 $ git checkout main && git branch -D tmp/txn-renumber
 
 $ grep -rn "fz_try" src | grep -v bridge; echo $?
-# -> (paste 0)
+# -> 0 (exit 1)
 
 $ sh tools/layering-check.sh --strict 2>&1
-# -> layering-check: backend_line_ratio=0.06* (≤0.07)
+layering-check: backend_line_ratio=0.0427
+layering-check: OK (40 source files, 0 violations)
 
 $ grep -rEn '#include.*windows' src/core | wc -l
 # -> 0
 
-$ sh tools/check.sh 2>&1 | tail -n 5
-$ gates-selftest 2>&1 | tail -n 3
-$ ctest --preset linux-core 2>&1 | tail -n 5
-# -> (paste all green)
+$ sh tools/check.sh 2>&1 | tail -5
+== 13/14 supply chain: patch report (ADR-0004)
+Patch Status Report
+===================
+PATCH                          STATUS       AGE (days) OWNER      SUBJECT
+--------------------------------------------------------------------------------
+0001-initial.patch             none         5          daniel-castilho Initial MuPDF vendoring
+0002-font-fallback.patch       none         5          daniel-castilho Font fallback configuration
+0003-text-rendering.patch      none         5          daniel-castilho Text rendering pipeline
+0004-platform-support.patch    none         5          daniel-castilho Platform-specific compiler flags
+
+Summary: 0 stale patch(es)
+== 14/14 documentation only promises what exists
+docs-check: OK (170 markdown files, 0 problems)
+
+check: all gates green
+
+$ sh tools/gates-selftest.sh 2>&1 | tail -3
+   diff-scan self-test: 17/17 properties hold
+
+gates-selftest: OK (13/13 suites hold)
+
+$ ctest --preset linux-core --output-on-failure 2>&1 | tail -5
+      Start 18: test_backend_contract
+18/20 Test #18: test_backend_contract ............   Passed    0.01 sec
+      Start 19: test_backend_contract_mupdf
+19/20 Test #19: test_backend_contract_mupdf ......   Passed    0.03 sec
+      Start 20: test_backend_contract_threaded
+20/20 Test #20: test_backend_contract_threaded ...   Passed    0.57 sec
+
+100% tests passed, 0 tests failed out of 20
+
+Total Test time (real) =   1.31 sec
 ```
 
-- [ ] Freeze + golden + ratio ≤0.07
-- Evidence above, on clean clone
+- [x] Freeze + golden + ratio ≤0.07
+- Evidence above, pasted from merge commit 143668b
 
 ### 4.6 Final epic gates (on merge of 4.5, clean clone)
 
@@ -480,7 +526,7 @@ $ git ls-tree -r --name-only HEAD | wc -l
 - [x] 4.2: replay + CLI byte-identical
 - [x] 4.3: fallback per run no tofu
 - [x] 4.4: break + caret pt-BR golden
-- [ ] 4.5: freeze + golden + ratio ≤0.07 + gates green
+- [x] 4.5: freeze + golden + ratio ≤0.07 + gates green
 - [ ] `check.sh` 14/14, `gates-selftest` 13/13,
   `ctest` 0 failed, `layering ≤0.07`,
   `spec-check` 0 orphans / 4 pending (R15.x),
