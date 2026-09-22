@@ -1,0 +1,82 @@
+{
+  "target": "tynypdf",
+  "pdf_file": "/home/castilho/projects/tyny-pdf/tests/bench/corpus/multipage.pdf",
+  "pdf_size_bytes": 971,
+  "runs": 2,
+  "metrics": {
+    "open_time_ms": {
+      "mean": 17.06146750075277,
+      "stdev": 1.7946660076424032,
+      "min": 15.792446996783838,
+      "max": 18.3304880047217,
+      "runs": [
+        15.792446996783838,
+        18.3304880047217
+      ]
+    },
+    "first_paint_ms": {
+      "mean": 17.06146750075277,
+      "stdev": 1.7946660076424032,
+      "min": 15.792446996783838,
+      "max": 18.3304880047217,
+      "runs": [
+        15.792446996783838,
+        18.3304880047217
+      ]
+    },
+    "scroll_time_ms": {
+      "mean": 85.81658650291502,
+      "stdev": 1.406069816059851,
+      "min": 84.82234500115737,
+      "max": 86.81082800467266,
+      "runs": [
+        84.82234500115737,
+        86.81082800467266
+      ]
+    },
+    "search_time_ms": {
+      "mean": 0,
+      "stdev": 0.0,
+      "min": 0,
+      "max": 0,
+      "runs": [
+        0,
+        0
+      ]
+    },
+    "peak_rss_mb": {
+      "mean": 9.265625,
+      "stdev": 0.005524271728019903,
+      "min": 9.26171875,
+      "max": 9.26953125,
+      "runs": [
+        9.26171875,
+        9.26953125
+      ]
+    },
+    "peak_rss_kib": {
+      "mean": 9488,
+      "stdev": 5.656854249492381,
+      "min": 9484,
+      "max": 9492,
+      "runs": [
+        9484,
+        9492
+      ]
+    }
+  },
+  "machine_spec": {
+    "os": "Linux",
+    "os_release": "6.18.33.2-microsoft-standard-WSL2",
+    "os_version": "#1 SMP PREEMPT_DYNAMIC Thu Jun 18 21:54:43 UTC 2026",
+    "machine": "x86_64",
+    "processor": "x86_64",
+    "python_version": "3.12.3",
+    "cpu_count": 16,
+    "cpu_model": "AMD Ryzen 7 6800H with Radeon Graphics",
+    "ram_kb": 15957656,
+    "gpu": "38db:00:00.0 3D controller: Microsoft Corporation Basic Render Driver"
+  },
+  "timestamp": 1790107489.3131726,
+  "hostname": "Legion5Pro"
+}

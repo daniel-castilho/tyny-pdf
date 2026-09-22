@@ -47,6 +47,7 @@ static int tests_failed = 0;
     }                                                                                   \
   } while (0)
 
+#ifdef PC_HAVE_MUPDF
 static const char* fixture_path(void) {
 #ifdef TEST_FIXTURE_DIR
   static char buf[4096];
@@ -121,7 +122,6 @@ static void escape_run(char* out, size_t cap, const char* s) {
   out[o] = '\0';
 }
 
-#ifdef PC_HAVE_MUPDF
 // R20.1/R20.2/R13.3: mupdf backend splits the pt-BR fixture into runs, each pinned to a face id,
 // and the whole report matches the golden byte-for-byte (a face-list reorder or a probing change
 // must be argued in the diff).
