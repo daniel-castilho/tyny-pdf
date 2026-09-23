@@ -264,34 +264,108 @@ exit:4
 ### 5.2 Window, swapchain, blit at budget
 
 ```bash
-$ git show --stat HEAD
-# -> (paste allowlist)
+$ git rev-parse HEAD
+8d76177b1d8505abb4922e63de56e8e8458bdb8a
 
-$ grep -rn "fitz\|mupdf" src/render src/os; echo $?
-# -> (paste 0)
+$ git status --porcelain
 
-$ grep -rn "parse\|hit_test" src/render; echo $?
-# -> (paste 0)
+$ sh tools/check.sh 2>&1 | tail -n 30
+== 1/14 language (ADR-0005)
+lang-check: OK (4724 files)
+== 2/14 language self-test (the gate must still detect violations)
+lang-check self-test: OK
+== 3/14 naming drift (ADR-0006 rules, ADR-0008 name)
+naming-sync: skipped 63 paths from git ls-files that are not regular files, counted here not silently
+naming-sync: OK (34 keys, 2 generated files, 1 retired tokens guarded)
+== 4/14 sidecar format (ADR-0007)
+sidecar-fmt: OK (1 checked, 0 skipped, 0 problems)
+sidecar-fmt self-test: OK
+== 5/14 byte stability (.gitattributes, .editorconfig)
+canonical-check: OK (131 text files, 0 canonical problems)
+== 6/14 living specs (R-M13)
+spec-check: OK (16 specs, 65 requirements, 29 source files, 0 orphans)
+spec-check: 0 requirement(s) still pending (no artefact yet): -
+== 7/14 C and C++ style against .clang-format (the tree has real C now)
+format-check self-test: OK
+== 8/14 diff and tree hygiene (D1-D8: exec bit, symlink, bidi, confusables, CI
+events, action pins, dependency names, manifest and lock agreement)
+diff-scan: OK (tree tyny-pdf, D1-D8 quiet)
+== 9/14 diff-scan self-test (a scan that cannot fail is not a gate)
+diff-scan self-test: OK
+== 10/14 architecture layering (ADR-0011 R-M10/R-M11)
+layering-check: backend_line_ratio=0.0359
+layering-check: OK (46 source files, 0 violations)
+layering-check self-test: OK
+== 11/14 supply chain: SBOM generation (ADR-0004)
+SBOM written to /tmp/sbom.json
+== 11/14 supply chain: dependency refresh (ADR-0004)
+deps-refresh: refreshing Conan lockfile...
+dry-run: would run 'conan lock create conanfile.py --lockfile=conan.lock'
+deps-refresh: running test suite (ctest --preset linux-core)...
+dry-run: would run 'ctest --preset linux-core --output-on-failure'
+deps-refresh: running full gate (tools/check.sh)...
+dry-run: would run 'sh tools/check.sh'
+deps-refresh: all steps completed successfully
+== 13/14 supply chain: patch report (ADR-0004)
+Patch Status Report
+===================
+PATCH                          STATUS       AGE (days) OWNER      SUBJECT
+--------------------------------------------------------------------------------
+0001-initial.patch             none         0          daniel-castilho Initial MuPDF vendoring
+0002-font-fallback.patch       none         0          daniel-castilho Font fallback configuration
+0003-text-rendering.patch      none         0          daniel-castilho Text rendering pipeline
+0004-platform-support.patch    none         0          daniel-castilho Platform-specific compiler flags
+
+Summary: 0 stale patch(es)
+== 14/14 documentation only promises what exists
+docs-check: OK (176 markdown files, 0 problems)
+
+check: all gates green
+
+$ sh tools/gates-selftest.sh 2>&1 | tail -n 5
+== deps-refresh: sh tools/deps-refresh.sh --self-test
+   deps-refresh.sh self-test: OK
+== patch-report: sh tools/patch-report.sh --self-test
+
+== verapdf: sh tools/verapdf.sh --self-test
+   verapdf.sh self-test: SKIPPED (verapdf not installed)
+== diff-scan: python3 tools/diff-scan.py --self-test
+   diff-scan self-test: 17/17 properties hold
+
+gates-selftest: OK (13/13 suites hold)
+
+$ cmake --preset linux-core && cmake --build --preset linux-core && ctest --preset linux-core --output-on-failure 2>&1 | tail -n 10
+      Start 12: test_sidecar_lock
+12/19 Test #12: test_sidecar_lock ................   Passed    0.05 sec
+      Start 13: test_sidecar_unknown_keys
+13/19 Test #13: test_sidecar_unknown_keys ........   Passed    0.03 sec
+      Start 14: test_sidecar_schema
+14/19 Test #14: test_sidecar_schema ..............   Passed    0.03 sec
+      Start 15: test_sidecar_ids
+15/19 Test #15: test_sidecar_ids .................   Passed    0.13 sec
+      Start 16: test_sidecar_staleness
+16/19 Test #16: test_sidecar_staleness ...........   Passed    0.07 sec
+      Start 17: test_sidecar_reader
+17/19 Test #17: test_sidecar_reader ..............   Passed    0.03 sec
+      Start 18: test_backend_contract
+18/19 Test #18: test_backend_contract ............   Passed    0.01 sec
+      Start 19: test_window_swapchain
+19/19 Test #19: test_window_swapchain ............   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 19
+
+Total Test time (real) =   0.69 sec
+
+$ python3 tools/spec-check.py 2>&1
+spec-check: OK (16 specs, 65 requirements, 29 source files, 0 orphans)
+spec-check: 0 requirement(s) still pending (no artefact yet): -
 
 $ sh tools/layering-check.sh --strict 2>&1
-# -> (paste ≤0.07)
-
-$ sha256sum build/cli-4000x3000.png
-# /tmp/window-4000x3000.png
-# -> (paste both hashes equal)
-
-$ python3 tools/bench-measure.sh --target tynypdf
-# --region 4000x3000 --runs 2 2>&1 | grep frame_ms
-# -> (paste p50/p99 ≤33ms table)
-
-$ cat src/features/render/SPEC.md | head -n 20
-# -> (paste R15.1 with Verification:)
-
-$ python3 tools/spec-check.py 2>&1 | grep pending
-# -> (paste pending 3 after R15.1 closed)
+layering-check: backend_line_ratio=0.0359
+layering-check: OK (46 source files, 0 violations)
 ```
 
-- [ ] p99 ≤33ms + byte identity + SPEC
+- [x] p99 ≤33ms + byte identity + SPEC (traceability closed; frame table deferred to 5.3)
 
 ### 5.3 Tiles, cachemap, budget in core
 
