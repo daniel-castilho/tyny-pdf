@@ -273,7 +273,9 @@ not silently add an item; flag it in the PR and open it here with the number tha
    behind a pure engine-free ABI (`include/pdfcore/window.h`, `swapchain.h`); both compile
    under MinGW-w64 and link into `tynypdf.exe`, but `src/app` does not call them yet, there
    is no interactive viewer loop and no undo, and Story 1.5's baseline is blocked (item 5),
-   so "builds" is still not "does the job".
+   so "builds" is still not "does the job". Story 5.3 added the render tile cache, cachemap
+   and core budget behind `include/pdfcore/budget.h`, none of which the viewer exercises
+   yet - the 60 fps and RSS numbers that would prove them still need that viewer loop.
 2. **Only the doc gates and the matrix's first runs are recorded:** `gates` ran green on `main`
    since run `35170901622` (at `94f1950`) and `35171544840` (at `0d64999`); the build matrix
    arrived with PR #2 (`2ec9977`) and its first all-four-green run is `35179132038` (head
@@ -302,12 +304,14 @@ not silently add an item; flag it in the PR and open it here with the number tha
    sets, header coverage and link differences will keep producing `build:` PRs that look like
    noise.
 8. **The swap budget is under the 0.07 target but the core is still thin:**
-   `tools/layering-check.sh` now measures `backend_line_ratio = 0.0358` (query:
-   `sh tools/layering-check.sh --strict`, 2026-09-23), down from 0.0683 at the story 3.5
-   re-measure (2026-09-21) and 0.1014 at the epic 3 baseline. The fall came from the
-   denominator growing - the window and swapchain implementations under `src/os/win32` plus
-   the new ABI headers - not from backend shrinking or core growth; the budget starts to
-   mean something only when `src/core`'s C++ outgrows it.
+   `tools/layering-check.sh` now measures `backend_line_ratio = 0.0333` (query:
+   `sh tools/layering-check.sh --strict`, 2026-09-23, re-measured after story 5.3), down
+   from 0.0358 at the story 5.2 re-measure (2026-09-23), 0.0683 at the story 3.5 re-measure
+   (2026-09-21) and 0.1014 at the epic 3 baseline. Every fall so far came from the
+   denominator growing - the window and swapchain implementations under `src/os/win32`, then
+   story 5.3's tile cache, cachemap and core budget across `src/render` and `src/core` -
+   never from the backend shrinking; the budget starts to mean something only when
+   `src/core`'s C++ outgrows it.
 
 ---
 

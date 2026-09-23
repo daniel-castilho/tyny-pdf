@@ -14,8 +14,10 @@ Extended for Epic 5:
 - --record-machine: include machine_spec in output
 - --compare: compare two JSON runs within 10% tolerance
 - --machine: override machine_spec for cross-machine compare
-- per-frame logging: frame_ms, input_ts, present_ts (deferred to 5.2)
-- peak_rss_kib: peak RSS in KiB (Linux /proc, Windows via win-rss-probe in 5.3)
+- per-frame logging: frame_ms, input_ts, present_ts (not yet landed; blocked on the
+  interactive viewer loop, AGENTS.md debt matrix item 1)
+- peak_rss_kib: peak RSS in KiB (Linux /proc only; the Windows probe slipped past story 5.3
+  and is tracked in issue #55)
 """
 
 import argparse
