@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # bench-measure.sh - M0.4 / Epic 5 benchmark runner
+# Verifies: R15.1 (src/features/render/SPEC.md) - the frame-budget measurement harness.
 # Usage: ./tools/bench-measure.sh [--target sumatra-3.6.1|sumatra-3.7pre|tynypdf]
 #                          [--backend null|mupdf] [--corpus tests/bench/corpus]
 #                          [--runs N] [--output results.json]

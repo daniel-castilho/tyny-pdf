@@ -1,11 +1,11 @@
 # OS Linux - platform-specific implementations
 
-Status: drafted before implementation. This directory contains Linux-specific implementations
-for the OS abstraction layer. Design and rationale: ADR-0002, ADR-0011.
+Status: the sidecar lock (R26.1) is implemented. This directory contains Linux-specific
+implementations for the OS abstraction layer. Design and rationale: ADR-0002, ADR-0011.
 
 ## Requirements
 
-### R25.1 The Linux OS abstraction SHALL provide sidecar lock operations using POSIX APIs.
+### R26.1 The Linux OS abstraction SHALL provide sidecar lock operations using POSIX APIs.
 
 Verification: unit:tests/unit/test_sidecar_lock.cc
 

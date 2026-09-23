@@ -9,6 +9,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>)
 
 option(TYNYPDF_WARNINGS_AS_ERRORS "Treat warnings as errors" ON)
 option(TYNYPDF_BUILD_TESTS "Build tests" ON)
+option(TYNYPDF_CROSS_WINDOWS "Cross-compiling for Windows (enables Win32/D2D code)" OFF)
 
 function(pc_apply_warnings target)
     if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")

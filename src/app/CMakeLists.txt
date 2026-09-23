@@ -1,6 +1,7 @@
 if (TYNYPDF_EXECUTABLES_VIEWER)
     add_executable(${TYNYPDF_EXECUTABLES_VIEWER} main.cc)
-    target_link_libraries(${TYNYPDF_EXECUTABLES_VIEWER} PRIVATE pdfcore)
+    target_link_libraries(${TYNYPDF_EXECUTABLES_VIEWER} PRIVATE pdfcore
+        tynypdf-render tynypdf-os-win32)
     target_include_directories(${TYNYPDF_EXECUTABLES_VIEWER} PRIVATE ${CMAKE_SOURCE_DIR}/include)
     pc_apply_core_flags(${TYNYPDF_EXECUTABLES_VIEWER})
     pc_apply_warnings(${TYNYPDF_EXECUTABLES_VIEWER})
