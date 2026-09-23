@@ -6,7 +6,8 @@ on:
   workflow_dispatch:      # Allow manual trigger
 
 permissions:
-  contents: write  # To commit updated advisories.md
+  contents: write       # push the security/advisories branch
+  pull-requests: write  # open the advisories PR
 
 jobs:
   osv-scan:
@@ -69,14 +70,23 @@ jobs:
           print(f'advisories.md updated with {len(found)} advisories')
           PY
 
-      - name: Commit if changed
+      # Branch protection requires the four gate jobs on main, so a direct
+      # bot push is rejected (GH006, run 35923477544); advisories ride a PR.
+      - name: Open advisories PR if changed
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          if git diff --quiet docs/security/advisories.md; then
+            echo "No changes to advisories.md"
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if ! git diff --quiet docs/security/advisories.md; then
-            git add docs/security/advisories.md
-            git commit -m "security: update advisories from osv-scanner scan"
-            git push
-          else
-            echo "No changes to advisories.md"
-          fi
+          git switch -c security/advisories
+          git add docs/security/advisories.md
+          git commit -m "docs(security): update advisories from osv-scanner scan"
+          git push --force origin security/advisories
+          gh pr create --base main --head security/advisories \
+            --title "docs(security): advisories from the osv-scanner scan" \
+            --body "Scheduled osv-scanner scan: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. The four required gate jobs run on this PR before merge." \
+            || echo "advisories PR already open"
