@@ -176,6 +176,12 @@ if (TYNYPDF_BUILD_TESTS)
         add_test(NAME test_backend_contract_threaded COMMAND test_backend_contract_threaded)
     endif()
 
+    # window_swapchain test - the public window/swapchain ABI pins to portable types only
+    # (R25.1, R15.2, R24.2); it compiles on Linux precisely because the headers leak no
+    # Windows type (ADR-0011 R-M10)
+    add_executable(test_window_swapchain unit/test_window_swapchain.cc)
+    target_include_directories(test_window_swapchain PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_window_swapchain)
     add_test(NAME test_window_swapchain COMMAND test_window_swapchain)
 
     # budget test - pc_budget struct and validation (R29.1, R29.2)
