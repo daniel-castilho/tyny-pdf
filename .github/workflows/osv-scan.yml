@@ -6,8 +6,7 @@ on:
   workflow_dispatch:      # Allow manual trigger
 
 permissions:
-  contents: write       # push the security/advisories branch
-  pull-requests: write  # open the advisories PR
+  contents: write  # push the security/advisories branch
 
 jobs:
   osv-scan:
@@ -71,10 +70,12 @@ jobs:
           PY
 
       # Branch protection requires the four gate jobs on main, so a direct
-      # bot push is rejected (GH006, run 35923477544); advisories ride a PR.
-      - name: Open advisories PR if changed
-        env:
-          GH_TOKEN: ${{ github.token }}
+      # bot push is rejected (GH006, run 35923477544) - and a PR opened by
+      # the GITHUB_TOKEN gets no CI at all (anti-recursion rule, PR #62),
+      # so it could never pass those checks. The bot therefore publishes
+      # the branch and stops; opening and merging the PR is the owner's act,
+      # and an owner-opened PR runs the gates normally.
+      - name: Publish advisories branch if changed
         run: |
           if git diff --quiet docs/security/advisories.md; then
             echo "No changes to advisories.md"
@@ -86,13 +87,4 @@ jobs:
           git add docs/security/advisories.md
           git commit -m "docs(security): update advisories from osv-scanner scan"
           git push --force origin security/advisories
-          if gh pr create --base main --head security/advisories \
-               --title "docs(security): advisories from the osv-scanner scan" \
-               --body "Scheduled osv-scanner scan: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. The four required gate jobs run on this PR before merge."; then
-            echo "advisories PR created"
-          elif gh pr view security/advisories --json url >/dev/null 2>&1; then
-            echo "advisories PR already open"
-          else
-            echo "::error::gh pr create failed and no PR is open on security/advisories"
-            exit 1
-          fi
+          echo "::notice::advisories updated on security/advisories - open the PR from ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/compare/main...security/advisories"
