@@ -10,94 +10,64 @@ permissions:
 
 jobs:
   osv-scan:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
-        with:
-          persist-credentials: true
+      # actions/checkout v4.4.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
-      - name: Install osv-scanner
-        run: |
-          curl -L -o osv-scanner.tar.gz \
-            https://github.com/google/osv-scanner/releases/download/v1.8.1/osv-scanner_linux_amd64.tar.gz
-          tar -xzf osv-scanner.tar.gz
-          chmod +x osv-scanner
-
+      # osv-scanner only picks up SBOMs whose filename follows the spec,
+      # so the CycloneDX document is written as bom.json, not sbom.json.
       - name: Generate SBOM
-        run: sh tools/sbom.sh --output sbom.json
+        run: sh tools/sbom.sh --output bom.json
 
+      # google/osv-scanner-action v2.6.0
       - name: Run osv-scanner
         id: scan
+        uses: google/osv-scanner-action/osv-scanner-action@a345acffa64b0eaede81a3d9aae6141214d9c8fc
+        with:
+          scan-args: |-
+            scan
+            source
+            -L
+            bom.json
+            --format=json
+            --output-file=osv-results.json
+        # findings are recorded in advisories.md, not a gate here
+        continue-on-error: true
+
+      # A failed scan writes no results file; without this guard it would
+      # read as "no vulnerabilities found" and pass (upstream uses the same).
+      - name: Check that the scan completed
+        if: ${{ steps.scan.outcome == 'failure' }}
         run: |
-          ./osv-scanner scan --format=json sbom.json > osv-results.json || true
-          cat osv-results.json
+          if [ ! -s osv-results.json ]; then
+            echo "::error::osv-scanner failed without writing osv-results.json; see the scan step"
+            exit 1
+          fi
 
       - name: Update advisories.md
         run: |
-          python3 -c "
-import json, datetime, sys, os
-
-with open('osv-results.json') as f:
-    data = json.load(f)
-
-advisories = []
-for result in data.get('results', []):
-    for pkg in result.get('packages', []):
-        for vuln in pkg.get('vulnerabilities', []):
-            advisories.append({
-                'package': pkg.get('package', {}).get('name', 'unknown'),
-                'version': pkg.get('package', {}).get('version', 'unknown'),
-                'advisory': vuln.get('id', 'unknown'),
-                'summary': vuln.get('summary', ''),
-                'severity': 'unknown',
-                'fixed_in': '',
-                'detected': datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z')
-            })
-            for severity in vuln.get('severity', []):
-                if severity.get('type') == 'CVSS_V3':
-                    if severity.get('score', 0) >= 9.0:
-                        advisories[-1]['severity'] = 'critical'
-                    elif severity.get('score', 0) >= 7.0:
-                        advisories[-1]['severity'] = 'high'
-                    elif severity.get('score', 0) >= 4.0:
-                        advisories[-1]['severity'] = 'medium'
-                    else:
-                        advisories[-1]['severity'] = 'low'
-                    break
-
-if os.path.exists('docs/security/advisories.md'):
-    with open('docs/security/advisories.md') as f:
-        content = f.read()
-else:
-    content = ''
-
-# Find the '## Current Advisories' section and replace everything after it
-lines = content.split('\n')
-new_lines = []
-in_advisories = False
-for line in lines:
-    if line.startswith('## Current Advisories'):
-        in_advisories = True
-        new_lines.append(line)
-        new_lines.append('')
-        continue
-    if in_advisories and line.startswith('## '):
-        in_advisories = False
-    if not in_advisories:
-        new_lines.append(line)
-
-# Add new advisories
-for adv in advisories:
-    new_lines.append(f'- **{adv[\"package\"]}** ({adv[\"version\"]}): {adv[\"advisory\"]} - {adv[\"summary\"][:100]}... [{adv[\"severity\"]}] (detected {adv[\"detected\"][:10]})')
-
-# Add timestamp
-new_lines.append('')
-new_lines.append(f'*Last scan: {datetime.datetime.now(datetime.timezone.utc).isoformat().replace(\"+00:00\", \"Z\")}.*')
-
-with open('docs/security/advisories.md', 'w') as f:
-    f.write('\n'.join(new_lines))
-
-print(f'Updated advisories.md with {len(advisories)} advisories')
+          python3 - <<'PY'
+          import json, datetime, sys
+          data = json.load(open('osv-results.json'))
+          found = [f"- **{p['package']['name']}** ({p['package'].get('version', '?')}): {v['id']} - {v.get('summary', '')[:90]}"
+                   for r in data.get('results', [])
+                   for p in r.get('packages', [])
+                   for v in p.get('vulnerabilities', [])]
+          lines = open('docs/security/advisories.md').read().split('\n')
+          head, out = [], []
+          for line in lines:
+              if line.startswith('## Current Advisories'):
+                  out = head + [line, '', *(found or ['*None at this time.*']), '',
+                                f"*Last scan: {datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}.*"]
+                  break
+              head.append(line)
+          if not out:
+              sys.exit('advisories.md: ## Current Advisories section not found')
+          open('docs/security/advisories.md', 'w').write('\n'.join(out) + '\n')
+          print(f'advisories.md updated with {len(found)} advisories')
+          PY
 
       - name: Commit if changed
         run: |
