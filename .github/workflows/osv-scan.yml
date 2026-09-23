@@ -86,7 +86,13 @@ jobs:
           git add docs/security/advisories.md
           git commit -m "docs(security): update advisories from osv-scanner scan"
           git push --force origin security/advisories
-          gh pr create --base main --head security/advisories \
-            --title "docs(security): advisories from the osv-scanner scan" \
-            --body "Scheduled osv-scanner scan: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. The four required gate jobs run on this PR before merge." \
-            || echo "advisories PR already open"
+          if gh pr create --base main --head security/advisories \
+               --title "docs(security): advisories from the osv-scanner scan" \
+               --body "Scheduled osv-scanner scan: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. The four required gate jobs run on this PR before merge."; then
+            echo "advisories PR created"
+          elif gh pr view security/advisories --json url >/dev/null 2>&1; then
+            echo "advisories PR already open"
+          else
+            echo "::error::gh pr create failed and no PR is open on security/advisories"
+            exit 1
+          fi
