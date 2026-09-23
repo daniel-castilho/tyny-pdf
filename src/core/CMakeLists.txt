@@ -7,6 +7,12 @@ add_library(pdfcore STATIC
     sidecar/writer.cc
 )
 
+add_subdirectory(budget)
+
+target_link_libraries(pdfcore PUBLIC
+    tynypdf-budget
+)
+
 add_subdirectory(doc)
 add_subdirectory(json)
 add_subdirectory(text)
