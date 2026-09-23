@@ -142,8 +142,8 @@ tyny-pdf/
 |   |-- core/                   # ENTITIES + USE CASES: document model, IR, undo, sidecar semantics.
 |   |                           # no Windows header, no engine header
 |   |-- backends/               # ADAPTERS: mupdf/, null/ - the only code allowed to know an engine
-|   |-- render/                 # swapchain, tile cache, cachemap - presentation, never parsing
-|   |-- os/win32/               # window, dpi, uia, clipboard, policy - the only OS-specific tree
+|   |-- render/                 # tile cache, cachemap - portable presentation, never parsing
+|   |-- os/win32/               # window, swapchain, dpi, uia, clipboard, policy - the only OS-specific tree
 |   |-- sealer/                 # pkcs7_local/, stub/          - signature production port
 |   |-- print/                  # win32_gdi/, preview/
 |   |-- features/               # VERTICAL SLICES: one directory per capability, each with SPEC.md
@@ -269,8 +269,11 @@ not silently add an item; flag it in the PR and open it here with the number tha
    `windows-mingw-cross` job now cross-compiles MuPDF itself and links it into `tynypdf-cli.exe`
    (fz symbol and import table checks in the job). Epic 3 landed `src/core`'s first C++ (doc IR,
    geom, sidecar encode/decode, sha256, per-document MuPDF locks) and closed the backend swap
-   budget (item 8). What is still missing is everything above the IR: no viewer, no undo, and
-   Story 1.5's baseline is blocked (item 5), so "builds" is not yet "does the job".
+   budget (item 8). Epic 5 story 5.2 added the Win32 window and swapchain implementations
+   behind a pure engine-free ABI (`include/pdfcore/window.h`, `swapchain.h`); both compile
+   under MinGW-w64 and link into `tynypdf.exe`, but `src/app` does not call them yet, there
+   is no interactive viewer loop and no undo, and Story 1.5's baseline is blocked (item 5),
+   so "builds" is still not "does the job".
 2. **Only the doc gates and the matrix's first runs are recorded:** `gates` ran green on `main`
    since run `35170901622` (at `94f1950`) and `35171544840` (at `0d64999`); the build matrix
    arrived with PR #2 (`2ec9977`) and its first all-four-green run is `35179132038` (head
@@ -282,12 +285,13 @@ not silently add an item; flag it in the PR and open it here with the number tha
    holds in import tables; the host/cross symbol tables are identical; a hardware GPU adapter and
    a `D3D_FEATURE_LEVEL` were observed through WSL interop). What stays open is version drift of
    the pinned toolchain - the hash gate catches it, CI verifies it each run.
-4. **Four SPEC requirements have no artefact** (R15.1-R15.4); they are all in the tables/text
-   capability that story 3.5 deliberately shows as `PC_ERR_CAPABILITY` (R-M5), and R16.1 (the
-   capability contract) is the artefact that guards them. The rest of the original 17 were retired
-   by epic 3 stories (R14.1-R14.3, R2.2, R2.3, R3.1, R3.2, R4.1, R4.2, R5.1, R5.2, R6.1, R6.2).
-   `tools/spec-check.py` prints the list on every run, so the debt cannot be forgotten by scrolling
-   past it.
+4. **The SPEC artefact gap that seeded this matrix is closed (story 5.2):** the render
+   requirements now have an artefact each - R15.1 → `tools/bench-measure.sh`, R15.2 →
+   `tests/unit/test_window_swapchain.cc`, R15.3/R15.4 → `tools/layering-check.sh`
+   (`src/features/render/SPEC.md`); R16.1 (the capability contract) remains the artefact that
+   guards the tables/text capability, which story 3.5 deliberately shows as `PC_ERR_CAPABILITY`
+   (R-M5). `tools/spec-check.py` now reports `0 requirement(s) still pending` on every run; the
+   list refills only when a requirement is written ahead of its artefact.
 5. **`tynypdf-cli sidecar gc` is out of v1:** tombstones accumulate until that command exists
    (ADR-0007 records the decision and its cost).
 6. **The competitive baseline must be re-measured per milestone:** the seed measured SumatraPDF
@@ -298,11 +302,12 @@ not silently add an item; flag it in the PR and open it here with the number tha
    sets, header coverage and link differences will keep producing `build:` PRs that look like
    noise.
 8. **The swap budget is under the 0.07 target but the core is still thin:**
-   `tools/layering-check.sh` now measures `backend_line_ratio = 0.0683` against the 0.07 target set
-   by story 3.5 (query: `sh tools/layering-check.sh --strict`, 2026-09-21), down from 0.1014 at the
-   epic 3 baseline. The fall came from trimming backend non-vtable code (per-doc lock helpers
-   inlined into the vtable bodies, `exception_bridge.h` shrunk), not from core growth; the
-   budget starts to mean something only when `src/core`'s C++ outgrows it.
+   `tools/layering-check.sh` now measures `backend_line_ratio = 0.0358` (query:
+   `sh tools/layering-check.sh --strict`, 2026-09-23), down from 0.0683 at the story 3.5
+   re-measure (2026-09-21) and 0.1014 at the epic 3 baseline. The fall came from the
+   denominator growing - the window and swapchain implementations under `src/os/win32` plus
+   the new ABI headers - not from backend shrinking or core growth; the budget starts to
+   mean something only when `src/core`'s C++ outgrows it.
 
 ---
 

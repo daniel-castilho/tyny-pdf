@@ -31,7 +31,8 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "LLVM_MINGW_VERSION": "20260812-ucrt-ubuntu-22.04-x86_64",
-        "MUPDF_BUILD_DIR": "build/mupdf-windows-x64"
+        "MUPDF_BUILD_DIR": "build/mupdf-windows-x64",
+        "TYNYPDF_CROSS_WINDOWS": "ON"
       }
     },
     {
@@ -42,7 +43,8 @@
       "binaryDir": "${sourceDir}/build/win-msvc",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "MUPDF_BUILD_DIR": "build/mupdf-windows-x64"
+        "MUPDF_BUILD_DIR": "build/mupdf-windows-x64",
+        "TYNYPDF_CROSS_WINDOWS": "ON"
       }
     }
   ],

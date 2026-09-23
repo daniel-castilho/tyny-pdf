@@ -17,6 +17,10 @@
 #          backend has to carry anyway) divided by all lines under src/** and include/**; fails
 #          above 0.15. ADR-0011's correction of 2026-09-17 fixes that as the operational formula.
 #
+#   src/features/render/SPEC.md R15.3/R15.4 are the SPEC halves of the same scans: engine-free
+#   include lists in the presentation trees, and no engine symbol or IR mutation in
+#   src/render/** and src/os/** (the "no document logic" rule).
+#
 # Empty-tree behaviour: a tree with no C/C++ file has an undefined ratio. That is never a pass:
 # the line prints its reason and --strict fails on it (ADR-0011 R-M6/R-M11).
 set -eu

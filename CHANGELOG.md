@@ -6,6 +6,44 @@ CalVer-compatible SemVer as declared in [docs/release-runbook.md](docs/release-r
 
 ## [Unreleased]
 
+### Added (epic 5 story 5.2 - Win32 window + DComp/DXGI swapchain behind a pure ABI)
+
+- **Pure public ABI**: `include/pdfcore/window.h` + `include/pdfcore/swapchain.h` expose only
+  `void*`, `pc_status`, `wchar_t`, `int`, `float` (ADR-0011 R-M10). The MinGW-w64 blocker was
+  `#define _WINDOWS_` before the Windows includes - that macro is MinGW's own `windows.h`
+  include guard, so defining it skipped the header body and the build errored on `HRESULT` and
+  friends down the rpcasync chain. The defines are gone; the `.cc` files include the Windows
+  headers first, and the public headers never see them.
+- **Implementations**: `src/os/win32/window/window.cc` (Per-Monitor V2 DPI via a runtime
+  `GetDpiForMonitor`, DComp visual + commit, WM_SIZE swapchain resize, render callback between
+  BeginDraw/EndDraw returning `pc_status`) and `src/os/win32/swapchain/swapchain.cc` (DXGI
+  flip-sequential swapchain, D2D target bitmap, `Present(1, 0)`, device-lost surfaced as
+  `PC_ERR_UNSUPPORTED`). The swapchain implementation moved from `src/render/` to
+  `src/os/win32/`: AGENTS.md rule 1 and `tools/layering-check.sh` forbid a Windows or DirectX
+  header under `src/render`, and the gate is the truth, not the task list.
+- **Bugs found on the way**: `pc_swapchain_resize` redeclared `hr` (MinGW `-Werror`), and
+  `InitializeSwapchain` early-returned after creating the D2D device - skipping
+  `CreateSwapchain`/`CreateTargetBitmap`/`initialized = true`, so every created swapchain
+  would have answered `PC_ERR_UNSUPPORTED` at `begin_draw`. Both fixed.
+- **ABI pin test**: `tests/unit/test_window_swapchain.cc` static-asserts all 13 entry-point
+  signatures and the param/callback member types, and round-trips the render/dpi/size callback
+  contract; it runs on Linux (the test building at all is the purity check) and also
+  cross-builds to `test_window_swapchain.exe`.
+- **Traceability**: R25.1 (`src/render/SPEC.md`) and R15.1-R15.4 (`src/features/render/SPEC.md`)
+  now name existing artefacts; R24.2/R24.3 cover the window/swapchain implementations in
+  `src/os/win32`; the linux sidecar-lock requirement was renumbered R25.1 → R26.1 (its id
+  collided with the render series). `sh tools/check.sh` is 14/14 green, `ctest --preset
+  linux-core` is 21/21, and `backend_line_ratio = 0.0358` with 0 violations.
+
+### Added (epic 5 story 5.1 - benchmark harness and refusal exit codes; CHANGELOG backfill)
+
+- **`tools/bench-measure.sh` + `tests/bench/harness/run_benchmark.py`** (PR #51): corpus-driven
+  benchmark runner over `--target sumatra-3.6.1|sumatra-3.7pre|tynypdf`, with `--record-machine`
+  (`machine_spec` in the output JSON), `peak_rss_kib` (Linux `/proc`; the Windows probe lands
+  with story 5.3), `--compare` within 10%, and refusal exit codes `2` (binary missing), `3`
+  (corpus has no PDF), `4` (machine_spec mismatch) so a wrong invocation fails loudly instead
+  of measuring the wrong thing.
+
 ### Added (epic 4 story 4.3 - font fallback per run, no tofu)
 
 - **Public text-fallback API**: `include/pdfcore/text.h` exposes `pc_text_fallback_runs` /

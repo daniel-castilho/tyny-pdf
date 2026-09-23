@@ -92,8 +92,8 @@ tyny-pdf/
 |   |-- core/                   # ENTITIES + USE CASES: document model, IR, undo, sidecar semantics.
 |   |                           # no Windows header, no engine header
 |   |-- backends/               # ADAPTERS: mupdf/, null/ - the only code allowed to know an engine
-|   |-- render/                 # swapchain, tile cache, cachemap - presentation, never parsing
-|   |-- os/win32/               # window, dpi, uia, clipboard, policy - the only OS-specific tree
+|   |-- render/                 # tile cache, cachemap - portable presentation, never parsing
+|   |-- os/win32/               # window, swapchain, dpi, uia, clipboard, policy - the only OS-specific tree
 |   |-- sealer/                 # pkcs7_local/, stub/ - signature production port
 |   |-- print/                  # win32_gdi/, preview/
 |   |-- features/               # VERTICAL SLICES: one directory per capability, each with SPEC.md
