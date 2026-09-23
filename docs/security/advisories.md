@@ -20,6 +20,4 @@ Each advisory entry has:
 
 *None at this time.*
 
----
-
-*Last scan: never (no scheduled run executed yet).*
+*Last scan: 2026-09-23T21:52:56Z.*
