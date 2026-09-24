@@ -161,10 +161,22 @@ No new dependency, build flag or pinned toolchain without an ADR (R-M9).
 
 ## Final checklist
 
-- [ ] `git rev-parse HEAD` + `git status --porcelain` + `git ls-tree -r
-      --name-only HEAD | wc -l` pasted (clean tree) — at the working tree
-      today: `dd18fbae57e1a7ed459546659bd56fb553251e79`, 27 modified/
-      untracked entries (this story); the box is ticked on the merge commit.
+- [x] `git rev-parse HEAD` + `git status --porcelain` + `git ls-tree -r
+      --name-only HEAD | wc -l` pasted (clean tree), on the merge commit:
+
+      ```text
+      14cd1d0638de0bfd2703a17fbb05997bdd363972   (git rev-parse HEAD, main)
+      (git status --porcelain: empty)
+      7805                                      (git ls-tree -r --name-only HEAD | wc -l)
+      ```
+
+      Gates re-run on the merged tree: `sh tools/check.sh` -> `check: all
+      gates green`; `ctest --preset linux-core` -> `100% tests passed, 0
+      tests failed out of 31`; `python3 tools/spec-check.py` -> `21 specs, 80
+      requirements, 0 orphans, 0 pending`; `sh tools/layering-check.sh
+      --strict` -> `backend_line_ratio=0.0254`, `OK (61 source files, 0
+      violations)`. CI on PR #69: gates / core-linux / windows-mingw-cross /
+      windows-msvc all pass (run `35995338636`).
 - [x] spec-check 21/80/0, ctest 31/31, `check.sh` 14/14, layering ratio
       0.0254 (all pasted above).
 - [x] Two bench JSONs + `--compare` green, p99 and peaks pasted, sha256
@@ -173,5 +185,7 @@ No new dependency, build flag or pinned toolchain without an ADR (R-M9).
 - [x] CHANGELOG Added 1.5; AGENTS debt items 1 and 8 updated; tiles/cachemap
       SPEC Status lines de-staled.
 - [x] `sh tools/gates-selftest.sh` green.
-- [ ] PR trailer cites `Requirement: R15.1 R30.1 R30.2 R31.1` with the exact
-      `Check:`/`Evidence:` commands and outputs.
+- [x] PR trailer cites `Requirement: R15.1 R30.1 R30.2 R31.1` with the exact
+      `Check:`/`Evidence:` commands and outputs - PR #69
+      (https://github.com/daniel-castilho/tyny-pdf/pull/69), squash-merged
+      as `14cd1d0`; the tiles.cc put-replace UAF is issue #68.
