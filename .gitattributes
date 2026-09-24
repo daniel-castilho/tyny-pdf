@@ -28,8 +28,10 @@
 tests/golden/** -text
 *.tynypdf.json  text eol=lf
 
-# Binaries.
-*.pdf   -text
+# Binaries. -diff keeps git from rendering a NUL-free PDF as a 4000-line text
+# patch (the story 1.5 corpus is uncompressed and NUL-free, which made
+# tools/diff-scan.py --staged choke on its own diff input).
+*.pdf   -text -diff
 *.png   -text
 *.jpg   -text
 *.ico   -text

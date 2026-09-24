@@ -1,3 +1,3 @@
 stale: sidecar pages 9 vs document 5
-stale: fingerprint mismatch (doc sha256 84d92ba00c72ee11... vs sidecar 3f3c943383ade03a...)
+stale: fingerprint mismatch (doc sha256 4ccfac83d4aadc93... vs sidecar bf573149b23303ca...)
 stale: mtime newer (doc 2000-01-01T00:00:00Z vs sidecar 1999-12-31T23:59:00Z)

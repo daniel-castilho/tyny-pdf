@@ -376,11 +376,12 @@ $ git show --stat HEAD
 $ ctest --preset linux-core -R budget 2>&1 | tail
 # -> (paste eviction headless)
 
-$ python3 tools/bench-measure.sh --target tynypdf
-# --pages 1000 --tiles 3 2>&1 | grep peak_rss
-# -> (paste forward 240MB return 238MB)
+$ bash tools/bench-measure.sh --target tynypdf --bench viewer --binary
+  build/win-cross-x64/Release/tynypdf.exe --record-machine --output
+  build/bench-run1.json
+# -> (paste forward/return peak_rss from the JSON)
 
-$ sha256sum tests/bench/corpus/*.pdf
+$ sha256sum tests/bench/corpus/corpus-1000p.pdf
 # -> (paste)
 
 $ grep -rn "free(" src/render src/os; echo $?
@@ -390,7 +391,27 @@ $ python3 tools/spec-check.py 2>&1 | grep pending
 # -> (paste pending 2 after R15.2/15.3)
 ```
 
-- [ ] 250MB + return pass + eviction headless
+- [x] 250MB + return pass + eviction headless
+
+Measured by story 1.5's viewer bench (2026-09-24, reference machine; both JSON
+runs and the exact commands pasted in
+`tasks/epic-01/story-1.5-content-viewer.md`):
+
+```bash
+$ bash tools/bench-measure.sh --target tynypdf --bench viewer --binary
+  build/win-cross-x64/Release/tynypdf.exe --record-machine
+  --output build/bench-run1.json
+  # (run 2 identical; --compare: "All metrics within 10% tolerance (noise floor 0.5)")
+```
+
+Run 1 metrics: `fwd_peak_rss_kib` max_kib 45624 (44.6 MiB), `ret_peak_rss_kib`
+max_kib 46540 (45.4 MiB). Run 2: 45660 / 45664 KiB. Forward peak <= 250 MiB
+(R30.2) and the return pass within 10% of forward in both runs
+(46540 <= 45624 * 1.10). Eviction stays headless in
+`tests/unit/test_tiles_budget.cc` and `tests/unit/test_viewer_loop.cc`
+(budget ceiling leaves the strip partial); the viewer itself never reaches
+the eviction path - page flips reset the cache and 192 tiles < the 256-tile
+ceiling.
 
 ### 5.4 Cold start, DPI, gesture, caret
 
@@ -470,16 +491,17 @@ $ cat docs/lessons.md | tail -n 20
 Verdict: keep
 
 The spike answers whether a hand-written Win32/Direct2D surface holds the M1 floor. Five of the
-seven M1 criteria are measured on the reference machine (kickoff `docs/kickoff.md` §M1); the two
-that need a content-bearing viewer (5.3's RSS and the 4000x3000 blit) are recorded as not-measured
-here because story 1.5 cannot paint page content yet (AGENTS debt item 1) — a keep must say so, not
-file the row as 0. The verdict itself is about the surface holding the floor, not about numbers the
-viewer cannot produce yet.
+seven M1 criteria were measured on the reference machine on 2026-09-23 (kickoff
+`docs/kickoff.md` §M1); the two that need a content-bearing viewer (5.3's RSS and the 4000x3000
+blit) were recorded as not-measured then because no viewer could paint page content yet (AGENTS
+debt item 1) - a keep must say so, not file the row as 0. Story 1.5 (2026-09-24) made both rows
+measurable; the table below carries the re-measured values. The verdict itself is about the
+surface holding the floor.
 
 | M1 criterion (kickoff) | Target | Measured 2026-09-23 | Pass |
 | --- | --- | --- | --- |
-| Blit a 4000x3000 page region | 60fps sustained, no frame over 33ms p99 | not measured (1.5 content pending, item 1) | defer to content viewer |
-| RSS at 1000 pages open, 3 tiles each | <= 250 MB, no growth on scroll back | not measured (5.3 unchecked) | defer to content viewer |
+| Blit a 4000x3000 page region | 60fps sustained, no frame over 33ms p99 | re-measured 2026-09-24 by story 1.5: full-region steady-state p99 0.682 ms (run 1) / 0.582 ms (run 2), max 0.735 ms, n=24 per run after a 32-frame settle window (the page-flip upload burst and the ~11 ms loop teardown are reported separately in the JSON, not counted as blit frames); commands and runs pasted in `tasks/epic-01/story-1.5-content-viewer.md` | yes |
+| RSS at 1000 pages open, 3 tiles each | <= 250 MB, no growth on scroll back | re-measured 2026-09-24 by story 1.5: forward peak 45624 KiB (44.6 MiB) / 45660 KiB (44.6 MiB), return peak 46540 / 45664 KiB - within 10% of forward in both runs (R30.2) | yes |
 | Cold start to first painted page | <= 300 ms on reference machine | median 184.997 ms (186.595/183.711/184.997) | yes |
 | DPI | Per-Monitor V2, no bitmap stretch at 150%/200% | byte-for-byte YES (dpi-150/200 png checksums pasted in 5.4) | yes |
 | Keyboard and screen reader | every control reachable; Narrator and NVDA announce page, zoom, focus | window provider + children page/zoom/focus; scripts in `docs/a11y/`; exact "Page 1 of 5, zoom 150%" pinned by `tests/unit/test_uia.cc` | yes (this story; Narrator/NVDA run on the physical machine, scripts pasted) |
@@ -488,7 +510,9 @@ viewer cannot produce yet.
 
 Spike kept: the swapchain, the tile cache, the DPI path and the UIA provider are the surface story
 1.5 grows on; no Skia re-visit until the blit/RSS rows above become measurable and then fail
-(kickoff §12 and §M1).
+(kickoff §12 and §M1). Both deferred rows became measurable on 2026-09-24 when story 1.5's
+content viewer landed; both pass with margin (table above), so the keep stands on measured
+numbers instead of a deferral.
 
 - [x] Keyboard + Narrator/NVDA scripts + verdict
 

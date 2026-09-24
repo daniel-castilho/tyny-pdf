@@ -2,6 +2,9 @@
 
 Status: story 5.2 implements the window/swapchain ABI (R15.2) and the boundary
 rules (R15.3, R15.4); R15.1's frame budget is measured by `tools/bench-measure.sh`.
+Story 1.5 drives the loop with real page content through the viewer (R30.1) and
+re-measures the frame budget on the 4000x3000 region (`src/app/viewer/SPEC.md`,
+`src/app/bench/SPEC.md`).
 
 ## Requirements
 

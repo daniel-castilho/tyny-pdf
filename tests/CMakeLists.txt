@@ -236,4 +236,33 @@ if (TYNYPDF_BUILD_TESTS)
     pc_apply_warnings(test_txn_budget)
     add_test(NAME test_txn_budget COMMAND test_txn_budget)
 
+    # viewer_loop test (story 1.5, R30.1) - the platform-neutral viewer loop
+    # compiles and runs headless on Linux against the null backend (R-M10)
+    add_executable(test_viewer_loop unit/test_viewer_loop.cc ${CMAKE_SOURCE_DIR}/src/app/viewer/viewer.cc)
+    target_link_libraries(test_viewer_loop pdfcore tynypdf-tiles tynypdf-cachemap ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)
+    target_include_directories(test_viewer_loop PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/src/app)
+    pc_apply_warnings(test_viewer_loop)
+    add_test(NAME test_viewer_loop COMMAND test_viewer_loop)
+
+    # corpus_contract test (story 1.5, R30.2) - the bench corpus is pinned by
+    # sha256 and page count, opened through the mupdf backend; mupdf-only
+    if (TARGET ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}mupdf)
+        add_executable(test_corpus_contract unit/test_corpus_contract.cc)
+        target_link_libraries(test_corpus_contract pdfcore ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}mupdf)
+        target_include_directories(test_corpus_contract PRIVATE ${CMAKE_SOURCE_DIR}/include)
+        target_compile_definitions(test_corpus_contract PRIVATE
+            TEST_CORPUS_DIR="${CMAKE_SOURCE_DIR}/tests/bench/corpus")
+        pc_apply_warnings(test_corpus_contract)
+        add_test(NAME test_corpus_contract COMMAND test_corpus_contract)
+    endif()
+
+    # sha256 test (story 1.5 fix) - FIPS 180-4 vectors and streaming
+    # consistency; the corpus contract test found the original implementation
+    # produced digests no other tool agreed with
+    add_executable(test_sha256 unit/test_sha256.cc)
+    target_link_libraries(test_sha256 pdfcore)
+    target_include_directories(test_sha256 PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_sha256)
+    add_test(NAME test_sha256 COMMAND test_sha256)
+
 endif()

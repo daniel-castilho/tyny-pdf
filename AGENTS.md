@@ -275,18 +275,21 @@ not silently add an item; flag it in the PR and open it here with the number tha
    of the window ABI: the viewer creates the window, runs the message loop and presents
    frames, with a cold-start triple, a machine block and wheel-latency stamps in
    `build/tynypdf.ui.log` and a byte-for-byte DPI selftest (`tools/win32-ui-selftest.sh`,
-   R24.4-R24.6). It is still a minimal viewer: no undo, no page content
-   (Story 1.5's baseline is blocked, item 5), and the DOD numbers are the measured claim,
-   so "builds" is not yet "does the job with content". Story 5.3 added the render tile
-   cache, cachemap and core budget behind `include/pdfcore/budget.h`, none of which this
-   viewer exercises yet - the 60 fps and RSS numbers that would prove them still need a
-   content-bearing viewer loop. Story 5.5 added the UIA provider
+   R24.4-R24.6). Story 5.5 added the UIA provider
    (`src/os/win32/uia/uia.cc` answering `WM_GETOBJECT` with page/zoom/focus children and
    a read-only ValuePattern), the `docs/a11y/` Narrator/NVDA scripts, and the M1 verdict
-   recorded as **keep** in `tasks/epic-05/epic-5-dod.md` §5.5 - a verdict that is honest
-   about its two unmeasurable rows (the 4000x3000 blit and RSS, both blocked on story
-   1.5's content viewer, cited in `docs/lessons.md` 2026-09-23). The viewer still has no
-   page content, so the a11y announcement is the placeholder "Page 1 of 1, zoom 100%"
+   recorded as **keep** in `tasks/epic-05/epic-5-dod.md` §5.5. Story 1.5 (2026-09-24)
+   added the content viewer loop (`src/app/viewer/`, platform-neutral, R30.1) and the
+   bench mode (`--bench`, R31.1): the viewer opens documents through the backend, tiles
+   the visible region through the cache/cachemap bounded by a `pc_budget`, and the two
+   M1 rows deferred at 5.5 are now measured and pass - full-region steady-state p99
+   0.682/0.582 ms (<= 33 ms, R15.1) and forward peak RSS 45624/45660 KiB with the return
+   pass within 10% (R30.2), on the 1000-page corpus pinned by
+   `tests/unit/test_corpus_contract.cc`. The same story found and fixed `pc_sha256`
+   (its digests disagreed with every other tool; both goldens regenerated - see
+   `docs/lessons.md` 2026-09-24) and deferred a tiles.cc put-replace UAF as an open
+   issue. Still a minimal viewer: no undo, no text selection, no zoom/pan gestures;
+   the a11y announcement is still the placeholder "Page 1 of 1, zoom 100%"
    produced by `pc_uia_state` defaults (the scripts' "Page 1 of 5, zoom 150%" is pinned
    by `tests/unit/test_uia.cc`); the viewer updates the state as documents open.
 2. **Only the doc gates and the matrix's first runs are recorded:** `gates` ran green on `main`
@@ -317,9 +320,10 @@ not silently add an item; flag it in the PR and open it here with the number tha
    sets, header coverage and link differences will keep producing `build:` PRs that look like
    noise.
 8. **The swap budget is under the 0.07 target but the core is still thin:**
-    `tools/layering-check.sh` now measures `backend_line_ratio = 0.0282` (query:
-    `sh tools/layering-check.sh --strict`, 2026-09-23, re-measured after story 5.5),
-    down from 0.0308 at the story 5.4 re-measure (2026-09-23), 0.0333 at the story 5.3
+    `tools/layering-check.sh` now measures `backend_line_ratio = 0.0254` (query:
+    `sh tools/layering-check.sh --strict`, 2026-09-24, re-measured after story 1.5),
+    down from 0.0282 at the story 5.5 re-measure (2026-09-23), 0.0308 at the story 5.4
+    re-measure (2026-09-23), 0.0333 at the story 5.3
     re-measure (2026-09-23), 0.0358 at the story 5.2
     re-measure (2026-09-23), 0.0683 at the story 3.5 re-measure
     (2026-09-21) and 0.1014 at the epic 3 baseline. Every fall so far came from the

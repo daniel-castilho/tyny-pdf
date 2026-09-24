@@ -213,3 +213,26 @@ measured; a row blocked by missing machinery says so and names the story that un
 than passing it with a number nobody took. The kill criterion exists to fire on blit/RSS data
 when the content viewer exists (kickoff §12: Skia revisited only then); a keep today is a
 statement about the surface and its seams, not about rows the viewer cannot produce.
+
+
+## 2026-09-24 - a golden can absorb a wrong hash and become its own truth
+
+Pinning the story 1.5 corpus (a 1000-page PDF whose sha256 was taken with
+`sha256sum` before anything else touched it) failed against `pc_sha256`: the
+core implementation hashed the FIPS 180-4 vector `"abc"` to `5eb67aa5...`
+where every other tool on this box prints `ba7816bf...`. Two goldens had
+already absorbed the wrong digests - `tests/golden/sidecar-stale-report.txt`
+(its "doc sha256" prefix line) and the whole 61-line
+`tests/golden/text-break-positions.txt` - because they were blessed with the
+implementation under test instead of against an outside oracle, and nothing
+in the suite could disagree with them: 40 assertions passed on the same day
+the hash was wrong. The fix was straight FIPS code plus
+`tests/unit/test_sha256.cc` pinning the standard vectors, the one-million-'a'
+streaming case, and incremental-vs-one-shot equality; both goldens were
+regenerated from the fixed implementation and argued in the diff.
+
+**Rule:** a digest goes into a golden only after a second, independent tool
+has produced the same bytes (`sha256sum`, `openssl dgst`), and the primitive
+itself is pinned against published vectors in its own test - never blessed
+from its own output. A golden is a record of what the code did, so it cannot
+be the only thing that says what the code should have done.
