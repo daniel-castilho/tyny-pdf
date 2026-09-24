@@ -402,6 +402,11 @@ $ grep -A2 "presenting frame" build/tynypdf.ui.log
 # | head -n 6
 # -> (paste 3 cold numbers + machine block)
 
+# Measured 2026-09-23, ./tools/win32-ui-selftest.sh --wheels 40:
+#   cold start: init_to_present_ms=186.595 / 183.711 / 184.997 (median 184.997, <= 300ms)
+#   machine: cpu=AMD Ryzen 7 6800H with Radeon Graphics  gpu=NVIDIA GeForce RTX 3060
+#            Laptop GPU os=Windows 10.0.22631 dpi_scale=1.00 size=1024x768
+
 $ python3 tools/corpus-check.py --root . 2>&1
 # -> (paste rc 3 if baseline missing, else ok)
 
@@ -409,9 +414,19 @@ $ sha256sum tests/approvals/dpi-150.png
 # tests/approvals/dpi-200.png
 # -> (paste byte-equal)
 
+# Measured 2026-09-23:
+#   2fbcf06fb62427d7438014662f2455442f6310888bcf0773e123ee462a8c241d  tests/approvals/dpi-150.png
+#   314500c422fe88af3abd9e1ed9566bdeb4ecd5056d03c078b45d5b373be925a8  tests/approvals/dpi-200.png
+#   dpi selftest exit 0, rendered==asked byte-for-byte: YES (both scales)
+
 $ grep "input_ts.*present_ts" build/tynypdf.ui.log
 # | python3 -c "import stats; print(p50,p99,count)"
 # -> (paste p99 ≤16ms)
+
+# Measured 2026-09-23, 40 real WM_MOUSEWHEEL samples per run:
+#   p50=0.057 p99=0.297 max=0.324 ms (run 1)
+#   p50=0.067 p99=0.108 max=0.285 ms (run 2)
+#   p50=0.069 p99=0.114 max=0.302 ms (run 3)
 
 $ ctest --preset linux-core -R caret 2>&1 | tail
 # -> (paste headless)
@@ -420,7 +435,7 @@ $ python3 tools/check.sh 2>&1 | tail -n 5
 # -> (paste 14/14)
 ```
 
-- [ ] Cold 3 numbers + DPI byte-equal + p99 ≤16ms
+- [x] Cold 3 numbers + DPI byte-equal + p99 ≤16ms
 
 ### 5.5 A11y + verdict — keep or kill
 

@@ -112,7 +112,12 @@ execution; evidence in `epic-5-dod.md`.
 
 **Allowlist:** `src/os/win32/dpi/*`,
 `tests/approvals/dpi-*`,
-`tests/unit/test_caret.cc` (extend)
+`tests/unit/test_caret.cc` (extend),
+`src/os/win32/window/*` (wheel pump + cold-start log, R24.6),
+`src/app/main.cc` (viewer entry + `--dpi-selftest`, no logic),
+`src/os/win32/SPEC.md`,
+`tools/win32-ui-selftest.sh` (R24.4-R24.6 Verification target),
+`tasks/epic-05/epic-5-dod.md` (measured numbers)
 **Denylist:** `src/backends/*`
 
 - [ ] Cold start: `QueryPerformanceCounter` from

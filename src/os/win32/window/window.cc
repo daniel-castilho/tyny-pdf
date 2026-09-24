@@ -19,9 +19,36 @@
 #include <wrl/client.h>
 
 #include "pdfcore/window.h"
+#include "dpi/dpi.h"
 // clang-format on
 
+#include <intrin.h>
+
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <string>
+
+#ifndef WM_POINTERWHEEL
+#define WM_POINTERWHEEL 0x024E
+#endif
+
 using Microsoft::WRL::ComPtr;
+
+// QPC milliseconds since an arbitrary origin (monotonic). The dynamic
+// initializer below runs before main(), so kInitQpcMs is the earliest
+// timestamp this module can observe - "process start" within the CRT.
+static double qpc_now_ms() {
+  static LARGE_INTEGER freq = {};
+  if (freq.QuadPart == 0) {
+    QueryPerformanceFrequency(&freq);
+  }
+  LARGE_INTEGER now;
+  QueryPerformanceCounter(&now);
+  return (double)now.QuadPart * 1000.0 / (double)freq.QuadPart;
+}
+
+static const double kInitQpcMs = qpc_now_ms();
 
 // Window class name
 static const wchar_t* const kWindowClassName = L"TynyPDFWindowClass";
@@ -56,6 +83,15 @@ struct WindowData {
 
   // Track if graphics are initialized
   bool graphics_initialized = false;
+
+  // Story 5.4: input/present timing log (build/tynypdf.ui.log).
+  FILE* ui_log = nullptr;
+  bool first_present_logged = false;
+  double input_ts_ms = -1.0;  // pending wheel stamp, logged at next present
+  double create_qpc_ms = 0.0;
+  int frames_presented = 0;
+  int frame_limit = 0;     // TYNYPDF_FRAMES: auto-quit after N presents
+  int wheels_pending = 0;  // TYNYPDF_WHEELS: post N WM_MOUSEWHEEL, one per present
 };
 
 // Forward declarations
@@ -65,9 +101,10 @@ static HRESULT CreateDCompDevice(WindowData* data);
 static HRESULT CreateD2DFactory(WindowData* data);
 static HRESULT CreateD2DDevice(WindowData* data);
 static HRESULT CreateTargetBitmap(WindowData* data);
-static HRESULT InitializeGraphics(WindowData* data);
+static HRESULT InitializeGraphics(WindowData* data, const char** out_step);
 static void ResizeSwapchain(WindowData* data);
 static void RenderFrame(WindowData* data);
+static std::string machine_line(WindowData* data);
 
 // Window procedure
 static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
@@ -134,6 +171,17 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
       return 1;
     }
 
+    case WM_MOUSEWHEEL:
+    case WM_POINTERWHEEL: {
+      // Story 5.4 gesture latency: stamp the arrival, present on the next
+      // loop pass, log input_ts/present_ts there (R24.6).
+      if (data) {
+        data->input_ts_ms = qpc_now_ms();
+        InvalidateRect(hwnd, nullptr, FALSE);
+      }
+      return 0;
+    }
+
     default:
       return DefWindowProc(hwnd, msg, wparam, lparam);
   }
@@ -189,7 +237,11 @@ static HRESULT CreateSwapchain(WindowData* data) {
   desc.BufferCount = 2;
   desc.Scaling = DXGI_SCALING_STRETCH;
   desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
-  desc.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED;
+  // Premultiplied is only valid for per-pixel-composed scenarios; the window
+  // fills its visual opaquely, so the hwnd swapchain takes IGNORE
+  // (CreateSwapChainForHwnd rejects PREMULTIPLIED here with
+  // DXGI_ERROR_INVALID_CALL, seen on the story 5.4 first run).
+  desc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
   desc.Flags = 0;
 
   ComPtr<IDXGISwapChain1> swapchain;
@@ -273,35 +325,37 @@ static HRESULT CreateTargetBitmap(WindowData* data) {
 
   hr = data->d2d_context->CreateBitmapFromDxgiSurface(dxgi_surface.Get(), &props,
                                                       &data->target_bitmap);
+  if (SUCCEEDED(hr)) {
+    // The context must be pointed at the buffer every time it is recreated;
+    // 5.2 never ran this path and EndDraw answered D2DERR (0x88990001) with
+    // no target bound (story 5.4 first run).
+    data->d2d_context->SetTarget(data->target_bitmap.Get());
+  }
   return hr;
 }
 
-// Initialize all graphics resources
-static HRESULT InitializeGraphics(WindowData* data) {
-  HRESULT hr = CreateD3DDevice(data);
-  if (FAILED(hr))
-    return hr;
-
-  hr = CreateSwapchain(data);
-  if (FAILED(hr))
-    return hr;
-
-  hr = CreateDCompDevice(data);
-  if (FAILED(hr))
-    return hr;
-
-  hr = CreateD2DFactory(data);
-  if (FAILED(hr))
-    return hr;
-
-  hr = CreateD2DDevice(data);
-  if (FAILED(hr))
-    return hr;
-
-  hr = CreateTargetBitmap(data);
-  if (FAILED(hr))
-    return hr;
-
+// Initialize all graphics resources; out_step names the first failure
+// (story 5.4: "Graphics initialization failed" was not actionable).
+static HRESULT InitializeGraphics(WindowData* data, const char** out_step) {
+  struct Step {
+    const char* name;
+    HRESULT (*fn)(WindowData*);
+  };
+  static const Step steps[] = {
+      {"d3d11 device", CreateD3DDevice},   {"dxgi swapchain", CreateSwapchain},
+      {"dcomp device", CreateDCompDevice}, {"d2d factory", CreateD2DFactory},
+      {"d2d device", CreateD2DDevice},     {"target bitmap", CreateTargetBitmap},
+  };
+  HRESULT hr = E_FAIL;
+  for (const Step& step : steps) {
+    hr = step.fn(data);
+    if (FAILED(hr)) {
+      if (out_step) {
+        *out_step = step.name;
+      }
+      return hr;
+    }
+  }
   data->graphics_initialized = true;
   return S_OK;
 }
@@ -350,11 +404,97 @@ static void RenderFrame(WindowData* data) {
     return;
   }
 
-  // Present the frame
-  hr = data->swapchain->Present(1, 0);
+  // Story 5.4: present_ts is stamped when the frame is ready for Present -
+  // the loop's processing latency; the compositor owns the queue wait.
+  const double present_ts_ms = qpc_now_ms();
+
+  // Present the frame. Sync 0: this minimal viewer draws a clear frame and
+  // the measurement sessions run headless, where a vblank wait never
+  // returns; the vsync criterion belongs to the content stories.
+  hr = data->swapchain->Present(0, 0);
   if (SUCCEEDED(hr)) {
     data->dcomp_device->Commit();
+    data->frames_presented++;
+
+    if (data->ui_log) {
+      if (!data->first_present_logged) {
+        data->first_present_logged = true;
+        fprintf(data->ui_log, "presenting frame create_to_present_ms=%.3f present_ts=%.3f\n",
+                present_ts_ms - data->create_qpc_ms, present_ts_ms);
+        fprintf(data->ui_log,
+                "cold_start: init_to_create_ms=%.3f create_to_present_ms=%.3f "
+                "init_to_present_ms=%.3f\n",
+                data->create_qpc_ms - kInitQpcMs, present_ts_ms - data->create_qpc_ms,
+                present_ts_ms - kInitQpcMs);
+        fprintf(data->ui_log, "machine: %s\n", machine_line(data).c_str());
+      }
+      if (data->input_ts_ms >= 0.0) {
+        fprintf(data->ui_log, "input_ts=%.3f present_ts=%.3f latency_ms=%.3f\n", data->input_ts_ms,
+                present_ts_ms, present_ts_ms - data->input_ts_ms);
+        data->input_ts_ms = -1.0;
+      }
+      fflush(data->ui_log);
+    }
+  } else if (data->ui_log) {
+    // Fail loud and never leave a measurement run hanging on a session that
+    // cannot present: log the failure, count the attempt, let TYNYPDF_FRAMES
+    // stop the loop.
+    fprintf(data->ui_log, "present failed hr=0x%lx\n", (unsigned long)hr);
+    fflush(data->ui_log);
+    data->frames_presented++;
   }
+
+  if (data->frame_limit > 0 && data->frames_presented >= data->frame_limit) {
+    PostMessage(data->hwnd, WM_CLOSE, 0, 0);
+  }
+}
+
+// Story 5.4: one-line machine block for the cold-start log entry.
+static std::string machine_line(WindowData* data) {
+  char cpu[49] = "unknown";
+  int brand[12] = {}, regs[4] = {};
+  __cpuid(regs, 0x80000000);
+  if ((unsigned int)regs[0] >= 0x80000004u) {
+    for (int i = 0; i < 3; ++i) {
+      __cpuid(brand + i * 4, 0x80000002 + i);
+    }
+    memcpy(cpu, brand, 48);
+    cpu[48] = 0;
+  }
+  const char* cpu_trim = cpu;
+  while (*cpu_trim == ' ') {
+    ++cpu_trim;
+  }
+
+  wchar_t gpu[128] = L"unknown";
+  ComPtr<IDXGIDevice> dxgi_device;
+  ComPtr<IDXGIAdapter> adapter;
+  if (SUCCEEDED(data->d3d_device.As(&dxgi_device)) &&
+      SUCCEEDED(dxgi_device->GetAdapter(&adapter))) {
+    DXGI_ADAPTER_DESC desc = {};
+    if (SUCCEEDED(adapter->GetDesc(&desc))) {
+      wcsncpy(gpu, desc.Description, 127);
+      gpu[127] = 0;
+    }
+  }
+
+  // RtlGetVersion (not the manifest-shimmed GetVersionEx) for the true build.
+  struct RtlOsVersion {
+    unsigned long size, major, minor, build, platform;
+    wchar_t csd[128];
+  } vi = {sizeof(vi), 0, 0, 0, 0, {}};
+  typedef long(WINAPI * RtlGetVersionFn)(RtlOsVersion*);
+  RtlGetVersionFn rtl =
+      (RtlGetVersionFn)GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlGetVersion");
+  if (!rtl || rtl(&vi) != 0) {
+    vi.major = vi.minor = vi.build = 0;
+  }
+
+  char line[512];
+  _snprintf(line, sizeof(line), "cpu=%s gpu=%ls os=Windows %lu.%lu.%lu dpi_scale=%.2f size=%dx%d",
+            cpu_trim, gpu, vi.major, vi.minor, vi.build, data->dpi_scale, data->width,
+            data->height);
+  return std::string(line);
 }
 
 // PC API implementation
@@ -365,6 +505,10 @@ pc_status pc_window_create(const pc_window_params* params, const pc_window_callb
   }
 
   *out_window = nullptr;
+
+  // Story 5.4 (R24.4): PMv2 must be declared before any window exists or
+  // WM_DPICHANGED never arrives.
+  tynypdf::win32::set_dpi_awareness_pm2();
 
   // Register window class (once)
   static bool class_registered = false;
@@ -391,24 +535,9 @@ pc_status pc_window_create(const pc_window_params* params, const pc_window_callb
   data->size_cb = callbacks->size_changed;
   data->user_data = params->user_data;
 
-  // Get initial DPI for the monitor where window will be created
+  // Get initial DPI for the monitor where window will be created (R24.4)
   HMONITOR monitor = MonitorFromWindow(nullptr, MONITOR_DEFAULTTOPRIMARY);
-  UINT dpi = 96;
-  if (monitor) {
-    // GetDpiForMonitor is in shellapi.h, may not be in MinGW headers
-    typedef HRESULT(WINAPI * GetDpiForMonitorFn)(HMONITOR, int, UINT*, UINT*);
-    static GetDpiForMonitorFn pGetDpiForMonitor = nullptr;
-    if (!pGetDpiForMonitor) {
-      HMODULE shcore = GetModuleHandleW(L"shcore.dll");
-      if (shcore) {
-        pGetDpiForMonitor = (GetDpiForMonitorFn)GetProcAddress(shcore, "GetDpiForMonitor");
-      }
-    }
-    if (pGetDpiForMonitor) {
-      pGetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpi, nullptr);
-    }
-  }
-  data->dpi_scale = dpi / 96.0f;
+  data->dpi_scale = tynypdf::win32::get_scale_for_monitor(monitor);
 
   // Create window
   RECT rc = {0, 0, data->width, data->height};
@@ -424,16 +553,52 @@ pc_status pc_window_create(const pc_window_params* params, const pc_window_callb
   }
 
   // Initialize graphics
-  HRESULT hr = InitializeGraphics(data);
+  const char* failed_step = "unknown";
+  HRESULT hr = InitializeGraphics(data, &failed_step);
   if (FAILED(hr)) {
     DestroyWindow(hwnd);
     delete data;
-    return {sizeof(pc_status), PC_ERR_UNSUPPORTED, 0, "Graphics initialization failed"};
+    static char detail[96];  // pc_status.detail is a borrowed pointer; create is one-shot
+    _snprintf(detail, sizeof(detail), "%s failed hr=0x%lx", failed_step, (unsigned long)hr);
+    return {sizeof(pc_status), PC_ERR_UNSUPPORTED, 0, detail};
   }
 
   // Show window
   ShowWindow(hwnd, SW_SHOW);
   UpdateWindow(hwnd);
+
+  // Story 5.4: cold-start and gesture timing log. The default path matches
+  // the DOD commands (run from the repo root); TYNYPDF_UI_LOG overrides it.
+  // TYNYPDF_FRAMES=N auto-quits after N presents so measurements terminate.
+  data->create_qpc_ms = qpc_now_ms();
+  const char* log_path = getenv("TYNYPDF_UI_LOG");
+  const char* frames = getenv("TYNYPDF_FRAMES");
+  data->ui_log = fopen(log_path ? log_path : "build/tynypdf.ui.log", "a");
+  if (data->ui_log) {
+    fprintf(data->ui_log, "viewer: start limit=%s\n", frames ? frames : "off");
+    fflush(data->ui_log);
+  } else {
+    fprintf(stderr, "tynypdf: cannot open ui log (%s)\n",
+            log_path ? log_path : "build/tynypdf.ui.log");
+  }
+  if (frames) {
+    data->frame_limit = atoi(frames);
+  }
+
+  // Story 5.4 R24.6: TYNYPDF_WHEELS=N posts N real WM_MOUSEWHEEL messages
+  // (one per present) so the gesture path is measured end to end, headless,
+  // with every stamp going through the actual wheel handler -> input_ts ->
+  // next present -> latency_ms log line. This is a selftest knob like
+  // TYNYPDF_FRAMES; the interactive product never reads it.
+  const char* wheels = getenv("TYNYPDF_WHEELS");
+  if (wheels) {
+    data->wheels_pending = atoi(wheels);
+    if (data->wheels_pending > 0 && !data->frame_limit) {
+      // Auto-quit once every posted wheel has been measured: N wheels need
+      // at most N+1 presents (first present has no pending input).
+      data->frame_limit = data->wheels_pending + 1;
+    }
+  }
 
   *out_window = reinterpret_cast<pc_window*>(data);
   return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
@@ -446,11 +611,28 @@ pc_status pc_window_run(pc_window* window) {
 
   WindowData* data = reinterpret_cast<WindowData*>(window);
 
-  // Message loop
+  // Message loop. The first frame is presented before GetMessage so cold
+  // start is deterministic and a message-less session (a disconnected or
+  // automated desktop) still presents once; TYNYPDF_FRAMES=1 then exits.
+  RenderFrame(data);
+
   MSG msg = {};
   while (GetMessage(&msg, nullptr, 0, 0)) {
     TranslateMessage(&msg);
     DispatchMessage(&msg);
+
+    // Story 5.4 R24.6 selftest: TYNYPDF_WHEELS=N posts one real WM_MOUSEWHEEL
+    // (delta 120, rel position) to our own queue after each present, so each
+    // wheel travels PostMessage -> queue -> handler (stamps input_ts) ->
+    // next present (logs latency_ms). Wheels are stamped at the wheel that
+    // follows their message, so N posts need at most N+1 presents.
+    if (data->wheels_pending > 0) {
+      // One real notch per present: delta 120 lives in the HIGH word of
+      // WM_MOUSEWHEEL's wparam, matching the wheel handler's
+      // GET_WHEEL_DELTA_WPARAM path that the product uses (R24.6).
+      PostMessage(data->hwnd, WM_MOUSEWHEEL, MAKEWPARAM(0, 120), MAKELPARAM(0, 0));
+      data->wheels_pending--;
+    }
 
     // Render frame after processing messages
     RenderFrame(data);
@@ -489,6 +671,10 @@ void pc_window_destroy(pc_window* window) {
     return;
   WindowData* data = reinterpret_cast<WindowData*>(window);
 
+  if (data->ui_log) {
+    fclose(data->ui_log);
+    data->ui_log = nullptr;
+  }
   if (data->hwnd) {
     DestroyWindow(data->hwnd);
   }

@@ -2,12 +2,14 @@
 # Only build on Windows or when cross-compiling for Windows
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR TYNYPDF_CROSS_WINDOWS)
   add_library(tynypdf-os-win32 OBJECT
+      dpi/dpi.cc
       window/window.cc
       swapchain/swapchain.cc
   )
 
   target_include_directories(tynypdf-os-win32 PUBLIC
       ${CMAKE_SOURCE_DIR}/include
+      ${CMAKE_CURRENT_SOURCE_DIR}
   )
 
   target_link_libraries(tynypdf-os-win32 PUBLIC
@@ -15,6 +17,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR TYNYPDF_CROSS_WINDOWS)
       d3d11
       dcomp
       dxgi
+      windowscodecs
   )
 
   pc_apply_core_flags(tynypdf-os-win32)
