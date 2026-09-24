@@ -280,7 +280,15 @@ not silently add an item; flag it in the PR and open it here with the number tha
    so "builds" is not yet "does the job with content". Story 5.3 added the render tile
    cache, cachemap and core budget behind `include/pdfcore/budget.h`, none of which this
    viewer exercises yet - the 60 fps and RSS numbers that would prove them still need a
-   content-bearing viewer loop.
+   content-bearing viewer loop. Story 5.5 added the UIA provider
+   (`src/os/win32/uia/uia.cc` answering `WM_GETOBJECT` with page/zoom/focus children and
+   a read-only ValuePattern), the `docs/a11y/` Narrator/NVDA scripts, and the M1 verdict
+   recorded as **keep** in `tasks/epic-05/epic-5-dod.md` §5.5 - a verdict that is honest
+   about its two unmeasurable rows (the 4000x3000 blit and RSS, both blocked on story
+   1.5's content viewer, cited in `docs/lessons.md` 2026-09-23). The viewer still has no
+   page content, so the a11y announcement is the placeholder "Page 1 of 1, zoom 100%"
+   produced by `pc_uia_state` defaults (the scripts' "Page 1 of 5, zoom 150%" is pinned
+   by `tests/unit/test_uia.cc`); the viewer updates the state as documents open.
 2. **Only the doc gates and the matrix's first runs are recorded:** `gates` ran green on `main`
    since run `35170901622` (at `94f1950`) and `35171544840` (at `0d64999`); the build matrix
    arrived with PR #2 (`2ec9977`) and its first all-four-green run is `35179132038` (head
@@ -309,16 +317,18 @@ not silently add an item; flag it in the PR and open it here with the number tha
    sets, header coverage and link differences will keep producing `build:` PRs that look like
    noise.
 8. **The swap budget is under the 0.07 target but the core is still thin:**
-   `tools/layering-check.sh` now measures `backend_line_ratio = 0.0308` (query:
-   `sh tools/layering-check.sh --strict`, 2026-09-23, re-measured after story 5.4),
-   down from 0.0333 at the story 5.3 re-measure (2026-09-23), 0.0358 at the story 5.2
-   re-measure (2026-09-23), 0.0683 at the story 3.5 re-measure
-   (2026-09-21) and 0.1014 at the epic 3 baseline. Every fall so far came from the
-   denominator growing - the window and swapchain implementations under `src/os/win32`,
-   then story 5.3's tile cache, cachemap and core budget across `src/render` and
-   `src/core`, then story 5.4's DPI module under `src/os/win32` -
-   never from the backend shrinking; the budget starts to mean something only when
-   `src/core`'s C++ outgrows it.
+    `tools/layering-check.sh` now measures `backend_line_ratio = 0.0282` (query:
+    `sh tools/layering-check.sh --strict`, 2026-09-23, re-measured after story 5.5),
+    down from 0.0308 at the story 5.4 re-measure (2026-09-23), 0.0333 at the story 5.3
+    re-measure (2026-09-23), 0.0358 at the story 5.2
+    re-measure (2026-09-23), 0.0683 at the story 3.5 re-measure
+    (2026-09-21) and 0.1014 at the epic 3 baseline. Every fall so far came from the
+    denominator growing - the window and swapchain implementations under `src/os/win32`,
+    then story 5.3's tile cache, cachemap and core budget across `src/render` and
+    `src/core`, then story 5.4's DPI module, then story 5.5's UIA provider, both under
+    `src/os/win32` -
+    never from the backend shrinking; the budget starts to mean something only when
+    `src/core`'s C++ outgrows it.
 
 ---
 

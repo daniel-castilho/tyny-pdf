@@ -3,6 +3,8 @@
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR TYNYPDF_CROSS_WINDOWS)
   add_library(tynypdf-os-win32 OBJECT
       dpi/dpi.cc
+      uia/uia.cc
+      uia/uia_state.cc
       window/window.cc
       swapchain/swapchain.cc
   )
@@ -17,6 +19,9 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR TYNYPDF_CROSS_WINDOWS)
       d3d11
       dcomp
       dxgi
+      ole32
+      oleaut32
+      uiautomationcore
       windowscodecs
   )
 

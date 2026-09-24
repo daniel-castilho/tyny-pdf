@@ -467,7 +467,30 @@ $ cat docs/lessons.md | tail -n 20
 # -> (paste verdict lesson)
 ```
 
-- [ ] Keyboard + Narrator/NVDA scripts + verdict
+Verdict: keep
+
+The spike answers whether a hand-written Win32/Direct2D surface holds the M1 floor. Five of the
+seven M1 criteria are measured on the reference machine (kickoff `docs/kickoff.md` §M1); the two
+that need a content-bearing viewer (5.3's RSS and the 4000x3000 blit) are recorded as not-measured
+here because story 1.5 cannot paint page content yet (AGENTS debt item 1) — a keep must say so, not
+file the row as 0. The verdict itself is about the surface holding the floor, not about numbers the
+viewer cannot produce yet.
+
+| M1 criterion (kickoff) | Target | Measured 2026-09-23 | Pass |
+| --- | --- | --- | --- |
+| Blit a 4000x3000 page region | 60fps sustained, no frame over 33ms p99 | not measured (1.5 content pending, item 1) | defer to content viewer |
+| RSS at 1000 pages open, 3 tiles each | <= 250 MB, no growth on scroll back | not measured (5.3 unchecked) | defer to content viewer |
+| Cold start to first painted page | <= 300 ms on reference machine | median 184.997 ms (186.595/183.711/184.997) | yes |
+| DPI | Per-Monitor V2, no bitmap stretch at 150%/200% | byte-for-byte YES (dpi-150/200 png checksums pasted in 5.4) | yes |
+| Keyboard and screen reader | every control reachable; Narrator and NVDA announce page, zoom, focus | window provider + children page/zoom/focus; scripts in `docs/a11y/`; exact "Page 1 of 5, zoom 150%" pinned by `tests/unit/test_uia.cc` | yes (this story; Narrator/NVDA run on the physical machine, scripts pasted) |
+| Text input | ABNT2 and pt-BR composition in a field, correct caret over combining marks | headless caret over combining + ABNT2 tilde dead key (R23.1-R23.3) | yes (headless; IME is the Windows job) |
+| Pinch/zoom, wheel | 1:1 tracking, no gesture lag over 16 ms | wheel: p50 0.057-0.069, p99 0.108-0.324, max 0.324 ms (40 samples x3) | yes |
+
+Spike kept: the swapchain, the tile cache, the DPI path and the UIA provider are the surface story
+1.5 grows on; no Skia re-visit until the blit/RSS rows above become measurable and then fail
+(kickoff §12 and §M1).
+
+- [x] Keyboard + Narrator/NVDA scripts + verdict
 
 ### 5.6 Final epic gates (on merge of 5.5, clean clone)
 
