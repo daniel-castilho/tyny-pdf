@@ -6,6 +6,33 @@ CalVer-compatible SemVer as declared in [docs/release-runbook.md](docs/release-r
 
 ## [Unreleased]
 
+### Added (epic 5 story 5.4 - cold start, DPI selftest, wheel latency, caret)
+
+- **Viewer measurement selftest**: `tools/win32-ui-selftest.sh` runs the real
+  `build/win-cross-x64/Release/tynypdf.exe` under WSL interop and asserts the three
+  R24.x claims of the story (R24.4/R24.5/R24.6 in `src/os/win32/SPEC.md`); it is the
+  `Verification:` target for those requirements (mirrors `tools/bench-measure.sh` for
+  R15.1).
+- **Cold start (R24.4)**: `pc_window_run` presents the first frame before `GetMessage`,
+  so `init_to_present_ms` measures process start to first frame deterministically; the
+  first present logs the cold-start triple plus a machine block (cpu/gpu/os/dpi_scale)
+  into `build/tynypdf.ui.log`. Measured 2026-09-23: 186.6 / 183.7 / 185.0 ms
+  (median <= 300 ms target).
+- **DPI byte-for-byte selftest (R24.5)**: `tynypdf --dpi-selftest` renders the test
+  pattern at 150% and 200% and requires the scale-transformed render to be byte-for-byte
+  equal to the render asked at the scaled size, writing `tests/approvals/dpi-150.png`
+  and `dpi-200.png`. This found and fixed the WIC pixel-format bug: the D2D WIC render
+  target rejected straight-alpha `32bppBGRA`, so the module now uses premultiplied
+  `32bppPBGRA` (`0x88982F80` gone).
+- **Wheel latency (R24.6)**: `TYNYPDF_WHEELS=N` posts N real `WM_MOUSEWHEEL` messages
+  (one per present, delta 120) so gesture latency is measured end to end, headless, via
+  the actual wheel handler. The swapchain now presents with sync 0: headless sessions
+  have no vblank, so `Present(1,0)` never returns (a `D2DERR_WRONG_STATE` from a missing
+  `SetTarget` was fixed on the way). Measured 2026-09-23, 40 samples per run:
+  p50 0.056-0.069 ms, p99 0.11-0.30 ms (<= 16 ms target).
+- **Viewer entry point**: `src/app/main.cc` wires the window ABI and gained the
+  `--dpi-selftest [out_dir]` flag; `src/os/win32/CMakeLists.txt` builds the `dpi/` module.
+
 ### Added (epic 5 story 5.3 - render tile cache, cachemap and core budget)
 
 - **Public budget ABI**: `include/pdfcore/budget.h` exposes `pc_budget` (`max_tiles`,
