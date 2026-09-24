@@ -28,6 +28,16 @@ typedef struct pc_pixmap {
   uint32_t format;
 } pc_pixmap;
 
+/// One cluster of page text and where it lives: a quad in user-space points
+/// plus the UTF-8 byte range it covers in the page's text buffer returned by
+/// the backend's page_text_layout (story 6.1, abi 1.2). Value type only; it
+/// never references engine memory (R-M4).
+typedef struct pc_text_box {
+  pc_quad quad;
+  uint32_t byte_offset;
+  uint32_t byte_len;
+} pc_text_box;
+
 /// Page box of the held page. PC_ERR_NONE or PC_ERR_ARGUMENT.
 pc_status pc_page_get_box(const pc_page* page, pc_page_box* out);
 

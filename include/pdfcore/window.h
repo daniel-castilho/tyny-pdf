@@ -30,6 +30,15 @@ typedef struct {
   pc_window_render_callback render;
   pc_window_dpi_callback dpi_changed;
   pc_window_size_callback size_changed;
+  // ABI 1.2 (story 6.1): mouse click callback. button: 1=left, 2=right, 3=middle.
+  // x, y are client coordinates in device pixels. modifiers: bit 0=Shift, 1=Ctrl, 2=Alt.
+  typedef void (*pc_window_click_callback)(int button, int x, int y, int modifiers,
+                                           void* user_data);
+  // Keyboard callback. down: 1=press, 0=release. vk is Windows virtual-key code.
+  // modifiers: bit 0=Shift, 1=Ctrl, 2=Alt.
+  typedef void (*pc_window_key_callback)(int down, int vk, int modifiers, void* user_data);
+  pc_window_click_callback click;
+  pc_window_key_callback key;
 } pc_window_callbacks;
 
 // Window creation parameters.

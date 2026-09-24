@@ -239,7 +239,7 @@ if (TYNYPDF_BUILD_TESTS)
     # viewer_loop test (story 1.5, R30.1) - the platform-neutral viewer loop
     # compiles and runs headless on Linux against the null backend (R-M10)
     add_executable(test_viewer_loop unit/test_viewer_loop.cc ${CMAKE_SOURCE_DIR}/src/app/viewer/viewer.cc)
-    target_link_libraries(test_viewer_loop pdfcore tynypdf-tiles tynypdf-cachemap ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)
+    target_link_libraries(test_viewer_loop pdfcore tynypdf-tiles tynypdf-cachemap tynypdf-selection ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)
     target_include_directories(test_viewer_loop PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/src/app)
     pc_apply_warnings(test_viewer_loop)
     add_test(NAME test_viewer_loop COMMAND test_viewer_loop)
@@ -264,5 +264,26 @@ if (TYNYPDF_BUILD_TESTS)
     target_include_directories(test_sha256 PRIVATE ${CMAKE_SOURCE_DIR}/include)
     pc_apply_warnings(test_sha256)
     add_test(NAME test_sha256 COMMAND test_sha256)
+
+    # selection test (story 6.1, R32.1, R32.2) - hit-test against synthetic text layouts
+    add_executable(test_selection unit/test_selection.cc)
+    target_link_libraries(test_selection pdfcore tynypdf-selection)
+    target_include_directories(test_selection PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_selection)
+    add_test(NAME test_selection COMMAND test_selection)
+
+    # cli_select test (story 6.1, R32.3) - CLI select subcommand
+    add_executable(test_cli_select unit/test_cli_select.cc)
+    target_link_libraries(test_cli_select pdfcore tynypdf-selection)
+    target_include_directories(test_cli_select PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_cli_select)
+    add_test(NAME test_cli_select COMMAND test_cli_select)
+
+    # selection_sidecar test (story 6.1, R32.5) - sidecar round-trip
+    add_executable(test_selection_sidecar unit/test_selection_sidecar.cc)
+    target_link_libraries(test_selection_sidecar pdfcore)
+    target_include_directories(test_selection_sidecar PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_selection_sidecar)
+    add_test(NAME test_selection_sidecar COMMAND test_selection_sidecar)
 
 endif()

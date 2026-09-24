@@ -237,5 +237,46 @@ void viewer_close(viewer_state* st) {
   }
 }
 
+// Story 6.1 (R32.1, R32.4): click handler wiring device-space click to hit-test.
+pc_status viewer_on_click(viewer_state* st, uint32_t page, int x, int y, int modifiers) {
+  (void)modifiers;  // unused in minimal viewer; reserved for future extensions
+  if (!st || !st->api || !st->doc || page >= st->page_count) {
+    return {sizeof(pc_status), PC_ERR_ARGUMENT, 0, "null state"};
+  }
+
+  // Get page crop box
+  pc_page_box box = {};
+  pc_status s = st->api->page_get_box(st->doc, page, &box);
+  if (s.code != PC_ERR_NONE) {
+    return s;
+  }
+
+  // Get backend page
+  void* backend_page = nullptr;
+  s = st->api->page_get(st->doc, page, &backend_page);
+  if (s.code != PC_ERR_NONE || !backend_page) {
+    if (s.code != PC_ERR_NONE)
+      return s;
+    return {sizeof(pc_status), PC_ERR_BACKEND, 0, "page_get returned null"};
+  }
+
+  // Convert device point to page coordinates
+  pc_point device_pt = {static_cast<double>(x), static_cast<double>(y)};
+  pc_selection_result result = {};
+
+  s = pc_selection_hit_test(st->api, backend_page, &device_pt, static_cast<float>(st->dpi),
+                            &box.cropbox, &result);
+  st->api->page_free(backend_page);
+
+  if (s.code == PC_ERR_NONE) {
+    st->selection = result;
+    st->has_selection = true;
+    return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
+  }
+
+  st->has_selection = false;
+  return s;
+}
+
 }  // namespace viewer
 }  // namespace tynypdf

@@ -145,6 +145,26 @@ static pc_status null_face_coverage(void* backend_doc, uint32_t face, uint32_t c
   return {sizeof(pc_status), PC_ERR_CAPABILITY, 0, "capability not supported"};
 }
 
+// R-M5: the null backend declares PC_CAP_TEXT_LAYOUT off, so page_text_layout answers
+// PC_ERR_CAPABILITY - never an empty "no text" layout that a caller could mistake for a
+// textless page.
+static pc_status null_page_text_layout(void* backend_page, char** out_utf8, pc_text_box** out_boxes,
+                                       uint32_t* out_count) {
+  (void)backend_page;
+  if (!out_utf8 || !out_boxes || !out_count) {
+    return {sizeof(pc_status), PC_ERR_ARGUMENT, 0, "null argument"};
+  }
+  *out_utf8 = nullptr;
+  *out_boxes = nullptr;
+  *out_count = 0;
+  return {sizeof(pc_status), PC_ERR_CAPABILITY, 0, "capability not supported"};
+}
+
+static void null_page_text_layout_free(char* utf8, pc_text_box* boxes) {
+  (void)utf8;
+  (void)boxes;
+}
+
 pc_backend_api pc_null_backend_api = {
     .abi_major = PC_BACKEND_API_VERSION_MAJOR,
     .abi_minor = PC_BACKEND_API_VERSION_MINOR,
@@ -162,6 +182,8 @@ pc_backend_api pc_null_backend_api = {
     .doc_find_tables = null_doc_find_tables,
     .face_count = null_face_count,
     .face_coverage = null_face_coverage,
+    .page_text_layout = null_page_text_layout,
+    .page_text_layout_free = null_page_text_layout_free,
 };
 
 const pc_backend_api* pc_null_backend_get_api(void) {

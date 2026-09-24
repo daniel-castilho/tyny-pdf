@@ -14,8 +14,9 @@ extern "C" {
 
 /// Frozen backend vtable ABI (ADR-0011 R-M3). Entries are append-only; bumping abi_major is an
 /// explicit project decision that ships a migration note.
+/// abi 1.2 (story 6.1): appended PC_CAP_TEXT_LAYOUT + page_text_layout/page_text_layout_free.
 #define PC_BACKEND_API_VERSION_MAJOR 1
-#define PC_BACKEND_API_VERSION_MINOR 1
+#define PC_BACKEND_API_VERSION_MINOR 2
 
 /// Document capabilities a backend declares rather than guesses (R-M5). A backend that does not
 /// declare PC_CAP_TABLES MUST answer doc_find_tables with PC_ERR_CAPABILITY, never an empty list.
@@ -24,6 +25,11 @@ extern "C" {
 /// per face whether it draws a codepoint. A backend that does not declare PC_CAP_FACE_COVERAGE
 /// MUST answer face_count with 0 (R-M5) - the caller reports "not supported", never tofu.
 #define PC_CAP_FACE_COVERAGE 2u
+/// Declares text layout extraction (abi 1.2, story 6.1): page_text_layout returns one page's
+/// text as UTF-8 plus per-cluster quads in user-space points, copied out into our value types
+/// (R-M4). A backend that does not declare it MUST answer page_text_layout with
+/// PC_ERR_CAPABILITY (R-M5) - the caller reports "not supported", never an empty layout.
+#define PC_CAP_TEXT_LAYOUT 3u
 
 typedef struct pc_backend_api pc_backend_api;
 
@@ -70,6 +76,19 @@ struct pc_backend_api {
   /// PC_ERR_NONE, PC_ERR_ARGUMENT for null out_has or a non-negative face index, PC_ERR_RANGE
   /// for an out-of-range face (>= face_count). Added at abi 1.1.
   pc_status (*face_coverage)(void* backend_doc, uint32_t face, uint32_t codepoint, int* out_has);
+
+  /// Text layout of one page (abi 1.2, story 6.1, PC_CAP_TEXT_LAYOUT). Sets *out_utf8 to a
+  /// NUL-terminated buffer holding the page's text and *out_boxes to one pc_text_box per
+  /// cluster, with byte ranges indexing *out_utf8. Both buffers are backend memory; the caller
+  /// copies what it keeps and releases both with page_text_layout_free (R-M6). Quads are in
+  /// user-space points, untransformed by DPI (the caller scales via pc_page_box, R8.1).
+  /// PC_ERR_NONE, PC_ERR_ARGUMENT, PC_ERR_MEMORY, PC_ERR_CORRUPT, or PC_ERR_CAPABILITY when
+  /// the backend does not declare PC_CAP_TEXT_LAYOUT (R-M5) - never an empty layout.
+  pc_status (*page_text_layout)(void* backend_page, char** out_utf8, pc_text_box** out_boxes,
+                                uint32_t* out_count);
+  /// Release both buffers returned by page_text_layout. Safe with NULLs (R-M6: the backend
+  /// allocated them, the backend frees them). Added at abi 1.2.
+  void (*page_text_layout_free)(char* utf8, pc_text_box* boxes);
 };
 
 #define PC_BACKEND_API_INIT \
