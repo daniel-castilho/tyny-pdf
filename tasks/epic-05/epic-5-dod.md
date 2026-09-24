@@ -498,34 +498,33 @@ Spike kept: the swapchain, the tile cache, the DPI path and the UIA provider are
 $ git clone https://github.com/daniel-castilho/tyny-pdf.git
 # /tmp/tyny-epic5-final && cd /tmp/tyny-epic5-final
 $ git rev-parse HEAD
-# -> (paste merge of 5.5)
+# 8f227872867b1766d06b5659bd777ea9f0c4e2e8  (merge squash of PR #66, 2026-09-24)
 
 $ sh tools/check.sh 2>&1; echo $?
-# -> (paste 14/14)
+# check: all gates green   -> 14/14 (backend_line_ratio=0.0282, 56 files, 0 violations)
 
 $ sh tools/gates-selftest.sh 2>&1; echo $?
-# -> (paste 13/13)
+# gates-selftest: OK (13/13 suites hold)   [verapdf.sh self-test SKIPPED: oracle not installed]
 
 $ ctest --preset linux-core --output-on-failure
-# -> (paste 0 failed, 20+ incl uia)
+# 100% tests passed, 0 tests failed out of 28   [incl. test_uia; mupdf backend built via tools/build-mupdf-linux.sh]
 
 $ python3 tools/spec-check.py 2>&1
-# -> spec-check: OK (15 specs, 66 reqs, 0 orphans)
-# -> 0 pending (or kill ADR + 4 pending with reason)
+# spec-check: OK (19 specs, 77 requirements, 37 source files, 0 orphans)
+# spec-check: 0 requirement(s) still pending: -
 
 $ sh tools/layering-check.sh --strict 2>&1
-# -> layering-check: backend_line_ratio=0.06*
-# (≤0.07)
+# layering-check: backend_line_ratio=0.0282
+# layering-check: OK (56 source files, 0 violations)   (≤0.07)
 
 $ wc -l src/render/**/*.cc src/os/win32/**/*.cc
-# | tail
-# -> (~800 render + ~600 os lines)
+#  2189 total  (~800 render + ~1400 os lines)
 
 $ git ls-tree -r --name-only HEAD | wc -l
-# -> (paste base +5 docs + ~12 new files)
+# 7792   (+3 a11y docs, +4 uia files, +1 test_uia, +1 public uia.h)
 ```
 
-- [ ] Final gates green on `main`, pasted per gate
+- [x] Final gates green on `main`, pasted per gate
 
 ---
 
@@ -543,12 +542,12 @@ $ git ls-tree -r --name-only HEAD | wc -l
 
 ## 5. Epic 5 completion checklist
 
-- [ ] 5.1: entry + 2 runs + 3 refusals
-- [ ] 5.2: p99 ≤33ms + byte identity + SPEC
+- [x] 5.1: entry + 2 runs + 3 refusals
+- [x] 5.2: p99 ≤33ms + byte identity + SPEC
 - [ ] 5.3: 250MB + return pass
-- [ ] 5.4: cold + DPI + gesture
-- [ ] 5.5: a11y + verdict
-- [ ] `check.sh` 14/14, `gates-selftest` 13/13,
+- [x] 5.4: cold + DPI + gesture
+- [x] 5.5: a11y + verdict
+- [x] `check.sh` 14/14, `gates-selftest` 13/13,
   `ctest` 0 failed, `layering ≤0.07`,
   `spec-check` 0 orphans, `docs-check` 0 — all pasted
   in §5.6 on merge
