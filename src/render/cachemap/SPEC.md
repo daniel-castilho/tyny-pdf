@@ -1,7 +1,9 @@
 # Render Cachemap (M1) — Spatial Tile Query
 
-Status: planned (story 5.3). The cachemap provides spatial indexing of
-tiles for visible-rect queries, working with the tile cache (R27.1).
+Status: story 5.3 landed the cachemap; story 1.5 gave it a content-bearing
+caller (the viewer loop, `src/app/viewer/SPEC.md`). The cachemap provides
+spatial indexing of tiles for visible-rect queries, working with the tile
+cache (R27.1).
 
 ## Requirements
 

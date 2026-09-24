@@ -6,6 +6,49 @@ CalVer-compatible SemVer as declared in [docs/release-runbook.md](docs/release-r
 
 ## [Unreleased]
 
+### Added (epic 1 story 1.5 - content viewer loop, viewer bench, 1000-page corpus)
+
+- **Content viewer loop (R30.1)**: `src/app/viewer/viewer.cc` opens a document
+  through the active backend and serves the visible region as 256x256 tiles
+  through the tile cache and cachemap, bounded by a `pc_budget`; page flips
+  reset the cache (tile keys carry no page dimension, R-M12), misses render
+  through the vtable and copy out to malloc'd payloads (R-M6), and the
+  platform-neutral loop compiles and runs headless on Linux - pinned by
+  `tests/unit/test_viewer_loop.cc` on the null backend. The D2D blit
+  (`src/app/viewer/d2d_blit.cc`, win-only) uploads a tile's bitmap only when
+  its page generation changes and blits from the GPU-resident surface
+  afterwards.
+- **Viewer bench mode (R31.1)**: `tynypdf.exe --bench <pdf>` drives the loop
+  headless - a forward pass (1000 pages), a return pass, then the 4000x3000
+  full-region phase with a 32-frame settle window - and emits
+  fwd/ret/full `frame_ms` and per-phase `peak_rss_kib` JSON. Wired into
+  `tools/bench-measure.sh --bench viewer` (WSLENV forwarding, machine_spec
+  merge, 10% + 0.5-unit-floor `--compare`).
+- **Measured M1 rows (R15.1, R30.2)**: full-region steady-state p99 0.682 ms /
+  0.582 ms (<= 33 ms); forward peak RSS 45624 / 45660 KiB (44.6 / 44.6 MiB,
+  <= 250 MiB), return within 10% of forward in both runs (2026-09-24,
+  reference machine; both JSON runs pasted in
+  `tasks/epic-01/story-1.5-content-viewer.md`, rows updated in
+  `tasks/epic-05/epic-5-dod.md` §5.3/§5.5).
+- **1000-page corpus (R30.2)**: `tests/bench/corpus/gen_corpus.py` generates a
+  deterministic corpus (page 1 the 4000x3000pt R15.1 region, pages 2-1000
+  simple); `corpus-1000p.pdf` (127994 bytes, sha256
+  `e8da98f3516ccc4cda87ca4d43ec29711fdd11eeb6c5acb8e031dfe48ea2368c`) is
+  pinned by `tests/unit/test_corpus_contract.cc` against `sha256sum` ground
+  truth.
+
+### Fixed (epic 1 story 1.5 - found by the corpus pin)
+
+- **`pc_sha256` produced digests no other tool agrees with**: the FIPS 180-4
+  vector `"abc"` hashed to `5eb67aa5...` instead of `ba7816bf...`. Rewritten
+  in `src/core/sha256.cc`, pinned by the new `tests/unit/test_sha256.cc`
+  (FIPS vectors, million-'a' streaming, incremental equality). Both goldens
+  that had absorbed wrong digests were regenerated from the fixed
+  implementation: `tests/golden/sidecar-stale-report.txt` (fingerprint
+  prefixes) and `tests/golden/text-break-positions.txt` (all 61 lines -
+  offsets unchanged, digests corrected). Lesson recorded in
+  `docs/lessons.md` (2026-09-24).
+
 ### Added (epic 5 story 5.5 - UI Automation provider, a11y scripts, M1 verdict)
 
 - **UIA provider (R24.7)**: `src/os/win32/uia/uia.cc` answers `WM_GETOBJECT` with a
@@ -22,9 +65,10 @@ CalVer-compatible SemVer as declared in [docs/release-runbook.md](docs/release-r
 - **M1 verdict: keep**: the hand-written Win32/Direct2D surface holds the floor - five of
   the seven M1 criteria are measured (cold start median 184.997 ms <= 300 ms, DPI
   byte-for-byte at 150%/200%, wheel p99 <= 0.324 ms, caret headless, UIA provider). The
-  two content-bearing ones (4000x3000 blit, RSS) are honestly recorded as not measured
-  because story 1.5 cannot paint page content yet (debt item 1). Table and reasoning in
-  `tasks/epic-05/epic-5-dod.md` §5.5.
+  two content-bearing ones (4000x3000 blit, RSS) were recorded as not measured at 5.5
+  because no viewer could paint content yet (debt item 1); story 1.5 re-measured both
+  rows on 2026-09-24 and they pass with margin (see the story 1.5 entry above). Table
+  and reasoning in `tasks/epic-05/epic-5-dod.md` §5.5.
 
 ### Added (epic 5 story 5.4 - cold start, DPI selftest, wheel latency, caret)
 

@@ -1,7 +1,11 @@
 # Render Tiles (M1) — Tile Cache with LRU Eviction
 
-Status: planned (story 5.3). The tile cache provides 256x256 tiles with
-LRU eviction, bounded by `pc_budget` from the core (ADR-0011 R-M8).
+Status: story 5.3 landed the cache; story 1.5 gave it a content-bearing caller
+(the viewer loop, `src/app/viewer/SPEC.md`). The tile cache provides 256x256
+tiles with LRU eviction, bounded by `pc_budget` from the core (ADR-0011
+R-M8). Known defect, issue open: the put-replace branch in `tiles.cc`
+double-frees the transferred payload; the viewer never reaches it (page flips
+reset the cache) and no test pins it.
 
 ## Requirements
 

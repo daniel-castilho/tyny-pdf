@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 # bench-measure.sh - M0.4 / Epic 5 benchmark runner
-# Verifies: R15.1 (src/features/render/SPEC.md) - the frame-budget measurement harness.
+# Verifies: R15.1 (src/features/render/SPEC.md) - the frame-budget measurement harness;
+# story 1.5: R30.2 (src/app/viewer/SPEC.md) - the viewer's 250 MiB resident-memory ceiling
+# on a 1000-page corpus at three tiles per page;
+# R31.1 (src/app/bench/SPEC.md) - the viewer bench mode that emits frame_ms/peak_rss_kib.
 # Usage: ./tools/bench-measure.sh [--target sumatra-3.6.1|sumatra-3.7pre|tynypdf]
 #                          [--backend null|mupdf] [--corpus tests/bench/corpus]
 #                          [--runs N] [--output results.json]
 #                          [--binary PATH] [--record-machine] [--compare FILE1 FILE2] [--machine SPEC]
+#                          [--bench viewer] [--tiles N] [--rows N]
 
 set -euo pipefail
 
@@ -24,6 +28,9 @@ COMPARE_MODE=false
 COMPARE_FILE1=""
 COMPARE_FILE2=""
 MACHINE_OVERRIDE=""
+BENCH=""
+BENCH_TILES=""
+BENCH_ROWS=""
 
 usage() {
     cat <<EOF
@@ -36,8 +43,11 @@ Options:
   --output FILE         Output JSON file (default: stdout)
   --binary PATH         Path to tynypdf.exe (required for tynypdf target on Windows)
   --record-machine      Include machine_spec in output JSON
-  --compare FILE1 FILE2 Compare two JSON runs (exit 0 if within 10%, 1 otherwise)
+  --compare FILE1 FILE2 Compare two JSON runs (exit 0 if within 10% and the 0.5-unit noise floor, 1 otherwise)
   --machine SPEC        Override machine_spec for cross-machine compare (values: 'other')
+  --bench viewer        Viewer bench mode (story 1.5): tynypdf.exe --bench over the corpus
+  --tiles N             Viewer bench strip width in tiles (default: 3)
+  --rows N              Viewer bench strip height in tile rows (default: 1)
   --help                Show this help
 
 Exit codes (for refusal tests):
@@ -60,6 +70,9 @@ while [[ $# -gt 0 ]]; do
         --record-machine) RECORD_MACHINE=true; shift ;;
         --compare) COMPARE_MODE=true; COMPARE_FILE1="$2"; COMPARE_FILE2="$3"; shift 3 ;;
         --machine) MACHINE_OVERRIDE="$2"; shift 2 ;;
+        --bench) BENCH="$2"; shift 2 ;;
+        --tiles) BENCH_TILES="$2"; shift 2 ;;
+        --rows) BENCH_ROWS="$2"; shift 2 ;;
         --help) usage; exit 0 ;;
         *) echo "Unknown option: $1" >&2; usage; exit 1 ;;
     esac
@@ -115,4 +128,7 @@ python3 "${HARNESS_DIR}/run_benchmark.py" \
     --runs "${RUNS}" \
     ${BINARY:+--binary "${BINARY}"} \
     ${RECORD_MACHINE:+--record-machine} \
+    ${BENCH:+--bench "${BENCH}"} \
+    ${BENCH_TILES:+--tiles "${BENCH_TILES}"} \
+    ${BENCH_ROWS:+--rows "${BENCH_ROWS}"} \
     ${OUTPUT_FILE:+--output "${OUTPUT_FILE}"}

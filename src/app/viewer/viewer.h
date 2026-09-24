@@ -1,0 +1,92 @@
+// Platform-neutral viewer loop (story 1.5, R30.1).
+// src/app/viewer/viewer.h
+// No Windows header and no engine header (ADR-0011 R-M10): this TU compiles
+// on Linux, where headless tests exercise the same code path the Windows
+// viewer runs. The D2D blit of a tile lives in d2d_blit.cc (win-only).
+
+#pragma once
+
+#include <stddef.h>
+#include <stdint.h>
+
+#include "pdfcore/backend.h"
+#include "pdfcore/budget.h"
+#include "pdfcore/render.h"
+#include "pdfcore/status.h"
+#include "pdfcore/transaction.h"  // full pc_budget definition (value type, budget.h)
+
+namespace tynypdf {
+namespace viewer {
+
+// Mirror of the opaque pc_tile layout in src/render/tiles/tiles.cc. The ABI
+// keeps pc_tile opaque (include/pdfcore/render.h), so the viewer replicates
+// the struct exactly, as tests/unit/test_tiles.cc already does (R-M12). Keep
+// the two definitions in step; tiles.cc documents that the layout is pinned.
+struct pc_tile_mirror {
+  uint32_t x;
+  uint32_t y;
+  uint32_t zoom;
+  uint32_t ref_count;
+  uint64_t size_bytes;
+  uint64_t last_access;
+  void* data;
+};
+
+// Header at the start of every tile->data buffer held by the cache. The
+// buffer is malloc'd by the viewer, so cache eviction may free() it (R-M6:
+// engine buffers are never cached; page_render output is copied out first).
+// `page_gen` is the viewer's page generation: it changes exactly when the
+// tile's content changes (a page flip resets the cache), so the blit layer
+// can upload only on change and blit every frame after (R15.1).
+struct tile_payload {
+  uint32_t width;
+  uint32_t height;
+  uint32_t stride;
+  uint32_t page_gen;
+};
+
+// Viewer state. The Windows composition root owns one of these and the
+// window's user_data points at it; headless tests own one too.
+struct viewer_state {
+  const pc_backend_api* api = nullptr;
+  void* doc = nullptr;
+  uint32_t page_count = 0;
+  uint32_t dpi = 72;
+  uint32_t max_tiles = 256;  // pc_budget.max_tiles ceiling (0 = unlimited)
+  uint64_t max_bytes = 0;    // pc_budget.max_bytes ceiling (0 = unlimited)
+  pc_tile_cache* cache = nullptr;
+  pc_cachemap* map = nullptr;
+  pc_budget budget = {};              // value type, caller-allocated POD (budget.h)
+  uint32_t cached_tiles = 0;          // tiles currently cached (bound for the budget)
+  uint64_t tiles_rendered = 0;        // page_render calls since open (cache misses)
+  uint32_t active_page = UINT32_MAX;  // last demanded page; reset tiles on change
+  uint32_t page_gen = 0;              // bumped on every tile reset; stamps tile_payload
+};
+
+// Open `path` through `api` and allocate the cache, cachemap and budget.
+// PC_ERR_NONE, PC_ERR_IO, PC_ERR_PASSWORD, PC_ERR_CORRUPT, PC_ERR_MEMORY.
+pc_status viewer_open(viewer_state* st, const pc_backend_api* api, const char* path, uint32_t dpi,
+                      uint32_t max_tiles, uint64_t max_bytes);
+
+// Demand an cols x rows grid of tiles starting at (col0, row0) of `page`.
+// Tiles already cached are hit; misses are rendered and inserted. Tile keys
+// carry no page dimension, so demanding a different page first discards the
+// whole cache (the previous page's tiles would otherwise alias the new page's
+// coords). The budget ceiling is checked before an insert: PC_ERR_LIMIT leaves
+// the strip partially filled rather than over-committing memory (R30.2's
+// ceiling is enforced here and measured externally by tools/bench-measure.sh).
+pc_status viewer_demand(viewer_state* st, uint32_t page, int32_t col0, int32_t row0, uint32_t cols,
+                        uint32_t rows);
+
+// Draw the same grid through `draw`, once per tile that is present in the
+// cachemap. `user_data` is passed through to the draw callback.
+typedef pc_status (*viewer_draw_fn)(const tile_payload* payload, int32_t col, int32_t row,
+                                    void* user_data);
+pc_status viewer_draw(viewer_state* st, uint32_t page, int32_t col0, int32_t row0, uint32_t cols,
+                      uint32_t rows, viewer_draw_fn draw, void* user_data);
+
+// Release the cache, cachemap and document.
+void viewer_close(viewer_state* st);
+
+}  // namespace viewer
+}  // namespace tynypdf

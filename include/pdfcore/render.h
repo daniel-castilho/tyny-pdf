@@ -17,7 +17,7 @@ typedef enum pc_render_backend {
   PC_RENDER_BACKEND_MUPDF = 1,
 } pc_render_backend;
 
-// Swapchain (M6 render milestone). Unwired today: R15.1/R15.3 SPEC requirements are pending.
+// Swapchain (story 5.2; the ABI is pinned by tests/unit/test_window_swapchain.cc).
 typedef struct pc_swapchain pc_swapchain;
 
 /// PC_ERR_NONE or PC_ERR_MEMORY.
@@ -26,7 +26,8 @@ pc_status pc_swapchain_create(pc_swapchain** out_swapchain);
 pc_status pc_swapchain_present(pc_swapchain* swapchain);
 void pc_swapchain_destroy(pc_swapchain* swapchain);
 
-// Tile cache (M6 render milestone). Unwired today: R15.2 SPEC requirements are pending.
+// Tile cache (story 5.3, pinned by tests/unit/test_tiles*.cc and driven with
+// content by the story 1.5 viewer loop).
 typedef struct pc_tile_cache pc_tile_cache;
 typedef struct pc_tile pc_tile;
 
@@ -35,7 +36,7 @@ pc_status pc_tile_cache_get(pc_tile_cache* cache, uint32_t x, uint32_t y, pc_til
 pc_status pc_tile_cache_put(pc_tile_cache* cache, uint32_t x, uint32_t y, pc_tile* tile);
 void pc_tile_cache_destroy(pc_tile_cache* cache);
 
-// Cachemap (M6 render milestone). Unwired today: R15.2 SPEC requirements are pending.
+// Cachemap (story 5.3, pinned by tests/unit/test_cachemap*.cc).
 typedef struct pc_cachemap pc_cachemap;
 
 pc_status pc_cachemap_create(uint32_t width, uint32_t height, pc_cachemap** out_map);
@@ -43,7 +44,7 @@ pc_status pc_cachemap_query(pc_cachemap* map, int x, int y, pc_tile** out_tile);
 pc_status pc_cachemap_insert(pc_cachemap* map, int x, int y, pc_tile* tile);
 void pc_cachemap_destroy(pc_cachemap* map);
 
-// Render context (M6 render milestone). Unwired today.
+// Render context (story 5.2).
 typedef struct pc_render_context pc_render_context;
 
 pc_status pc_render_context_create(pc_render_backend backend, pc_render_context** out_ctx);

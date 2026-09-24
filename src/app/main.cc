@@ -1,7 +1,9 @@
 // tynypdf viewer entry point - story 5.4: the window ABI gets its first
 // caller. Composition only: create, run, destroy; the window module owns
 // DPI awareness, the message loop and the timing log (R24.4-R24.6).
-// The non-Windows path stays the honest stub until a window backend exists.
+// Story 1.5: --bench drives the content viewer loop headless (R31.1) and
+// --render-dpi-selftest reports the DPI probe. The non-Windows path stays
+// the honest stub until a window backend exists.
 
 #include <cstdio>
 
@@ -14,11 +16,18 @@ namespace tynypdf {
 namespace win32 {
 bool dpi_selftest(const char* out_dir);
 }  // namespace win32
+namespace bench {
+int bench_main(const char* pdf_path);
+}  // namespace bench
 }  // namespace tynypdf
 #endif
 
 int main(int argc, char** argv) {
 #ifdef _WIN32
+  if (argc > 1 && std::string(argv[1]) == "--bench") {
+    return tynypdf::bench::bench_main(argc > 2 ? argv[2] : nullptr);
+  }
+
   if (argc > 1 && std::string(argv[1]) == "--dpi-selftest") {
     const char* out_dir = argc > 2 ? argv[2] : "tests/approvals";
     return tynypdf::win32::dpi_selftest(out_dir) ? 0 : 1;

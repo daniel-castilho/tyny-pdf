@@ -181,6 +181,7 @@ def main():
     if args.output:
         with open(args.output, 'w') as f:
             json.dump(result, f, indent=2)
+            f.write('\n')  # canonical-check: every tracked file ends with a newline
 
     # Print summary
     print(f"Corpus validation: {'PASS' if result['valid'] else 'FAIL'}")

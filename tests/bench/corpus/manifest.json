@@ -18,16 +18,20 @@
       "size": 823,
       "sha256": "68a3594e628925bdd20446b9d5413122eb0991abab8c3493a39925852c4a3a8f",
       "valid": true
+    },
+    {
+      "path": "corpus-1000p.pdf",
+      "size": 127994,
+      "sha256": "e8da98f3516ccc4cda87ca4d43ec29711fdd11eeb6c5acb8e031dfe48ea2368c",
+      "valid": true
     }
   ],
   "errors": [],
-  "warnings": [
-    "No manifest.txt found"
-  ],
+  "warnings": [],
   "stats": {
-    "total_files": 3,
-    "total_size": 2267,
-    "valid_pdfs": 3,
+    "total_files": 4,
+    "total_size": 130261,
+    "valid_pdfs": 4,
     "invalid_pdfs": 0
   }
 }
