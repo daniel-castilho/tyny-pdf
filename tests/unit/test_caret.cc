@@ -1,4 +1,4 @@
-// Story 4.4 (R23.1-R23.3): caret movement over one grapheme cluster, headless.
+// Story 4.4 (R23.1-R23.3) / Story 6.2 (R33.1): caret movement over one grapheme cluster, headless.
 // `e + U+0301` moves in ONE step, the caret never stops inside a combining
 // sequence, inside an ABNT2 `~ + a` composition, or between a letter and its
 // hyphen. No backend is linked: the stop set is the cluster starts from
