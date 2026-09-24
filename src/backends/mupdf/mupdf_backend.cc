@@ -306,12 +306,14 @@ static const char* mupdf_get_last_error(void* backend_doc) {
   return "MuPDF error";
 }
 
-// R-M5 (R16.1): the mupdf backend declares PC_CAP_FACE_COVERAGE (R13.3) and nothing else;
-// find_tables reports PC_ERR_CAPABILITY, never an empty list.
+// R-M5 (R16.1): the mupdf backend declares PC_CAP_FACE_COVERAGE (R13.3) and PC_CAP_TEXT_LAYOUT
+// (R13.4, abi 1.2); find_tables reports PC_ERR_CAPABILITY, never an empty list.
 static int mupdf_doc_has_capability(void* backend_doc, uint32_t capability) __attribute__((used));
 static int mupdf_doc_has_capability(void* backend_doc, uint32_t capability) {
-  (void)backend_doc;
-  return capability == PC_CAP_FACE_COVERAGE ? 1 : 0;
+  if (!backend_doc) {
+    return 0;
+  }
+  return capability == PC_CAP_FACE_COVERAGE || capability == PC_CAP_TEXT_LAYOUT ? 1 : 0;
 }
 
 static pc_status mupdf_doc_find_tables(void* backend_doc, pc_rect* out_rects, size_t* out_count,
@@ -389,6 +391,115 @@ static pc_status mupdf_face_coverage(void* backend_doc, uint32_t face, uint32_t 
   return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
 }
 
+// R13.4 (abi 1.2, story 6.1) - one page's text as UTF-8 plus per-cluster quads. The engine's
+// fz_stext walk is translated exactly here (exception_bridge owns fz_try, R-M2), and every
+// value crossing out is copied into our malloc'd buffers - the caller frees through
+// page_text_layout_free, never fz memory directly (R-M6).
+static pc_status mupdf_page_text_layout(void* backend_page, char** out_utf8,
+                                        pc_text_box** out_boxes, uint32_t* out_count)
+    __attribute__((used));
+static pc_status mupdf_page_text_layout(void* backend_page, char** out_utf8,
+                                        pc_text_box** out_boxes, uint32_t* out_count) {
+  if (!backend_page || !out_utf8 || !out_boxes || !out_count) {
+    return {sizeof(pc_status), PC_ERR_ARGUMENT, 0, "null argument"};
+  }
+  *out_utf8 = nullptr;
+  *out_boxes = nullptr;
+  *out_count = 0;
+
+  MupdfPage* page = static_cast<MupdfPage*>(backend_page);
+  fz_context* ctx = page->ctx;
+
+  fz_stext_options opts = {};
+  opts.flags = FZ_STEXT_PRESERVE_LIGATURES | FZ_STEXT_PRESERVE_WHITESPACE;
+
+  fz_stext_page* stext = nullptr;
+  fz_var(stext);
+  pc_status s = mupdf::run_guarded(
+      ctx,
+      [&]() -> pc_status {
+        stext = fz_new_stext_page_from_page(ctx, page->page, &opts);
+        if (!stext) {
+          return {sizeof(pc_status), PC_ERR_MEMORY, 0, "OOM extracting text"};
+        }
+        return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
+      },
+      "text extraction failed");
+  if (s.code != PC_ERR_NONE) {
+    return s;
+  }
+
+  // Two passes: count clusters and the UTF-8 byte length, then fill. A single realloc'd
+  // growth pass would leave half-translated state on OOM; counting is cheap and safe.
+  uint32_t cluster_count = 0;
+  uint32_t utf8_len = 0;
+  for (fz_stext_block* block = stext->first_block; block; block = block->next) {
+    if (block->type != FZ_STEXT_BLOCK_TEXT) {
+      continue;
+    }
+    for (fz_stext_line* line = block->u.t.first_line; line; line = line->next) {
+      for (fz_stext_char* ch = line->first_char; ch; ch = ch->next) {
+        cluster_count++;
+        char mini[8];
+        utf8_len += (uint32_t)fz_runetochar(mini, ch->c);
+      }
+      utf8_len += 1;  // one '\n' per line, cluster-less
+    }
+  }
+
+  char* utf8 = (char*)std::malloc(utf8_len + 1);
+  pc_text_box* boxes =
+      cluster_count ? (pc_text_box*)std::malloc(cluster_count * sizeof(pc_text_box)) : nullptr;
+  if (!utf8 || (cluster_count && !boxes)) {
+    std::free(utf8);
+    std::free(boxes);
+    fz_drop_stext_page(ctx, stext);
+    return {sizeof(pc_status), PC_ERR_MEMORY, 0, "OOM copying text out"};
+  }
+
+  uint32_t box_i = 0;
+  uint32_t byte_i = 0;
+  for (fz_stext_block* block = stext->first_block; block; block = block->next) {
+    if (block->type != FZ_STEXT_BLOCK_TEXT) {
+      continue;
+    }
+    for (fz_stext_line* line = block->u.t.first_line; line; line = line->next) {
+      for (fz_stext_char* ch = line->first_char; ch; ch = ch->next) {
+        pc_text_box* box = &boxes[box_i++];
+        box->quad.ul_x = ch->quad.ul.x;
+        box->quad.ul_y = ch->quad.ul.y;
+        box->quad.ur_x = ch->quad.ur.x;
+        box->quad.ur_y = ch->quad.ur.y;
+        box->quad.ll_x = ch->quad.ll.x;
+        box->quad.ll_y = ch->quad.ll.y;
+        box->quad.lr_x = ch->quad.lr.x;
+        box->quad.lr_y = ch->quad.lr.y;
+        box->byte_offset = byte_i;
+        char mini[8];
+        int len = fz_runetochar(mini, ch->c);
+        std::memcpy(utf8 + byte_i, mini, (size_t)len);
+        box->byte_len = (uint32_t)len;
+        byte_i += (uint32_t)len;
+      }
+      utf8[byte_i] = '\n';
+      byte_i += 1;
+    }
+  }
+  utf8[utf8_len] = '\0';
+  fz_drop_stext_page(ctx, stext);
+
+  *out_utf8 = utf8;
+  *out_boxes = boxes;
+  *out_count = cluster_count;
+  return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
+}
+
+static void mupdf_page_text_layout_free(char* utf8, pc_text_box* boxes) __attribute__((used));
+static void mupdf_page_text_layout_free(char* utf8, pc_text_box* boxes) {
+  std::free(utf8);
+  std::free(boxes);
+}
+
 pc_backend_api pc_mupdf_backend_api = {
     .abi_major = PC_BACKEND_API_VERSION_MAJOR,
     .abi_minor = PC_BACKEND_API_VERSION_MINOR,
@@ -406,6 +517,8 @@ pc_backend_api pc_mupdf_backend_api = {
     .doc_find_tables = mupdf_doc_find_tables,
     .face_count = mupdf_face_count,
     .face_coverage = mupdf_face_coverage,
+    .page_text_layout = mupdf_page_text_layout,
+    .page_text_layout_free = mupdf_page_text_layout_free,
 };
 
 const pc_backend_api* pc_mupdf_backend_get_api(void) {

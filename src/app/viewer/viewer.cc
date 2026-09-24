@@ -237,5 +237,183 @@ void viewer_close(viewer_state* st) {
   }
 }
 
+// Story 6.1 (R32.1, R32.4): click handler wiring device-space click to hit-test.
+pc_status viewer_on_click(viewer_state* st, uint32_t page, int x, int y, int modifiers) {
+  (void)modifiers;  // unused in minimal viewer; reserved for future extensions
+  if (!st || !st->api || !st->doc || page >= st->page_count) {
+    return {sizeof(pc_status), PC_ERR_ARGUMENT, 0, "null state"};
+  }
+
+  // Get page crop box
+  pc_page_box box = {};
+  pc_status s = st->api->page_get_box(st->doc, page, &box);
+  if (s.code != PC_ERR_NONE) {
+    return s;
+  }
+
+  // Get backend page
+  void* backend_page = nullptr;
+  s = st->api->page_get(st->doc, page, &backend_page);
+  if (s.code != PC_ERR_NONE || !backend_page) {
+    if (s.code != PC_ERR_NONE)
+      return s;
+    return {sizeof(pc_status), PC_ERR_BACKEND, 0, "page_get returned null"};
+  }
+
+  // Convert device point to page coordinates
+  pc_point device_pt = {static_cast<double>(x), static_cast<double>(y)};
+  pc_selection_result result = {};
+
+  s = pc_selection_hit_test(st->api, backend_page, &device_pt, static_cast<float>(st->dpi),
+                            &box.cropbox, &result);
+  st->api->page_free(backend_page);
+
+  if (s.code == PC_ERR_NONE) {
+    st->selection = result;
+    st->has_selection = true;
+    return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
+  }
+
+  st->has_selection = false;
+  return s;
+}
+
+// Keyboard handler: moves caret or extends selection based on key (R33.2, R34.1).
+// VK_LEFT/VK_RIGHT: move caret by one grapheme cluster.
+// VK_HOME/VK_END: move caret to start/end of line.
+// Ctrl+VK_LEFT/VK_RIGHT: move caret by word (placeholder: same as cluster for now).
+// Shift+VK_LEFT/VK_RIGHT: extend selection.
+// Shift+VK_HOME/VK_END: extend selection to start/end of line.
+pc_status viewer_on_key(viewer_state* st, uint32_t page, int vk, int down, int modifiers) {
+  (void)modifiers;  // shift/ctrl/alt are encoded in vk behavior below
+
+  if (!st || !st->api || !st->doc || page >= st->page_count) {
+    return {sizeof(pc_status), PC_ERR_ARGUMENT, 0, "null state"};
+  }
+  if (!down) {
+    return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};  // only handle key down
+  }
+
+  // Get page text layout for caret movement
+  void* backend_page = nullptr;
+  pc_status s = st->api->page_get(st->doc, page, &backend_page);
+  if (s.code != PC_ERR_NONE || !backend_page) {
+    if (s.code != PC_ERR_NONE)
+      return s;
+    return {sizeof(pc_status), PC_ERR_BACKEND, 0, "page_get returned null"};
+  }
+
+  pc_page_box box = {};
+  s = st->api->page_get_box(st->doc, page, &box);
+  if (s.code != PC_ERR_NONE) {
+    st->api->page_free(backend_page);
+    return s;
+  }
+
+  char* utf8 = nullptr;
+  pc_text_box* boxes = nullptr;
+  uint32_t count = 0;
+  s = st->api->page_text_layout(backend_page, &utf8, &boxes, &count);
+  st->api->page_free(backend_page);
+
+  if (s.code != PC_ERR_NONE || count == 0 || !utf8 || !utf8[0]) {
+    if (utf8)
+      st->api->page_text_layout_free(utf8, nullptr);
+    if (boxes)
+      st->api->page_text_layout_free(nullptr, boxes);
+    return {sizeof(pc_status), PC_ERR_RANGE, 0, "no text on page"};
+  }
+
+  uint32_t utf8_len = (uint32_t)strlen(utf8);
+  uint32_t new_caret = st->has_caret ? st->caret_pos : utf8_len / 2;
+  bool shift = false;  // handled via vk
+
+  // Determine action from virtual key
+  switch (vk) {
+    case 0x25:  // VK_LEFT
+      shift = (modifiers & 1);
+      if (shift) {
+        // Extend selection left
+        if (!st->has_selection) {
+          st->selection_anchor = new_caret;
+        }
+        pc_status c = pc_caret_left(utf8, utf8_len, new_caret, &new_caret);
+        if (c.code != PC_ERR_NONE)
+          new_caret = 0;
+        s = pc_selection_extend(st->api, backend_page, st->selection_anchor, new_caret, st->dpi,
+                                &box.cropbox, &st->selection);
+        st->has_selection = (s.code == PC_ERR_NONE);
+      } else {
+        // Move caret left
+        pc_status c = pc_caret_left(utf8, utf8_len, new_caret, &new_caret);
+        if (c.code != PC_ERR_NONE)
+          new_caret = 0;
+        st->has_selection = false;
+      }
+      break;
+
+    case 0x27:  // VK_RIGHT
+      shift = (modifiers & 1);
+      if (shift) {
+        // Extend selection right
+        if (!st->has_selection) {
+          st->selection_anchor = new_caret;
+        }
+        pc_status c = pc_caret_right(utf8, utf8_len, new_caret, &new_caret);
+        if (c.code != PC_ERR_NONE)
+          new_caret = utf8_len;
+        s = pc_selection_extend(st->api, backend_page, st->selection_anchor, new_caret, st->dpi,
+                                &box.cropbox, &st->selection);
+        st->has_selection = (s.code == PC_ERR_NONE);
+      } else {
+        // Move caret right
+        pc_status c = pc_caret_right(utf8, utf8_len, new_caret, &new_caret);
+        if (c.code != PC_ERR_NONE)
+          new_caret = utf8_len;
+        st->has_selection = false;
+      }
+      break;
+
+    case 0x24:  // VK_HOME
+      shift = (modifiers & 1);
+      new_caret = 0;
+      if (shift && !st->has_selection) {
+        st->selection_anchor = new_caret;
+        s = pc_selection_extend(st->api, backend_page, st->selection_anchor, new_caret, st->dpi,
+                                &box.cropbox, &st->selection);
+        st->has_selection = (s.code == PC_ERR_NONE);
+      } else {
+        st->has_selection = false;
+      }
+      break;
+
+    case 0x23:  // VK_END
+      shift = (modifiers & 1);
+      new_caret = utf8_len;
+      if (shift && !st->has_selection) {
+        st->selection_anchor = new_caret;
+        s = pc_selection_extend(st->api, backend_page, st->selection_anchor, new_caret, st->dpi,
+                                &box.cropbox, &st->selection);
+        st->has_selection = (s.code == PC_ERR_NONE);
+      } else {
+        st->has_selection = false;
+      }
+      break;
+
+    default:
+      st->api->page_text_layout_free(utf8, boxes);
+      return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};  // unhandled key
+  }
+
+  if (!shift) {
+    st->caret_pos = new_caret;
+    st->has_caret = true;
+    st->has_selection = false;
+  }
+
+  st->api->page_text_layout_free(utf8, boxes);
+  return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
+}
+
 }  // namespace viewer
 }  // namespace tynypdf

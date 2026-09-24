@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "backend.h"
 #include "status.h"
 
 #ifdef __cplusplus

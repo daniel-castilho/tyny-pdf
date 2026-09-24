@@ -239,7 +239,7 @@ if (TYNYPDF_BUILD_TESTS)
     # viewer_loop test (story 1.5, R30.1) - the platform-neutral viewer loop
     # compiles and runs headless on Linux against the null backend (R-M10)
     add_executable(test_viewer_loop unit/test_viewer_loop.cc ${CMAKE_SOURCE_DIR}/src/app/viewer/viewer.cc)
-    target_link_libraries(test_viewer_loop pdfcore tynypdf-tiles tynypdf-cachemap ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)
+    target_link_libraries(test_viewer_loop pdfcore tynypdf-tiles tynypdf-cachemap tynypdf-selection ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)
     target_include_directories(test_viewer_loop PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/src/app)
     pc_apply_warnings(test_viewer_loop)
     add_test(NAME test_viewer_loop COMMAND test_viewer_loop)
@@ -264,5 +264,103 @@ if (TYNYPDF_BUILD_TESTS)
     target_include_directories(test_sha256 PRIVATE ${CMAKE_SOURCE_DIR}/include)
     pc_apply_warnings(test_sha256)
     add_test(NAME test_sha256 COMMAND test_sha256)
+
+    # selection test (story 6.1, R32.1, R32.2) - hit-test against synthetic text layouts
+    add_executable(test_selection unit/test_selection.cc)
+    target_link_libraries(test_selection pdfcore tynypdf-selection)
+    target_include_directories(test_selection PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_selection)
+    add_test(NAME test_selection COMMAND test_selection)
+
+    # cli_select test (story 6.1, R32.3) - CLI select subcommand
+    add_executable(test_cli_select unit/test_cli_select.cc)
+    target_link_libraries(test_cli_select pdfcore tynypdf-selection)
+    target_include_directories(test_cli_select PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_cli_select)
+    add_test(NAME test_cli_select COMMAND test_cli_select)
+
+    # selection_sidecar test (story 6.1, R32.5) - sidecar round-trip
+    add_executable(test_selection_sidecar unit/test_selection_sidecar.cc)
+    target_link_libraries(test_selection_sidecar pdfcore)
+    target_include_directories(test_selection_sidecar PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_selection_sidecar)
+    add_test(NAME test_selection_sidecar COMMAND test_selection_sidecar)
+
+    # caret_keyboard test (story 6.2, R33.2) - caret keyboard API
+    add_executable(test_caret_keyboard unit/test_caret_keyboard.cc)
+    target_link_libraries(test_caret_keyboard pdfcore tynypdf-selection)
+    target_include_directories(test_caret_keyboard PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_caret_keyboard)
+    add_test(NAME test_caret_keyboard COMMAND test_caret_keyboard)
+
+    # selection_extend test (story 6.2, R34.1) - selection extend API
+    add_executable(test_selection_extend unit/test_selection_extend.cc)
+    target_link_libraries(test_selection_extend pdfcore tynypdf-selection)
+    target_include_directories(test_selection_extend PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_selection_extend)
+    add_test(NAME test_selection_extend COMMAND test_selection_extend)
+
+    # clipboard test (story 6.2, R35.1) - clipboard API
+    add_executable(test_clipboard unit/test_clipboard.cc)
+    target_link_libraries(test_clipboard pdfcore tynypdf-os)
+    target_include_directories(test_clipboard PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_clipboard)
+    add_test(NAME test_clipboard COMMAND test_clipboard)
+
+    # search test (story 6.3, R37.1, R37.2) - search against synthetic text layouts
+    add_executable(test_search unit/test_search.cc)
+    target_link_libraries(test_search pdfcore tynypdf-search)
+    target_include_directories(test_search PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_search)
+    add_test(NAME test_search COMMAND test_search)
+
+    # cli_search test (story 6.3, R38.1) - CLI search subcommand
+    add_executable(test_cli_search unit/test_cli_search.cc)
+    target_link_libraries(test_cli_search pdfcore tynypdf-search)
+    target_include_directories(test_cli_search PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_cli_search)
+    add_test(NAME test_cli_search COMMAND test_cli_search)
+
+    # search_budget test (story 6.3, R39.1) - search budget awareness
+    add_executable(test_search_budget unit/test_search_budget.cc)
+    target_link_libraries(test_search_budget pdfcore tynypdf-search)
+    target_include_directories(test_search_budget PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_search_budget)
+    add_test(NAME test_search_budget COMMAND test_search_budget)
+
+    # search_sidecar test (story 6.3, R40.1) - sidecar round-trip
+    add_executable(test_search_sidecar unit/test_search_sidecar.cc)
+    target_link_libraries(test_search_sidecar pdfcore)
+    target_include_directories(test_search_sidecar PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_search_sidecar)
+    add_test(NAME test_search_sidecar COMMAND test_search_sidecar)
+
+    # annot_txn test (story 6.4, R41.1, R41.2, R41.3) - annotation as undoable transaction
+    add_executable(test_annot_txn unit/test_annot_txn.cc)
+    target_link_libraries(test_annot_txn pdfcore tynypdf-annot tynypdf-selection ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)
+    target_include_directories(test_annot_txn PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_annot_txn)
+    add_test(NAME test_annot_txn COMMAND test_annot_txn)
+
+    # cli_annot test (story 6.4, R42.1) - CLI annot subcommand
+    add_executable(test_cli_annot unit/test_cli_annot.cc)
+    target_link_libraries(test_cli_annot pdfcore tynypdf-annot ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)
+    target_include_directories(test_cli_annot PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_cli_annot)
+    add_test(NAME test_cli_annot COMMAND test_cli_annot)
+
+    # annot_sidecar test (story 6.4, R43.1) - sidecar round-trip
+    add_executable(test_annot_sidecar unit/test_annot_sidecar.cc)
+    target_link_libraries(test_annot_sidecar pdfcore ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)
+    target_include_directories(test_annot_sidecar PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_annot_sidecar)
+    add_test(NAME test_annot_sidecar COMMAND test_annot_sidecar)
+
+    # annot_reanchor test (story 6.4, R44.1) - re-anchoring
+    add_executable(test_annot_reanchor unit/test_annot_reanchor.cc)
+    target_link_libraries(test_annot_reanchor pdfcore tynypdf-annot ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)
+    target_include_directories(test_annot_reanchor PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_annot_reanchor)
+    add_test(NAME test_annot_reanchor COMMAND test_annot_reanchor)
 
 endif()

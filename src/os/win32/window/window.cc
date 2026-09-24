@@ -35,6 +35,14 @@
 #define WM_POINTERWHEEL 0x024E
 #endif
 
+// Windows message helpers
+#ifndef GET_X_LPARAM
+#define GET_X_LPARAM(lp) ((int)(short)LOWORD(lp))
+#endif
+#ifndef GET_Y_LPARAM
+#define GET_Y_LPARAM(lp) ((int)(short)HIWORD(lp))
+#endif
+
 using Microsoft::WRL::ComPtr;
 
 // QPC milliseconds since an arbitrary origin (monotonic). The dynamic
@@ -66,6 +74,12 @@ struct WindowData {
   pc_window_render_callback render_cb = nullptr;
   pc_window_dpi_callback dpi_cb = nullptr;
   pc_window_size_callback size_cb = nullptr;
+  // ABI 1.2 (story 6.1): mouse click and keyboard callbacks
+  typedef void (*pc_window_click_callback)(int button, int x, int y, int modifiers,
+                                           void* user_data);
+  typedef void (*pc_window_key_callback)(int down, int vk, int modifiers, void* user_data);
+  pc_window_click_callback click_cb = nullptr;
+  pc_window_key_callback key_cb = nullptr;
   void* user_data = nullptr;
 
   // DComp/D3D11
@@ -197,6 +211,48 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
       if (data) {
         data->input_ts_ms = qpc_now_ms();
         InvalidateRect(hwnd, nullptr, FALSE);
+      }
+      return 0;
+    }
+
+    case WM_LBUTTONDOWN:
+    case WM_RBUTTONDOWN:
+    case WM_MBUTTONDOWN: {
+      if (data && data->click_cb) {
+        int x = GET_X_LPARAM(lparam);
+        int y = GET_Y_LPARAM(lparam);
+        int button = 0;
+        if (msg == WM_LBUTTONDOWN)
+          button = 1;
+        else if (msg == WM_RBUTTONDOWN)
+          button = 2;
+        else if (msg == WM_MBUTTONDOWN)
+          button = 3;
+        int modifiers = 0;
+        if (wparam & MK_SHIFT)
+          modifiers |= 1;
+        if (wparam & MK_CONTROL)
+          modifiers |= 2;
+        if (wparam & MK_ALT)
+          modifiers |= 4;
+        data->click_cb(button, x, y, modifiers, data->user_data);
+      }
+      return 0;
+    }
+
+    case WM_KEYDOWN:
+    case WM_KEYUP: {
+      if (data && data->key_cb) {
+        int down = (msg == WM_KEYDOWN) ? 1 : 0;
+        int vk = static_cast<int>(wparam);
+        int modifiers = 0;
+        if (GetKeyState(VK_SHIFT) & 0x8000)
+          modifiers |= 1;
+        if (GetKeyState(VK_CONTROL) & 0x8000)
+          modifiers |= 2;
+        if (GetKeyState(VK_MENU) & 0x8000)
+          modifiers |= 4;
+        data->key_cb(down, vk, modifiers, data->user_data);
       }
       return 0;
     }
@@ -552,6 +608,8 @@ pc_status pc_window_create(const pc_window_params* params, const pc_window_callb
   data->render_cb = callbacks->render;
   data->dpi_cb = callbacks->dpi_changed;
   data->size_cb = callbacks->size_changed;
+  data->click_cb = callbacks->click;
+  data->key_cb = callbacks->key;
   data->user_data = params->user_data;
 
   // Story 5.5 (R24.7): the window owns the a11y document state the UIA

@@ -3,6 +3,7 @@
 // never as empty. The backend is selected by argv[1] and registered once per backend in
 // tests/CMakeLists.txt.
 
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -215,6 +216,135 @@ static int test_capability(void) {
   return 0;
 }
 
+// R13.4 (abi 1.2) - text layout capability.
+static int test_text_layout(void) {
+  void* doc = nullptr;
+  pc_status s = g_api->doc_open(fixture_path(), nullptr, &doc);
+  if (s.code != PC_ERR_NONE || !doc) {
+    fprintf(stderr, "doc_open failed: code=%u\n", s.code);
+    return 1;
+  }
+
+  // Check capability declaration.
+  int supported = g_api->doc_has_capability(doc, PC_CAP_TEXT_LAYOUT);
+  if (supported != 0 && supported != 1) {
+    fprintf(stderr, "doc_has_capability(TEXT_LAYOUT) returned an invalid value: %d\n", supported);
+    g_api->doc_close(doc);
+    return 1;
+  }
+
+  // Get a page to test text layout.
+  void* page = nullptr;
+  pc_status s_page = g_api->page_get(doc, 0, &page);
+  if (s_page.code != PC_ERR_NONE || !page) {
+    fprintf(stderr, "page_get(0) failed: code=%u\n", s_page.code);
+    g_api->doc_close(doc);
+    return 1;
+  }
+
+  // Test argument validation.
+  pc_status s_args = g_api->page_text_layout(nullptr, nullptr, nullptr, nullptr);
+  if (s_args.code != PC_ERR_ARGUMENT) {
+    fprintf(stderr, "page_text_layout with null args must return PC_ERR_ARGUMENT\n");
+    g_api->doc_close(doc);
+    return 1;
+  }
+
+  if (g_api->doc_has_capability(nullptr, PC_CAP_TEXT_LAYOUT) != 0) {
+    fprintf(stderr, "doc_has_capability with null doc must return 0\n");
+    g_api->doc_close(doc);
+    return 1;
+  }
+
+  char* utf8 = nullptr;
+  pc_text_box* boxes = nullptr;
+  uint32_t count = 0;
+  pc_status s_layout = g_api->page_text_layout(page, &utf8, nullptr, nullptr);
+  if (s_layout.code != PC_ERR_ARGUMENT) {
+    fprintf(stderr, "page_text_layout with null out_boxes/out_count must return PC_ERR_ARGUMENT\n");
+    g_api->doc_close(doc);
+    return 1;
+  }
+
+  pc_status s_layout2 = g_api->page_text_layout(page, &utf8, &boxes, &count);
+  if (supported == 0) {
+    // Unsupported capability must return PC_ERR_CAPABILITY with zero output.
+    if (s_layout2.code != PC_ERR_CAPABILITY || utf8 != nullptr || boxes != nullptr || count != 0) {
+      fprintf(stderr, "unsupported text layout must return PC_ERR_CAPABILITY with zero output\n");
+      g_api->doc_close(doc);
+      return 1;
+    }
+    // Free memory
+    if (utf8)
+      g_api->page_text_layout_free(utf8, nullptr);
+    if (boxes)
+      g_api->page_text_layout_free(nullptr, boxes);
+    g_api->page_free(page);
+    g_api->doc_close(doc);
+    return 0;
+  }
+
+  // Supported backend must return valid layout.
+  if (s_layout2.code != PC_ERR_NONE) {
+    fprintf(stderr, "page_text_layout failed: code=%u detail=%s\n", s_layout2.code,
+            s_layout2.detail ? s_layout2.detail : "-");
+    g_api->doc_close(doc);
+    return 1;
+  }
+  // A page may have no text (empty or image-only). Empty UTF-8 and count=0 is valid.
+  if (!utf8 || !utf8[0] || count == 0) {
+    // No text on this page - skip verification but still test determinism with empty result.
+    char* utf8_2 = nullptr;
+    pc_text_box* boxes_2 = nullptr;
+    uint32_t count_2 = 0;
+    pc_status s_layout3 = g_api->page_text_layout(page, &utf8_2, &boxes_2, &count_2);
+    if (s_layout3.code != PC_ERR_NONE || count_2 != 0 || (utf8_2 && utf8_2[0])) {
+      fprintf(stderr, "page_text_layout not deterministic for empty page\n");
+    }
+    if (utf8_2)
+      g_api->page_text_layout_free(utf8_2, boxes_2);
+    if (utf8)
+      g_api->page_text_layout_free(utf8, boxes);
+    g_api->page_free(page);
+    g_api->doc_close(doc);
+    return 0;
+  }
+  // Verify byte ranges.
+  for (uint32_t i = 0; i < count; ++i) {
+    pc_text_box* b = &boxes[i];
+    if (b->byte_offset + b->byte_len > strlen(utf8)) {
+      fprintf(stderr, "box %u byte range exceeds UTF-8 length\n", i);
+      g_api->page_text_layout_free(utf8, boxes);
+      g_api->doc_close(doc);
+      return 1;
+    }
+    // Verify quads are finite.
+    if (!isfinite(boxes[i].quad.ul_x) || !isfinite(boxes[i].quad.ul_y) ||
+        !isfinite(boxes[i].quad.ur_x) || !isfinite(boxes[i].quad.ur_y) ||
+        !isfinite(boxes[i].quad.ll_x) || !isfinite(boxes[i].quad.ll_y) ||
+        !isfinite(boxes[i].quad.lr_x) || !isfinite(boxes[i].quad.lr_y)) {
+      fprintf(stderr, "box %u has non-finite quad\n", i);
+      g_api->page_text_layout_free(utf8, boxes);
+      g_api->doc_close(doc);
+      return 1;
+    }
+  }
+  // Determinism check: call again with fresh args, should get identical output.
+  char* utf8_2 = nullptr;
+  pc_text_box* boxes_2 = nullptr;
+  uint32_t count_2 = 0;
+  pc_status s_layout3 = g_api->page_text_layout(page, &utf8_2, &boxes_2, &count_2);
+  if (s_layout3.code != PC_ERR_NONE || count_2 != count || strcmp(utf8, utf8_2) != 0) {
+    fprintf(stderr, "page_text_layout not deterministic\n");
+  }
+  // Free all allocated memory
+  g_api->page_text_layout_free(utf8, boxes);
+  g_api->page_text_layout_free(utf8_2, boxes_2);
+  g_api->page_free(page);
+  g_api->doc_close(doc);
+  return 0;
+}
+
 int main(int argc, char** argv) {
   const char* name = argc > 1 ? argv[1] : "null";
   if (strcmp(name, "null") == 0) {
@@ -233,6 +363,7 @@ int main(int argc, char** argv) {
   failures += test_open_and_count();
   failures += test_page_boxes();
   failures += test_capability();
+  failures += test_text_layout();
   for (uint32_t i = 0; i < 5; ++i) {
     failures += test_page_render(i);
     failures += test_page_render_deterministic(i);

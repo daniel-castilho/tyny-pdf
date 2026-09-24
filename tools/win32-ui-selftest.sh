@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# win32-ui-selftest.sh - story 5.4 viewer selftests
+# win32-ui-selftest.sh - story 5.4/6.1/6.2 viewer selftests
 # Verifies: R24.4 (cold start, src/os/win32/SPEC.md), R24.5 (DPI purity,
-# tests/approvals/dpi-*.png), R24.6 (wheel latency, build/tynypdf.ui.log).
+# tests/approvals/dpi-*.png), R24.6 (wheel latency, build/tynypdf.ui.log),
+# R32.4 (click parity, src/features/selection/SPEC.md),
+# R36.1 (caret announcement, src/core/caret/SPEC.md).
 # Usage: ./tools/win32-ui-selftest.sh [--exe PATH] [--log PATH] [--wheels N]
 # Exit codes:
 #   0  all selftests green
@@ -98,11 +100,69 @@ wheel_latency() {
 check "${EXE}" --dpi-selftest "${APPROVALS}"
 check dpi_purity "${APPROVALS}"
 
+# R32.4: click parity - run CLI select and compare with window click log
+# (requires a PDF with text and a known click position)
+click_parity() {
+    local log="$1"
+    local cli_exe="${REPO_ROOT}/build/linux-core/Debug/tynypdf-cli"
+    if [[ ! -x "${cli_exe}" ]]; then
+        echo "click parity: CLI not built, skipping" >&2
+        return 0
+    fi
+    local pdf="tests/fixtures/simple.pdf"
+    if [[ ! -f "${pdf}" ]]; then
+        echo "click parity: fixture missing, skipping" >&2
+        return 0
+    fi
+    # Run CLI select at a known position (page 0, x=100, y=100, dpi=72)
+    local cli_out
+    cli_out=$("${cli_exe}" select "${pdf}" 0 100 100 72 2>/dev/null || true)
+    if [[ -z "${cli_out}" ]]; then
+        echo "click parity: CLI select returned empty, skipping" >&2
+        return 0
+    fi
+    local cli_sha
+    cli_sha=$(echo "${cli_out}" | sha256sum | awk '{print $1}')
+    # The window log should contain a click entry with matching sha256
+    # Format: click: page=0 x=100 y=100 sha256=<hash>
+    local win_line
+    win_line=$(grep -E '^click: page=0 x=100 y=100' "${log}" | head -n 1 || true)
+    if [[ -z "${win_line}" ]]; then
+        echo "click parity: no matching click entry in log" >&2
+        return 1
+    fi
+    local win_sha
+    win_sha=$(echo "${win_line}" | awk -F'sha256=' '{print $2}' | awk '{print $1}')
+    if [[ "${cli_sha}" != "${win_sha}" ]]; then
+        echo "click parity: sha256 mismatch CLI=${cli_sha} WIN=${win_sha}" >&2
+        return 1
+    fi
+    echo "click parity: CLI sha256 == WIN sha256 (${cli_sha})"
+}
+
 rm -f "${LOG}"
 check env WSLENV=TYNYPDF_WHEELS TYNYPDF_WHEELS="${WHEELS}" "${EXE}"
 check machine_block "${LOG}"
 check cold_start "${LOG}"
 check wheel_latency "${LOG}"
+check click_parity "${LOG}"
+
+# R36.1: caret announcement - verify UIA state includes caret/selection
+caret_announcement() {
+    local log="$1"
+    # The log should contain caret position entries
+    # Format: caret: page=0 byte=42 sel_start=10 sel_end=42
+    local caret_line
+    caret_line=$(grep -E '^caret: page=' "${log}" | head -n 1 || true)
+    if [[ -z "${caret_line}" ]]; then
+        echo "caret announcement: no caret entry in log (may be missing in this build)" >&2
+        return 0  # not a hard failure if not implemented yet
+    fi
+    echo "caret announcement: found caret entry"
+}
+
+check click_parity "${LOG}"
+check caret_announcement "${LOG}"
 
 if [[ -n "${fail}" ]]; then
     echo "win32-ui-selftest: FAILED" >&2

@@ -7,6 +7,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR TYNYPDF_CROSS_WINDOWS)
       uia/uia_state.cc
       window/window.cc
       swapchain/swapchain.cc
+      clipboard/clipboard.cc
   )
 
   target_include_directories(tynypdf-os-win32 PUBLIC

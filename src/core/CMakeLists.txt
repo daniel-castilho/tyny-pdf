@@ -9,6 +9,12 @@ add_library(pdfcore STATIC
 
 add_subdirectory(budget)
 
+add_subdirectory(selection)
+
+add_subdirectory(search)
+
+add_subdirectory(annot)
+
 target_link_libraries(pdfcore PUBLIC
     tynypdf-budget
 )

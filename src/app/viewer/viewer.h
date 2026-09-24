@@ -12,6 +12,7 @@
 #include "pdfcore/backend.h"
 #include "pdfcore/budget.h"
 #include "pdfcore/render.h"
+#include "pdfcore/selection.h"
 #include "pdfcore/status.h"
 #include "pdfcore/transaction.h"  // full pc_budget definition (value type, budget.h)
 
@@ -61,6 +62,17 @@ struct viewer_state {
   uint64_t tiles_rendered = 0;        // page_render calls since open (cache misses)
   uint32_t active_page = UINT32_MAX;  // last demanded page; reset tiles on change
   uint32_t page_gen = 0;              // bumped on every tile reset; stamps tile_payload
+
+  // Story 6.1 (R32.1, R32.4): selection state updated by click handler
+  pc_selection_result selection = {};
+  bool has_selection = false;
+
+  // Story 6.2 (R33.2): caret position (byte offset in page text)
+  uint32_t caret_pos = 0;
+  bool has_caret = false;
+
+  // Story 6.2 (R34.1): selection anchor for extend (byte offset where drag started)
+  uint32_t selection_anchor = 0;
 };
 
 // Open `path` through `api` and allocate the cache, cachemap and budget.
@@ -87,6 +99,17 @@ pc_status viewer_draw(viewer_state* st, uint32_t page, int32_t col0, int32_t row
 
 // Release the cache, cachemap and document.
 void viewer_close(viewer_state* st);
+
+// Click handler: converts device-space click to page-space hit-test via
+// pc_selection_hit_test (R32.1). Updates st->selection and st->has_selection.
+// Returns PC_ERR_NONE on hit, PC_ERR_RANGE on miss, PC_ERR_ARGUMENT for null.
+pc_status viewer_on_click(viewer_state* st, uint32_t page, int x, int y, int modifiers);
+
+// Keyboard handler: converts virtual key to caret/selection action (R33.2, R34.1).
+// vk: Windows virtual-key code (VK_LEFT, VK_RIGHT, VK_HOME, VK_END, VK_CONTROL, VK_SHIFT).
+// down: 1=press, 0=release. modifiers: bit 0=Shift, 1=Ctrl, 2=Alt.
+// Returns PC_ERR_NONE on handled, PC_ERR_ARGUMENT for null.
+pc_status viewer_on_key(viewer_state* st, uint32_t page, int vk, int down, int modifiers);
 
 }  // namespace viewer
 }  // namespace tynypdf

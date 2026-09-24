@@ -8,10 +8,11 @@ if (TYNYPDF_EXECUTABLES_VIEWER)
     endif()
     add_executable(${TYNYPDF_EXECUTABLES_VIEWER} ${TYNYPDF_VIEWER_SOURCES})
     target_link_libraries(${TYNYPDF_EXECUTABLES_VIEWER} PRIVATE pdfcore
-        tynypdf-render tynypdf-tiles tynypdf-cachemap tynypdf-os-win32
+        tynypdf-render tynypdf-tiles tynypdf-cachemap tynypdf-os tynypdf-selection
         ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)
     if (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR TYNYPDF_CROSS_WINDOWS)
-        target_link_libraries(${TYNYPDF_EXECUTABLES_VIEWER} PRIVATE psapi)
+        target_link_libraries(${TYNYPDF_EXECUTABLES_VIEWER} PRIVATE psapi
+            d2d1 d3d11 dcomp dxgi ole32 oleaut32 uiautomationcore windowscodecs)
     endif()
     if (TARGET ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}mupdf)
         target_link_libraries(${TYNYPDF_EXECUTABLES_VIEWER} PRIVATE ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}mupdf)
