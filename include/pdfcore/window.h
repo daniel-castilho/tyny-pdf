@@ -26,7 +26,7 @@ typedef void (*pc_window_dpi_callback)(float dpi_scale, void* user_data);
 typedef void (*pc_window_size_callback)(int width, int height, void* user_data);
 
 // Window event callbacks.
-typedef struct {
+typedef struct pc_window_callbacks {
   pc_window_render_callback render;
   pc_window_dpi_callback dpi_changed;
   pc_window_size_callback size_changed;

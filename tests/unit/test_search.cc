@@ -176,8 +176,6 @@ static void run_test(const char* name, MockBackend* mb, const char* query,
 }
 
 int main() {
-  int failures = 0;
-
   // Test 1: Simple single hit
   {
     MockBackend mb = {};
@@ -260,7 +258,7 @@ int main() {
       printf("PASS null_backend_capability\n");
     } else {
       printf("FAIL null_backend_capability: code=%u\n", s.code);
-      failures++;
+      return 1;
     }
   }
 
@@ -281,31 +279,31 @@ int main() {
     pc_status s = pc_search_page(nullptr, &mb, "hello", 72.0, &box.cropbox, &results);
     if (s.code != PC_ERR_ARGUMENT) {
       printf("FAIL null_api_argument\n");
-      failures++;
+      return 1;
     }
 
     s = pc_search_page(&mock_api, nullptr, "hello", 72.0, &box.cropbox, &results);
     if (s.code != PC_ERR_ARGUMENT) {
       printf("FAIL null_page_argument\n");
-      failures++;
+      return 1;
     }
 
     s = pc_search_page(&mock_api, &mb, nullptr, 72.0, &box.cropbox, &results);
     if (s.code != PC_ERR_ARGUMENT) {
       printf("FAIL null_query_argument\n");
-      failures++;
+      return 1;
     }
 
     s = pc_search_page(&mock_api, &mb, "hello", 72.0, nullptr, &results);
     if (s.code != PC_ERR_ARGUMENT) {
       printf("FAIL null_crop_box_argument\n");
-      failures++;
+      return 1;
     }
 
     s = pc_search_page(&mock_api, &mb, "hello", 72.0, &box.cropbox, nullptr);
     if (s.code != PC_ERR_ARGUMENT) {
       printf("FAIL null_out_results_argument\n");
-      failures++;
+      return 1;
     }
     cleanup(&mb);
   }

@@ -161,8 +161,6 @@ static pc_selection_result make_expected(const pc_text_box* box, uint32_t byte_o
 }
 
 int main() {
-  int failures = 0;
-
   // Test 1: Single line, point inside first character
   {
     MockBackend mb = {};
@@ -260,7 +258,7 @@ int main() {
       printf("PASS null_backend_capability\n");
     } else {
       printf("FAIL null_backend_capability: expected PC_ERR_CAPABILITY, got %u\n", s.code);
-      failures++;
+      return 1;
     }
   }
 
@@ -279,7 +277,7 @@ int main() {
       printf("PASS null_page_argument\n");
     } else {
       printf("FAIL null_page_argument: expected PC_ERR_ARGUMENT, got %u\n", s.code);
-      failures++;
+      return 1;
     }
 
     s = pc_selection_hit_test(&mock_api, &mb, nullptr, 72.0, &crop, &result);
@@ -287,7 +285,7 @@ int main() {
       printf("PASS null_device_point_argument\n");
     } else {
       printf("FAIL null_device_point_argument: expected PC_ERR_ARGUMENT, got %u\n", s.code);
-      failures++;
+      return 1;
     }
 
     s = pc_selection_hit_test(&mock_api, &mb, &pt, 72.0, nullptr, &result);
@@ -295,7 +293,7 @@ int main() {
       printf("PASS null_crop_box_argument\n");
     } else {
       printf("FAIL null_crop_box_argument: expected PC_ERR_ARGUMENT, got %u\n", s.code);
-      failures++;
+      return 1;
     }
 
     s = pc_selection_hit_test(&mock_api, &mb, &pt, 72.0, &crop, nullptr);
@@ -303,7 +301,7 @@ int main() {
       printf("PASS null_out_result_argument\n");
     } else {
       printf("FAIL null_out_result_argument: expected PC_ERR_ARGUMENT, got %u\n", s.code);
-      failures++;
+      return 1;
     }
     free(mb.utf8);
     free(mb.boxes);
@@ -324,7 +322,7 @@ int main() {
       printf("PASS empty_page\n");
     } else {
       printf("FAIL empty_page: expected PC_ERR_RANGE, got %u\n", s.code);
-      failures++;
+      return 1;
     }
     free(mb.utf8);
   }

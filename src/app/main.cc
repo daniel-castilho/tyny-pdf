@@ -10,6 +10,7 @@
 #ifdef _WIN32
 #include <string>
 
+#include "pdfcore/backend.h"
 #include "pdfcore/import.h"
 #include "pdfcore/window.h"
 #include "viewer/viewer.h"
@@ -24,7 +25,7 @@ int bench_main(const char* pdf_path);
 }  // namespace tynypdf
 
 // Render callback: draws the current viewer page through the cache
-static pc_status render_cb(void* d2d_context, void* user_data) {
+static pc_status render_cb(void* /*d2d_context*/, void* user_data) {
   auto* st = static_cast<tynypdf::viewer::viewer_state*>(user_data);
   if (!st || !st->api || !st->doc) {
     return {sizeof(pc_status), PC_ERR_ARGUMENT, 0, "null state"};
@@ -95,7 +96,7 @@ int main(int argc, char** argv) {
 
   s = pc_window_run(window);
   if (s.code != PC_ERR_NONE) {
-    fprintf(stderr, "tynypdf: message loop failed: %u %s\n", s.code, s.detail ? st.detail : "-");
+    fprintf(stderr, "tynypdf: message loop failed: %u %s\n", s.code, s.detail ? s.detail : "-");
   }
   pc_window_destroy(window);
   tynypdf::viewer::viewer_close(&viewer);

@@ -12,16 +12,6 @@
 #include "pdfcore/selection.h"
 #include "pdfcore/status.h"
 
-static inline int utf8_to_lower_copy(const char* src, size_t len, char* dst) {
-  // Simple ASCII case-insensitive; for full Unicode would need ICU or similar.
-  // This is a minimal implementation for ASCII queries.
-  for (size_t i = 0; i < len; ++i) {
-    unsigned char c = (unsigned char)src[i];
-    dst[i] = (char)(c >= 'A' && c <= 'Z' ? c + ('a' - 'A') : c);
-  }
-  return (int)len;
-}
-
 static int find_next(const char* haystack, size_t haystack_len, const char* needle,
                      size_t needle_len, size_t start) {
   if (needle_len == 0 || needle_len > haystack_len)

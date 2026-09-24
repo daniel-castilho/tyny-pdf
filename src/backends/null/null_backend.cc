@@ -189,3 +189,15 @@ pc_backend_api pc_null_backend_api = {
 const pc_backend_api* pc_null_backend_get_api(void) {
   return &pc_null_backend_api;
 }
+
+extern "C" pc_status pc_backend_get_api(const pc_backend_api** out_api, uint32_t abi_major,
+                                        uint32_t /*abi_minor*/) {
+  if (!out_api) {
+    return {sizeof(pc_status), PC_ERR_ARGUMENT, 0, "null out_api"};
+  }
+  if (abi_major != PC_BACKEND_API_VERSION_MAJOR) {
+    return {sizeof(pc_status), PC_ERR_VERSION, 0, "backend ABI major mismatch"};
+  }
+  *out_api = &pc_null_backend_api;
+  return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
+}

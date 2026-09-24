@@ -35,6 +35,14 @@
 #define WM_POINTERWHEEL 0x024E
 #endif
 
+// Windows message helpers
+#ifndef GET_X_LPARAM
+#define GET_X_LPARAM(lp) ((int)(short)LOWORD(lp))
+#endif
+#ifndef GET_Y_LPARAM
+#define GET_Y_LPARAM(lp) ((int)(short)HIWORD(lp))
+#endif
+
 using Microsoft::WRL::ComPtr;
 
 // QPC milliseconds since an arbitrary origin (monotonic). The dynamic
