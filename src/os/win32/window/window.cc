@@ -19,7 +19,9 @@
 #include <wrl/client.h>
 
 #include "pdfcore/window.h"
+#include "pdfcore/uia.h"
 #include "dpi/dpi.h"
+#include "uia/uia.h"
 // clang-format on
 
 #include <intrin.h>
@@ -92,6 +94,9 @@ struct WindowData {
   int frames_presented = 0;
   int frame_limit = 0;     // TYNYPDF_FRAMES: auto-quit after N presents
   int wheels_pending = 0;  // TYNYPDF_WHEELS: post N WM_MOUSEWHEEL, one per present
+
+  // Story 5.5 (R24.7): document state the UIA provider announces (page, zoom).
+  pc_uia_state* uia_state = nullptr;
 };
 
 // Forward declarations
@@ -169,6 +174,20 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
     case WM_ERASEBKGND: {
       // Prevent flicker - we handle background in render
       return 1;
+    }
+
+    case WM_GETOBJECT: {
+      // Story 5.5 (R24.7): hand the UIA client our provider when it asks for
+      // the window's root. Returns false-and-DefWindowProc when the request is
+      // not ours, so the accessibility proxy (AccPropSvc) still gets the system
+      // fallback for everything else.
+      LRESULT uia_result = 0;
+      if (data && data->uia_state &&
+          tynypdf::win32::pc_uia_handle_wm_getobject(hwnd, wparam, lparam, data->uia_state,
+                                                     &uia_result)) {
+        return uia_result;
+      }
+      break;
     }
 
     case WM_MOUSEWHEEL:
@@ -535,6 +554,16 @@ pc_status pc_window_create(const pc_window_params* params, const pc_window_callb
   data->size_cb = callbacks->size_changed;
   data->user_data = params->user_data;
 
+  // Story 5.5 (R24.7): the window owns the a11y document state the UIA
+  // provider announces. Defaults to page 1 of 1 at 100%; the viewer updates it
+  // as documents open and zoom changes (the minimal viewer has no opener yet,
+  // so the announcement is the placeholder "Page 1 of 1, zoom 100%").
+  pc_status uia_st = pc_uia_state_create(&data->uia_state);
+  if (uia_st.code != PC_ERR_NONE) {
+    delete data;
+    return uia_st;
+  }
+
   // Get initial DPI for the monitor where window will be created (R24.4)
   HMONITOR monitor = MonitorFromWindow(nullptr, MONITOR_DEFAULTTOPRIMARY);
   data->dpi_scale = tynypdf::win32::get_scale_for_monitor(monitor);
@@ -671,6 +700,10 @@ void pc_window_destroy(pc_window* window) {
     return;
   WindowData* data = reinterpret_cast<WindowData*>(window);
 
+  if (data->uia_state) {
+    pc_uia_state_destroy(data->uia_state);
+    data->uia_state = nullptr;
+  }
   if (data->ui_log) {
     fclose(data->ui_log);
     data->ui_log = nullptr;

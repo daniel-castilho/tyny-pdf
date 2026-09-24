@@ -184,6 +184,16 @@ if (TYNYPDF_BUILD_TESTS)
     pc_apply_warnings(test_window_swapchain)
     add_test(NAME test_window_swapchain COMMAND test_window_swapchain)
 
+    # uia test - the a11y document state and announced string (R24.7) are portable, so
+    # test_uia compiles the state module directly and asserts the exact announced text the
+    # docs/a11y scripts diff against. The COM provider (uia.cc) and the window plumbing are
+    # win-only and are not linked here: this TU pins the portable contract, so flips in the
+    # public surface break this build on Linux (ADR-0011 R-M10)
+    add_executable(test_uia unit/test_uia.cc ${CMAKE_SOURCE_DIR}/src/os/win32/uia/uia_state.cc)
+    target_include_directories(test_uia PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_uia)
+    add_test(NAME test_uia COMMAND test_uia)
+
     # budget test - pc_budget struct and validation (R29.1, R29.2)
     add_executable(test_budget unit/test_budget.cc)
     target_link_libraries(test_budget pdfcore)

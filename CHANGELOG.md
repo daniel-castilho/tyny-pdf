@@ -6,6 +6,26 @@ CalVer-compatible SemVer as declared in [docs/release-runbook.md](docs/release-r
 
 ## [Unreleased]
 
+### Added (epic 5 story 5.5 - UI Automation provider, a11y scripts, M1 verdict)
+
+- **UIA provider (R24.7)**: `src/os/win32/uia/uia.cc` answers `WM_GETOBJECT` with a
+  server-side provider - a window fragment whose children are page/zoom/focus and a
+  read-only ValuePattern returning the announced text `"Page N of M, zoom Z%"`. The
+  document state it reads (`include/pdfcore/uia.h`) is engine-free and Windows-free and
+  compiles on both sides; the COM provider and the `WM_GETOBJECT` plumbing live in
+  `src/os/win32` only (ADR-0011 R-M10). The exact announced string - `"Page 1 of 5,
+  zoom 150%"` - is pinned by `tests/unit/test_uia.cc` on Linux, so a change is a script
+  change, not a drift.
+- **A11y scripts (M5)**: `docs/a11y/keyboard.md` and `docs/a11y/narrator-nvda.md` record
+  the manual Narrator/NVDA runs and the diffable announced text the viewer must produce,
+  matching kickoff `docs/kickoff.md` §M5.
+- **M1 verdict: keep**: the hand-written Win32/Direct2D surface holds the floor - five of
+  the seven M1 criteria are measured (cold start median 184.997 ms <= 300 ms, DPI
+  byte-for-byte at 150%/200%, wheel p99 <= 0.324 ms, caret headless, UIA provider). The
+  two content-bearing ones (4000x3000 blit, RSS) are honestly recorded as not measured
+  because story 1.5 cannot paint page content yet (debt item 1). Table and reasoning in
+  `tasks/epic-05/epic-5-dod.md` §5.5.
+
 ### Added (epic 5 story 5.4 - cold start, DPI selftest, wheel latency, caret)
 
 - **Viewer measurement selftest**: `tools/win32-ui-selftest.sh` runs the real

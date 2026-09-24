@@ -195,3 +195,21 @@ diff, while `spec-check.py` printed 17 requirements with no artefact.
 per claim, `git show --stat` for what a PR touched, `grep -c` for what survived. A green CI run
 says the gates did not object, not that the change was complete. And a PR title is an archaeological
 record: it states what the diff does, never what the milestone needs.
+
+
+## 2026-09-23 - a keep verdict with unmeasured rows hidden is a kill with its wins hidden
+
+The M1 spike verdict (story 5.5) is "keep": a hand-written Win32/Direct2D surface holds the floor.
+Five of the seven M1 criteria are measured on the reference machine - cold start median 184.997 ms,
+DPI byte-for-byte at 150%/200%, wheel p99 <= 0.324 ms, caret headless over combining marks, and the
+UIA provider announced below. Two criteria cannot be measured yet because story 1.5 does not paint
+page content: the 4000x3000 blit at 60 fps and the RSS-at-1000-pages row (5.3 is still unchecked).
+The temptation is to "protect" the keep by writing zeros or happy prose over those rows. Doing so
+turns the spike's whole point - measured, not estimated (kickoff §M1) - into decoration, and the
+next team that reads it cannot tell the surface held the floor from the surface was never asked.
+
+**Rule:** a spike verdict quotes the kickoff table verbatim and marks each row measured / not
+measured; a row blocked by missing machinery says so and names the story that unblocks it, rather
+than passing it with a number nobody took. The kill criterion exists to fire on blit/RSS data
+when the content viewer exists (kickoff §12: Skia revisited only then); a keep today is a
+statement about the surface and its seams, not about rows the viewer cannot produce.

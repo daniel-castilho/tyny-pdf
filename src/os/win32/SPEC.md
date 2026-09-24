@@ -1,9 +1,9 @@
 # OS Win32 - platform-specific implementations
 
 Status: the sidecar lock (R24.1), the window implementation (R24.2, story 5.2), the swapchain
-(R24.3, story 5.2) and the DPI module with the viewer timing log (R24.4-R24.6, story 5.4) are
-in; the rest of the OS abstraction (uia, clipboard, policy) is still planned. Design and
-rationale: ADR-0002, ADR-0011.
+(R24.3, story 5.2), the DPI module with the viewer timing log (R24.4-R24.6, story 5.4) and the
+UI Automation provider (R24.7, story 5.5) are in; the rest of the OS abstraction (clipboard,
+policy) is still planned. Design and rationale: ADR-0002, ADR-0011.
 
 ## Requirements
 
@@ -30,6 +30,14 @@ Verification: script:tools/win32-ui-selftest.sh
 ### R24.6 The window message loop SHALL stamp wheel input (`WM_MOUSEWHEEL`, `WM_POINTERWHEEL`) and the frame-ready time of the following present into `build/tynypdf.ui.log` as `input_ts`/`present_ts` lines, and the first present SHALL log the cold-start triple (`init_to_create_ms`, `create_to_present_ms`, `init_to_present_ms`) plus a machine block; `present_ts` is the frame-ready stamp - the compositor owns the queue wait.
 
 Verification: script:tools/win32-ui-selftest.sh
+
+### R24.7 The UI Automation provider SHALL expose the window as a fragment whose children are the page, zoom and focus elements and SHALL answer a read-only ValuePattern whose get_Value() returns the announced text "Page N of M, zoom Z%" produced from the document state; the announcement SHALL be engine-free (no mupdf/pdfium handle crosses the provider, ADR-0011 R-M10).
+
+The announced string is quoted verbatim by `docs/a11y/keyboard.md` and `docs/a11y/narrator-nvda.md`,
+so a change is a script change, not a hidden drift: the Linux-side test pins the exact text while
+the COM provider and the window plumbing stay win-only.
+
+Verification: unit:tests/unit/test_uia.cc
 
 ## Out of scope
 
