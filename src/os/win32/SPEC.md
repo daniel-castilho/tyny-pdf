@@ -39,6 +39,14 @@ the COM provider and the window plumbing stay win-only.
 
 Verification: unit:tests/unit/test_uia.cc
 
+### R52.1 The window SHALL forward WM_CHAR to the text-input callback as one Unicode codepoint per call, assembling UTF-16 surrogate pairs so an astral character produces exactly one callback, and the composition root SHALL forward keys/chars to the viewer and push the forms announcement into the UIA state after every input (R51.1/R51.2).
+
+Verification: script:tools/cross-compile-proof.sh
+
+### R52.2 The UIA document state SHALL switch the announced text to the forms-focus announcement while one is set and revert to "Page N of M, zoom Z%" on clear, with the provider reading the same single announcement function (no COM change, no second shape constant).
+
+Verification: unit:tests/unit/test_uia.cc
+
 ## Out of scope
 
 - Linux-specific implementations (see src/os/linux).

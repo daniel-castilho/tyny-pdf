@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "doc.h"
+#include "forms.h"
 #include "page.h"
 #include "status.h"
 
@@ -15,8 +16,12 @@ extern "C" {
 /// Frozen backend vtable ABI (ADR-0011 R-M3). Entries are append-only; bumping abi_major is an
 /// explicit project decision that ships a migration note.
 /// abi 1.2 (story 6.1): appended PC_CAP_TEXT_LAYOUT + page_text_layout/page_text_layout_free.
+/// abi 1.3 (story 7.1): appended PC_CAP_FORMS + form_list_fields/form_list_free/
+/// form_fdf_export/form_fdf_import/form_fdf_free.
+/// abi 1.4 (story 7.4): appended form_flatten (bake widgets + save) and
+/// pc_render_params.render_widgets.
 #define PC_BACKEND_API_VERSION_MAJOR 1
-#define PC_BACKEND_API_VERSION_MINOR 2
+#define PC_BACKEND_API_VERSION_MINOR 4
 
 /// Document capabilities a backend declares rather than guesses (R-M5). A backend that does not
 /// declare PC_CAP_TABLES MUST answer doc_find_tables with PC_ERR_CAPABILITY, never an empty list.
@@ -30,6 +35,9 @@ extern "C" {
 /// (R-M4). A backend that does not declare it MUST answer page_text_layout with
 /// PC_ERR_CAPABILITY (R-M5) - the caller reports "not supported", never an empty layout.
 #define PC_CAP_TEXT_LAYOUT 3u
+/// Declares AcroForm support (abi 1.3, story 7.1). The backend provides field enumeration,
+/// FDF export/import, and field value operations.
+#define PC_CAP_FORMS 4u
 
 typedef struct pc_backend_api pc_backend_api;
 
@@ -89,6 +97,29 @@ struct pc_backend_api {
   /// Release both buffers returned by page_text_layout. Safe with NULLs (R-M6: the backend
   /// allocated them, the backend frees them). Added at abi 1.2.
   void (*page_text_layout_free)(char* utf8, pc_text_box* boxes);
+
+  /// Form fields enumeration (abi 1.3, story 7.1). Returns all form fields in the document.
+  /// PC_ERR_NONE, PC_ERR_ARGUMENT, PC_ERR_CAPABILITY when backend doesn't support forms.
+  pc_status (*form_list_fields)(const pc_backend_api* api, void* backend_doc,
+                                pc_form_list* out_list);
+  /// Free a form list returned by form_list_fields. Safe with NULL.
+  void (*form_list_free)(pc_form_list* list);
+
+  /// Export form fields to FDF (Forms Data Format).
+  /// Returns PC_ERR_NONE with *out_fdf set to malloc'd UTF-8, PC_ERR_ARGUMENT for null args,
+  /// PC_ERR_CAPABILITY when backend doesn't support forms.
+  pc_status (*form_fdf_export)(const pc_backend_api* api, void* backend_doc, pc_fdf* out_fdf);
+  /// Import form fields from FDF.
+  /// Returns PC_ERR_NONE, PC_ERR_ARGUMENT for invalid FDF, PC_ERR_CAPABILITY when unsupported.
+  pc_status (*form_fdf_import)(const pc_backend_api* api, void* backend_doc, const char* fdf_data,
+                               size_t fdf_size);
+  /// Free FDF data returned by form_fdf_export. Safe with NULL.
+  void (*form_fdf_free)(pc_fdf* fdf);
+  /// abi 1.4 (story 7.4): bake widget appearances into static page content, remove the
+  /// interactive form objects, and save the result to out_path (a NEW file - the source is
+  /// never modified in place). PC_ERR_NONE, PC_ERR_CAPABILITY when the backend does not
+  /// declare PC_CAP_FORMS or the document is not a PDF, PC_ERR_ARGUMENT, PC_ERR_IO.
+  pc_status (*form_flatten)(const pc_backend_api* api, void* backend_doc, const char* out_path);
 };
 
 #define PC_BACKEND_API_INIT \

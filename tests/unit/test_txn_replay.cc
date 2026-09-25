@@ -79,11 +79,11 @@ static void test_round_trip(void) {
   ASSERT_INT_EQ(s.code, PC_ERR_NONE);
 
   pc_command cmds[5] = {
-      {sizeof(pc_command), PC_CMD_ADD_ANNOT, "abc2d3e4f5", {}, {10, 10, 20, 20}},
-      {sizeof(pc_command), PC_CMD_MOVE, "abc2d3e4f5", {}, {30, 30, 40, 40}},
-      {sizeof(pc_command), PC_CMD_ADD_ANNOT, "m3n4p5q6r7", {}, {5, 5, 15, 15}},
-      {sizeof(pc_command), PC_CMD_DELETE, "m3n4p5q6r7", {}, {}},
-      {sizeof(pc_command), PC_CMD_MOVE, "abc2d3e4f5", {}, {50, 50, 60, 60}},
+      {sizeof(pc_command), PC_CMD_ADD_ANNOT, "abc2d3e4f5", {}, {10, 10, 20, 20}, "", ""},
+      {sizeof(pc_command), PC_CMD_MOVE, "abc2d3e4f5", {}, {30, 30, 40, 40}, "", ""},
+      {sizeof(pc_command), PC_CMD_ADD_ANNOT, "m3n4p5q6r7", {}, {5, 5, 15, 15}, "", ""},
+      {sizeof(pc_command), PC_CMD_DELETE, "m3n4p5q6r7", {}, {}, "", ""},
+      {sizeof(pc_command), PC_CMD_MOVE, "abc2d3e4f5", {}, {50, 50, 60, 60}, "", ""},
   };
 
   for (int i = 0; i < 5; ++i) {
@@ -205,7 +205,9 @@ static void test_property_round_trip(void) {
                       PC_CMD_ADD_ANNOT,
                       "",
                       {},
-                      {i * 10.0, i * 10.0, i * 10.0 + 5, i * 10.0 + 5}};
+                      {i * 10.0, i * 10.0, i * 10.0 + 5, i * 10.0 + 5},
+                      "",
+                      ""};
       memcpy(c.annotation_id, id, 11);
       pc_txn_apply(txn, &c);
       if (i % 2 == 0) {
@@ -213,7 +215,9 @@ static void test_property_round_trip(void) {
                          PC_CMD_MOVE,
                          "",
                          {},
-                         {i * 10.0 + 10, i * 10.0 + 10, i * 10.0 + 15, i * 10.0 + 15}};
+                         {i * 10.0 + 10, i * 10.0 + 10, i * 10.0 + 15, i * 10.0 + 15},
+                         "",
+                         ""};
         memcpy(mv.annotation_id, id, 11);
         pc_txn_apply(txn, &mv);
       }
@@ -258,7 +262,7 @@ static void test_cli_replay_bytes(void) {
   pc_budget b = {sizeof(pc_budget), 100, 0};
   pc_txn* txn = nullptr;
   pc_txn_create(doc, &b, &txn);
-  pc_command c = {sizeof(pc_command), PC_CMD_ADD_ANNOT, "abc2d3e4f5", {}, {1, 2, 3, 4}};
+  pc_command c = {sizeof(pc_command), PC_CMD_ADD_ANNOT, "abc2d3e4f5", {}, {1, 2, 3, 4}, "", ""};
   pc_txn_apply(txn, &c);
   char* json_core = nullptr;
   pc_txn_to_json(txn, &json_core);

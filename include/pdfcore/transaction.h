@@ -26,18 +26,24 @@ typedef enum pc_command_type {
   PC_CMD_ADD_ANNOT = 1,
   PC_CMD_MOVE = 2,
   PC_CMD_DELETE = 3,
+  PC_CMD_FORM_SET = 4,      // form field value change (story 7.2)
+  PC_CMD_FORM_FLATTEN = 5,  // bake widgets, remove the form (story 7.4); the IR's field
+                            // snapshot rides in the command so undo restores editability
 } pc_command_type;
 
 /// One logged IR mutation (R18.1). `size` first (ADR-0003). `before` is the IR snapshot taken
 /// by pc_txn_apply at apply time (zero rect means "element did not exist"); `after` is the
 /// target state supplied by the caller. A command must be a value type and never reference an
-/// engine object (R-M4).
+/// engine object (R-M4). For PC_CMD_FORM_SET (abi 1.3, story 7.2) the form payload names the
+/// field and the target value; `before`/`after`/`annotation_id` are zeroed for that type.
 typedef struct pc_command {
   uint32_t size;
   pc_command_type type;
   char annotation_id[11];  // RFC 4648 base32, 10 chars + NUL (R2.3 id, sidecar mirror)
   pc_rect before;
   pc_rect after;
+  char form_field_name[64];  // abi 1.3: PC_CMD_FORM_SET target field name (UTF-8)
+  char form_new_value[512];  // abi 1.3: PC_CMD_FORM_SET target value (UTF-8)
 } pc_command;
 
 typedef struct pc_txn pc_txn;

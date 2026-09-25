@@ -292,6 +292,15 @@ not silently add an item; flag it in the PR and open it here with the number tha
    the a11y announcement is still the placeholder "Page 1 of 1, zoom 100%"
    produced by `pc_uia_state` defaults (the scripts' "Page 1 of 5, zoom 150%" is pinned
    by `tests/unit/test_uia.cc`); the viewer updates the state as documents open.
+   Epic 7 (2026-09-24) landed forms end to end and the verdict is **keep**
+   (`tasks/epic-07/epic-7-dod.md` §7.5): AcroForm enumeration via the pdf dict walk
+   (the vendored MuPDF has no fz_widget API), fill/validate/undo through the same
+   transaction log as annotations, keyboard focus + the four exact UIA announcements,
+   and a flatten whose bake is pixel-identical (PNG sha `2bd94435...` both sides,
+   R53.2) - 136 headless checks in 5 suites, abi 1.3/1.4. Kept with its debt named:
+   FDF import stays `PC_ERR_UNSUPPORTED` (needs an incremental-save story), the
+   viewer's Ctrl+Z binding and the on-machine Narrator run are the 7.3 leftovers,
+   and the fixture was regenerated with real /MaxLen (new sha `eb6d67fb...`).
 2. **Only the doc gates and the matrix's first runs are recorded:** `gates` ran green on `main`
    since run `35170901622` (at `94f1950`) and `35171544840` (at `0d64999`); the build matrix
    arrived with PR #2 (`2ec9977`) and its first all-four-green run is `35179132038` (head
@@ -320,19 +329,20 @@ not silently add an item; flag it in the PR and open it here with the number tha
    sets, header coverage and link differences will keep producing `build:` PRs that look like
    noise.
 8. **The swap budget is under the 0.07 target but the core is still thin:**
-    `tools/layering-check.sh` now measures `backend_line_ratio = 0.0254` (query:
-    `sh tools/layering-check.sh --strict`, 2026-09-24, re-measured after story 1.5),
-    down from 0.0282 at the story 5.5 re-measure (2026-09-23), 0.0308 at the story 5.4
+    `tools/layering-check.sh` now measures `backend_line_ratio = 0.0269` (query:
+    `sh tools/layering-check.sh --strict`, 2026-09-24, re-measured after Epic 7 story
+    7.4), up from 0.0236 at the story 7.1 re-measure (2026-09-24, unrecorded here at the
+    time - itself the lesson in docs/lessons.md 2026-09-24 about numbers that carry their
+    query, unit and date), 0.0254 at story 1.5 (2026-09-24), 0.0282 at the story 5.5
+    re-measure (2026-09-23), 0.0308 at the story 5.4
     re-measure (2026-09-23), 0.0333 at the story 5.3
     re-measure (2026-09-23), 0.0358 at the story 5.2
     re-measure (2026-09-23), 0.0683 at the story 3.5 re-measure
-    (2026-09-21) and 0.1014 at the epic 3 baseline. Every fall so far came from the
-    denominator growing - the window and swapchain implementations under `src/os/win32`,
-    then story 5.3's tile cache, cachemap and core budget across `src/render` and
-    `src/core`, then story 5.4's DPI module, then story 5.5's UIA provider, both under
-    `src/os/win32` -
-    never from the backend shrinking; the budget starts to mean something only when
-    `src/core`'s C++ outgrows it.
+    (2026-09-21) and 0.1014 at the epic 3 baseline. The 7.1-7.4 rise is the first one
+    paid by the numerator - the dict-walk enumeration and pdf_bake bridge are real
+    backend code - while `src/core/forms` (512 LOC of fill/undo/focus/flatten semantics)
+    grows the denominator in the direction the budget wants: core C++ outgrowing the
+    bridge.
 
 ---
 

@@ -44,7 +44,7 @@ int main() {
 
     // Use a hardcoded command like the transaction test
     pc_command cmd = {
-        sizeof(pc_command), PC_CMD_ADD_ANNOT, "abc2d3e4f5", {0, 0, 0, 0}, {10, 10, 20, 20}};
+        sizeof(pc_command), PC_CMD_ADD_ANNOT, "abc2d3e4f5", {0, 0, 0, 0}, {10, 10, 20, 20}, "", ""};
 
     // Apply command
     s = pc_txn_apply(txn, &cmd);
@@ -101,7 +101,7 @@ test_done:
 
     // First create an annotation with hardcoded ID
     pc_command add_cmd = {
-        sizeof(pc_command), PC_CMD_ADD_ANNOT, "m3n4p5q6r7", {0, 0, 0, 0}, {5, 5, 15, 15}};
+        sizeof(pc_command), PC_CMD_ADD_ANNOT, "m3n4p5q6r7", {0, 0, 0, 0}, {5, 5, 15, 15}, "", ""};
     s = pc_txn_apply(txn, &add_cmd);
     if (s.code != PC_ERR_NONE) {
       printf("FAIL test2: txn_apply add code=%u\n", s.code);
@@ -113,7 +113,7 @@ test_done:
 
     // Now delete it
     pc_command del_cmd = {
-        sizeof(pc_command), PC_CMD_DELETE, "m3n4p5q6r7", {0, 0, 0, 0}, {0, 0, 0, 0}};
+        sizeof(pc_command), PC_CMD_DELETE, "m3n4p5q6r7", {0, 0, 0, 0}, {0, 0, 0, 0}, "", ""};
     s = pc_txn_apply(txn, &del_cmd);
     if (s.code != PC_ERR_NONE) {
       printf("FAIL test2: txn_apply delete code=%u\n", s.code);

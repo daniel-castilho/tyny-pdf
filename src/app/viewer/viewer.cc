@@ -75,10 +75,31 @@ pc_status viewer_open(viewer_state* st, const pc_backend_api* api, const char* p
   }
   st->page_count = api->doc_page_count(st->doc);
 
+  // Story 7.3 (R51.1): the forms IR is synthesized by pc_doc_open and its fields
+  // loaded through the same vtable the CLI uses (R48.2); fill/toggle go through a
+  // transaction log owned by the viewer. A backend without PC_CAP_FORMS answers
+  // CAPABILITY and the viewer simply has no tab stops - not an error (R-M5).
+  s = pc_doc_open(path, nullptr, &st->ir);
+  if (s.code != PC_ERR_NONE) {
+    viewer_close(st);
+    return s;
+  }
+  s = pc_form_ir_load_from_backend(st->ir, api, st->doc);
+  if (s.code != PC_ERR_NONE && s.code != PC_ERR_CAPABILITY) {
+    viewer_close(st);
+    return s;
+  }
+  pc_budget txn_budget = {sizeof(pc_budget), 0, 0};
+  s = pc_txn_create(st->ir, &txn_budget, &st->txn);
+  if (s.code != PC_ERR_NONE) {
+    viewer_close(st);
+    return s;
+  }
+  pc_form_focus_init(&st->form_focus);
+
   s = viewer_reset_tiles(st);
   if (s.code != PC_ERR_NONE) {
-    api->doc_close(st->doc);
-    st->doc = nullptr;
+    viewer_close(st);  // releases cache/map, the forms txn+IR and the backend doc
     return s;
   }
 
@@ -223,6 +244,14 @@ void viewer_close(viewer_state* st) {
   if (!st) {
     return;
   }
+  if (st->txn) {
+    pc_txn_free(st->txn);
+    st->txn = nullptr;
+  }
+  if (st->ir) {
+    pc_doc_close(st->ir);
+    st->ir = nullptr;
+  }
   if (st->map) {
     pc_cachemap_destroy(st->map);
     st->map = nullptr;
@@ -292,6 +321,37 @@ pc_status viewer_on_key(viewer_state* st, uint32_t page, int vk, int down, int m
   }
   if (!down) {
     return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};  // only handle key down
+  }
+
+  // Story 7.3 (R51.1): the forms keys are handled before the caret keys and need no
+  // page text - a formless or textless document falls through to the caret path.
+  // PC_ERR_STATE from the focus model (no fields / no focus) is the honest answer;
+  // the window callback ignores return codes, so navigation never breaks caret input.
+  if (vk == 0x09 /*VK_TAB*/ || vk == 0x20 /*VK_SPACE*/ || vk == 0x1B /*VK_ESCAPE*/) {
+    if (st->ir && st->txn) {
+      pc_status fs = {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
+      switch (vk) {
+        case 0x09:
+          // Commit the buffer before moving (a rejected commit still moves focus -
+          // Tab is navigation, not a validation trap).
+          if (st->form_focus.index >= 0) {
+            pc_form_focus_commit(st->ir, st->txn, &st->form_focus);
+          }
+          fs = (modifiers & 1) ? pc_form_focus_prev(st->ir, &st->form_focus)
+                               : pc_form_focus_next(st->ir, &st->form_focus);
+          break;
+        case 0x20:
+          fs = pc_form_toggle(st->ir, st->txn, &st->form_focus);
+          break;
+        default:
+          fs = pc_form_focus_load(st->ir, &st->form_focus);
+          break;
+      }
+      if (fs.code != PC_ERR_STATE) {
+        return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
+      }
+      return fs;
+    }
   }
 
   // Get page text layout for caret movement
@@ -412,6 +472,82 @@ pc_status viewer_on_key(viewer_state* st, uint32_t page, int vk, int down, int m
   }
 
   st->api->page_text_layout_free(utf8, boxes);
+  return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
+}
+
+// Story 7.3 (R51.1): one Unicode codepoint typed into the focused text field. The
+// UTF-8 encoding goes through pc_form_focus_type, so max_len is enforced by the core
+// (R50.2) and the buffer stays the single source of the pending value.
+pc_status viewer_on_char(viewer_state* st, uint32_t codepoint) {
+  if (!st || !st->ir) {
+    return {sizeof(pc_status), PC_ERR_ARGUMENT, 0, "null state"};
+  }
+  char utf8[5];
+  int len = 0;
+  if (codepoint < 0x80) {
+    utf8[len++] = (char)codepoint;
+  } else if (codepoint < 0x800) {
+    utf8[len++] = (char)(0xC0 | (codepoint >> 6));
+    utf8[len++] = (char)(0x80 | (codepoint & 0x3F));
+  } else if (codepoint < 0x10000) {
+    utf8[len++] = (char)(0xE0 | (codepoint >> 12));
+    utf8[len++] = (char)(0x80 | ((codepoint >> 6) & 0x3F));
+    utf8[len++] = (char)(0x80 | (codepoint & 0x3F));
+  } else if (codepoint < 0x110000) {
+    utf8[len++] = (char)(0xF0 | (codepoint >> 18));
+    utf8[len++] = (char)(0x80 | ((codepoint >> 12) & 0x3F));
+    utf8[len++] = (char)(0x80 | ((codepoint >> 6) & 0x3F));
+    utf8[len++] = (char)(0x80 | (codepoint & 0x3F));
+  } else {
+    return {sizeof(pc_status), PC_ERR_ARGUMENT, 0, "codepoint out of range"};
+  }
+  return pc_form_focus_type(st->ir, &st->form_focus, utf8, (size_t)len);
+}
+
+// Story 7.3 (R51.2): the forms-focus announcement as UTF-16. The core produces the
+// diffable UTF-8 text (R50.3); this converts so the UIA state (R52.2) can carry it
+// without the provider knowing the shape.
+pc_status viewer_forms_announcement(viewer_state* st, wchar_t* out, size_t out_cap) {
+  if (!st || !out) {
+    return {sizeof(pc_status), PC_ERR_ARGUMENT, 0, "null argument"};
+  }
+  char utf8[PC_UIA_ANNOUNCE_MAX];
+  pc_status s = pc_form_focus_announce(st->ir, &st->form_focus, utf8, sizeof(utf8));
+  if (s.code != PC_ERR_NONE) {
+    out[0] = L'\0';
+    return s;
+  }
+  // UTF-8 -> UTF-16 with surrogate pairs; buffer is bounded by PC_UIA_ANNOUNCE_MAX
+  // on both sides, so a full-name + value announcement cannot overflow.
+  size_t oi = 0;
+  for (size_t i = 0; utf8[i] && oi + 2 < out_cap;) {
+    uint32_t cp = 0;
+    int extra = 0;
+    unsigned char b = (unsigned char)utf8[i];
+    if (b < 0x80) {
+      cp = b;
+    } else if ((b & 0xE0) == 0xC0) {
+      cp = b & 0x1F;
+      extra = 1;
+    } else if ((b & 0xF0) == 0xE0) {
+      cp = b & 0x0F;
+      extra = 2;
+    } else {
+      cp = b & 0x07;
+      extra = 3;
+    }
+    for (int k = 0; k < extra && utf8[i + 1]; ++k) {
+      cp = (cp << 6) | ((unsigned char)utf8[++i] & 0x3F);
+    }
+    ++i;
+    if (cp >= 0x10000 && oi + 2 < out_cap) {
+      out[oi++] = (wchar_t)(0xD800 | ((cp - 0x10000) >> 10));
+      out[oi++] = (wchar_t)(0xDC00 | ((cp - 0x10000) & 0x3FF));
+    } else if (cp < 0x10000) {
+      out[oi++] = (wchar_t)cp;
+    }
+  }
+  out[oi] = L'\0';
   return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
 }
 

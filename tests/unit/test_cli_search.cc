@@ -76,6 +76,12 @@ static pc_backend_api null_api = {
     null_face_coverage,
     nullptr,
     nullptr,
+    nullptr,  // form_list_fields
+    nullptr,  // form_list_free
+    nullptr,  // form_fdf_export
+    nullptr,  // form_fdf_import
+    nullptr,  // form_fdf_free
+    nullptr,  // form_flatten (abi 1.4)
 };
 
 int main() {

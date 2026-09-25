@@ -112,7 +112,8 @@ static const char* null_get_last_error(void* backend_doc) {
 // and find_tables reports PC_ERR_CAPABILITY, never an empty "no tables" list.
 static int null_doc_has_capability(void* backend_doc, uint32_t capability) {
   (void)backend_doc;
-  (void)capability;
+  if (capability == PC_CAP_FORMS)
+    return 0;
   return 0;
 }
 
@@ -165,6 +166,49 @@ static void null_page_text_layout_free(char* utf8, pc_text_box* boxes) {
   (void)boxes;
 }
 
+static pc_status null_form_list_fields(const pc_backend_api* api, void* backend_doc,
+                                       pc_form_list* out_list) {
+  (void)api;
+  (void)backend_doc;
+  (void)out_list;
+  return {sizeof(pc_status), PC_ERR_CAPABILITY, 0, "forms not supported"};
+}
+
+static void null_form_list_free(pc_form_list* list) {
+  (void)list;
+}
+
+static pc_status null_form_fdf_export(const pc_backend_api* api, void* backend_doc,
+                                      pc_fdf* out_fdf) {
+  (void)api;
+  (void)backend_doc;
+  (void)out_fdf;
+  return {sizeof(pc_status), PC_ERR_CAPABILITY, 0, "forms not supported"};
+}
+
+static pc_status null_form_fdf_import(const pc_backend_api* api, void* backend_doc,
+                                      const char* fdf_data, size_t fdf_size) {
+  (void)api;
+  (void)backend_doc;
+  (void)fdf_data;
+  (void)fdf_size;
+  return {sizeof(pc_status), PC_ERR_CAPABILITY, 0, "forms not supported"};
+}
+
+static void null_form_fdf_free(pc_fdf* fdf) {
+  (void)fdf;
+}
+
+// abi 1.4 (story 7.4): the null backend declares no PC_CAP_FORMS, so flatten answers
+// PC_ERR_CAPABILITY - never a silent no-op that could be mistaken for a baked file.
+static pc_status null_form_flatten(const pc_backend_api* api, void* backend_doc,
+                                   const char* out_path) {
+  (void)api;
+  (void)backend_doc;
+  (void)out_path;
+  return {sizeof(pc_status), PC_ERR_CAPABILITY, 0, "forms not supported"};
+}
+
 pc_backend_api pc_null_backend_api = {
     .abi_major = PC_BACKEND_API_VERSION_MAJOR,
     .abi_minor = PC_BACKEND_API_VERSION_MINOR,
@@ -184,6 +228,12 @@ pc_backend_api pc_null_backend_api = {
     .face_coverage = null_face_coverage,
     .page_text_layout = null_page_text_layout,
     .page_text_layout_free = null_page_text_layout_free,
+    .form_list_fields = null_form_list_fields,
+    .form_list_free = null_form_list_free,
+    .form_fdf_export = null_form_fdf_export,
+    .form_fdf_import = null_form_fdf_import,
+    .form_fdf_free = null_form_fdf_free,
+    .form_flatten = null_form_flatten,
 };
 
 const pc_backend_api* pc_null_backend_get_api(void) {

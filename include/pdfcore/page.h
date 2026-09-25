@@ -18,6 +18,8 @@ typedef struct pc_render_params {
   pc_rect clip;
   int render_annots;
   int render_text;
+  int render_widgets;  // abi 1.4 (story 7.4): draw form widgets - the pre-flatten half of
+                       // the bake-equality claim (the post-flatten half is baked content)
 } pc_render_params;
 
 typedef struct pc_pixmap {

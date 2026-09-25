@@ -40,6 +40,13 @@ pc_status pc_uia_state_create(pc_uia_state** out_state);
 // briefly reports an empty page range still announces "Page 1 of N".
 void pc_uia_state_update(pc_uia_state* state, int page_index, int page_count, int zoom_percent);
 
+// Story 7.3 (R52.2): while a form field has keyboard focus, the ValuePattern announces
+// the field instead of the page state. A non-empty announcement switches get_Value to
+// that exact text; an empty string (or NULL) reverts to "Page N of M, zoom Z%". The
+// text is the output of pc_form_focus_announce converted to UTF-16 by the caller - the
+// provider stays engine-free and string-shape-free.
+void pc_uia_state_set_forms_focus(pc_uia_state* state, const wchar_t* announcement);
+
 // Current announced value of the state, formatted with
 // pc_uia_format_announcement. Returns PC_ERR_ARGUMENT if the buffer is too
 // small (cannot happen with PC_UIA_ANNOUNCE_MAX on valid input).

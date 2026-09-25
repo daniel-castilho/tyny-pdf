@@ -80,6 +80,12 @@ struct WindowData {
   typedef void (*pc_window_key_callback)(int down, int vk, int modifiers, void* user_data);
   pc_window_click_callback click_cb = nullptr;
   pc_window_key_callback key_cb = nullptr;
+  // ABI 1.4 (story 7.3): WM_CHAR text input for form fields (R51.1)
+  typedef void (*pc_window_char_callback)(uint32_t codepoint, void* user_data);
+  pc_window_char_callback char_cb = nullptr;
+  // Surrogate assembly for WM_CHAR: a high surrogate is held until its low half
+  // arrives, so one astral codepoint produces one char_cb call.
+  uint32_t pending_high_surrogate = 0;
   void* user_data = nullptr;
 
   // DComp/D3D11
@@ -253,6 +259,26 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
         if (GetKeyState(VK_MENU) & 0x8000)
           modifiers |= 4;
         data->key_cb(down, vk, modifiers, data->user_data);
+      }
+      return 0;
+    }
+
+    case WM_CHAR: {
+      // ABI 1.4 (story 7.3): text input for form fields. A high surrogate waits for
+      // its low half; anything else flushes a dangling high surrogate first so a
+      // broken sequence never silently eats the following character.
+      if (data && data->char_cb) {
+        uint32_t unit = static_cast<uint32_t>(wparam);
+        if (unit >= 0xD800 && unit <= 0xDBFF) {
+          data->pending_high_surrogate = unit;
+        } else {
+          uint32_t codepoint = unit;
+          if (unit >= 0xDC00 && unit <= 0xDFFF && data->pending_high_surrogate) {
+            codepoint = 0x10000 + ((data->pending_high_surrogate - 0xD800) << 10) + (unit - 0xDC00);
+          }
+          data->pending_high_surrogate = 0;
+          data->char_cb(codepoint, data->user_data);
+        }
       }
       return 0;
     }
@@ -610,6 +636,7 @@ pc_status pc_window_create(const pc_window_params* params, const pc_window_callb
   data->size_cb = callbacks->size_changed;
   data->click_cb = callbacks->click;
   data->key_cb = callbacks->key;
+  data->char_cb = callbacks->char_input;
   data->user_data = params->user_data;
 
   // Story 5.5 (R24.7): the window owns the a11y document state the UIA
@@ -751,6 +778,15 @@ void pc_window_get_size(pc_window* window, int* out_width, int* out_height) {
   WindowData* data = reinterpret_cast<WindowData*>(window);
   *out_width = data->width;
   *out_height = data->height;
+}
+
+// ABI 1.4 (story 7.3): the composition root pushes forms-focus announcements into the
+// state the provider already reads (R51.2/R52.2). Borrowed: the window keeps ownership.
+pc_uia_state* pc_window_uia_state(pc_window* window) {
+  if (!window)
+    return nullptr;
+  WindowData* data = reinterpret_cast<WindowData*>(window);
+  return data->uia_state;
 }
 
 void pc_window_destroy(pc_window* window) {

@@ -62,7 +62,8 @@ static void test_apply_undo_redo_hash_equality(void) {
   s = pc_txn_create(doc, &b, &txn);
   ASSERT_INT_EQ(s.code, PC_ERR_NONE);
 
-  pc_command add = {sizeof(pc_command), PC_CMD_ADD_ANNOT, "abc2d3e4f5", {}, {10, 10, 20, 20}};
+  pc_command add = {
+      sizeof(pc_command), PC_CMD_ADD_ANNOT, "abc2d3e4f5", {}, {10, 10, 20, 20}, "", ""};
   s = pc_txn_apply(txn, &add);
   ASSERT_INT_EQ(s.code, PC_ERR_NONE);
 
@@ -85,7 +86,7 @@ static void test_apply_undo_redo_hash_equality(void) {
   ASSERT_INT_EQ(s.code, PC_ERR_NONE);
   ASSERT_STR_EQ(h_apply, h_redo);
 
-  pc_command mv = {sizeof(pc_command), PC_CMD_MOVE, "abc2d3e4f5", {}, {30, 30, 40, 40}};
+  pc_command mv = {sizeof(pc_command), PC_CMD_MOVE, "abc2d3e4f5", {}, {30, 30, 40, 40}, "", ""};
   s = pc_txn_apply(txn, &mv);
   ASSERT_INT_EQ(s.code, PC_ERR_NONE);
   char h_move[65] = {0};
@@ -93,7 +94,7 @@ static void test_apply_undo_redo_hash_equality(void) {
   ASSERT_INT_EQ(s.code, PC_ERR_NONE);
   ASSERT_STR_NE(h_apply, h_move);
 
-  pc_command del = {sizeof(pc_command), PC_CMD_DELETE, "abc2d3e4f5", {}, {}};
+  pc_command del = {sizeof(pc_command), PC_CMD_DELETE, "abc2d3e4f5", {}, {}, "", ""};
   s = pc_txn_apply(txn, &del);
   ASSERT_INT_EQ(s.code, PC_ERR_NONE);
   char h_delete[65] = {0};
@@ -144,14 +145,16 @@ static void test_budget_ceiling(void) {
   s = pc_txn_create(doc, &tight, &txn);
   ASSERT_INT_EQ(s.code, PC_ERR_NONE);
 
-  pc_command add = {sizeof(pc_command), PC_CMD_ADD_ANNOT, "abc2d3e4f5", {}, {10, 10, 20, 20}};
+  pc_command add = {
+      sizeof(pc_command), PC_CMD_ADD_ANNOT, "abc2d3e4f5", {}, {10, 10, 20, 20}, "", ""};
   s = pc_txn_apply(txn, &add);
   ASSERT_INT_EQ(s.code, PC_ERR_NONE);
 
   char h_pre[65] = {0};
   pc_doc_hash(doc, h_pre);
 
-  pc_command add2 = {sizeof(pc_command), PC_CMD_ADD_ANNOT, "m3n4p5q6r7", {}, {5, 5, 15, 15}};
+  pc_command add2 = {
+      sizeof(pc_command), PC_CMD_ADD_ANNOT, "m3n4p5q6r7", {}, {5, 5, 15, 15}, "", ""};
   s = pc_txn_apply(txn, &add2);
   ASSERT_INT_EQ(s.code, PC_ERR_LIMIT);
   ASSERT_STR_EQ(s.detail, "undo budget exceeded");
@@ -167,7 +170,8 @@ static void test_budget_ceiling(void) {
   pc_txn* txnb = nullptr;
   s = pc_txn_create(doc, &tiny, &txnb);
   ASSERT_INT_EQ(s.code, PC_ERR_NONE);
-  pc_command addb = {sizeof(pc_command), PC_CMD_ADD_ANNOT, "aaaa2222bb", {}, {8, 8, 18, 18}};
+  pc_command addb = {
+      sizeof(pc_command), PC_CMD_ADD_ANNOT, "aaaa2222bb", {}, {8, 8, 18, 18}, "", ""};
   s = pc_txn_apply(txnb, &addb);
   ASSERT_INT_EQ(s.code, PC_ERR_LIMIT);
   pc_txn_free(txnb);
@@ -176,10 +180,12 @@ static void test_budget_ceiling(void) {
   pc_txn* txn2 = nullptr;
   s = pc_txn_create(doc, &roomy, &txn2);
   ASSERT_INT_EQ(s.code, PC_ERR_NONE);
-  pc_command addc = {sizeof(pc_command), PC_CMD_ADD_ANNOT, "aaaa2222bb", {}, {8, 8, 18, 18}};
+  pc_command addc = {
+      sizeof(pc_command), PC_CMD_ADD_ANNOT, "aaaa2222bb", {}, {8, 8, 18, 18}, "", ""};
   s = pc_txn_apply(txn2, &addc);
   ASSERT_INT_EQ(s.code, PC_ERR_NONE);
-  pc_command addd = {sizeof(pc_command), PC_CMD_ADD_ANNOT, "m3n4p5q6r7", {}, {5, 5, 15, 15}};
+  pc_command addd = {
+      sizeof(pc_command), PC_CMD_ADD_ANNOT, "m3n4p5q6r7", {}, {5, 5, 15, 15}, "", ""};
   s = pc_txn_apply(txn2, &addd);
   ASSERT_INT_EQ(s.code, PC_ERR_NONE);
   pc_txn_free(txn2);
@@ -206,21 +212,21 @@ static void test_null_and_internal_errors(void) {
   s = pc_txn_create(doc, &b, &txn);
   ASSERT_INT_EQ(s.code, PC_ERR_NONE);
 
-  pc_command bad = {sizeof(pc_command), PC_CMD_ADD_ANNOT, "NOTVALID!", {}, {1, 1, 2, 2}};
+  pc_command bad = {sizeof(pc_command), PC_CMD_ADD_ANNOT, "NOTVALID!", {}, {1, 1, 2, 2}, "", ""};
   ASSERT_INT_EQ(pc_txn_apply(txn, &bad).code, PC_ERR_ARGUMENT);
   ASSERT_INT_EQ(pc_txn_apply(txn, nullptr).code, PC_ERR_ARGUMENT);
 
-  pc_command mv = {sizeof(pc_command), PC_CMD_MOVE, "abc2d3e4f5", {}, {5, 5, 6, 6}};
+  pc_command mv = {sizeof(pc_command), PC_CMD_MOVE, "abc2d3e4f5", {}, {5, 5, 6, 6}, "", ""};
   ASSERT_INT_EQ(pc_txn_apply(txn, &mv).code, PC_ERR_ARGUMENT);
-  pc_command del = {sizeof(pc_command), PC_CMD_DELETE, "abc2d3e4f5", {}, {}};
+  pc_command del = {sizeof(pc_command), PC_CMD_DELETE, "abc2d3e4f5", {}, {}, "", ""};
   ASSERT_INT_EQ(pc_txn_apply(txn, &del).code, PC_ERR_ARGUMENT);
 
   ASSERT_INT_EQ(pc_txn_undo(txn).code, PC_ERR_STATE);
   ASSERT_INT_EQ(pc_txn_redo(txn).code, PC_ERR_STATE);
 
-  pc_command add = {sizeof(pc_command), PC_CMD_ADD_ANNOT, "abc2d3e4f5", {}, {1, 1, 2, 2}};
+  pc_command add = {sizeof(pc_command), PC_CMD_ADD_ANNOT, "abc2d3e4f5", {}, {1, 1, 2, 2}, "", ""};
   ASSERT_INT_EQ(pc_txn_apply(txn, &add).code, PC_ERR_NONE);
-  pc_command dup = {sizeof(pc_command), PC_CMD_ADD_ANNOT, "abc2d3e4f5", {}, {9, 9, 10, 10}};
+  pc_command dup = {sizeof(pc_command), PC_CMD_ADD_ANNOT, "abc2d3e4f5", {}, {9, 9, 10, 10}, "", ""};
   ASSERT_INT_EQ(pc_txn_apply(txn, &dup).code, PC_ERR_ARGUMENT);
 
   pc_txn_free(txn);

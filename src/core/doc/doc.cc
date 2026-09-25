@@ -78,6 +78,9 @@ pc_status pc_doc_open(const char* path, const char* password, pc_doc** out_doc) 
   doc->annotation_count = 0;
   doc->annotation_cap = 0;
   doc->annotations = nullptr;
+  doc->form_field_count = 0;
+  doc->form_field_cap = 0;
+  doc->form_fields = nullptr;
   sha256_file(path, doc->sha256_hex);
 
   *out_doc = doc;
@@ -108,6 +111,9 @@ void pc_doc_close(pc_doc* doc) {
   }
   if (doc->annotations) {
     std::free(doc->annotations);
+  }
+  if (doc->form_fields) {
+    std::free(doc->form_fields);
   }
   std::free(doc);
 }

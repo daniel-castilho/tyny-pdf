@@ -11,10 +11,12 @@
 
 #include "pdfcore/backend.h"
 #include "pdfcore/budget.h"
+#include "pdfcore/forms.h"
 #include "pdfcore/render.h"
 #include "pdfcore/selection.h"
 #include "pdfcore/status.h"
 #include "pdfcore/transaction.h"  // full pc_budget definition (value type, budget.h)
+#include "pdfcore/uia.h"
 
 namespace tynypdf {
 namespace viewer {
@@ -73,6 +75,14 @@ struct viewer_state {
 
   // Story 6.2 (R34.1): selection anchor for extend (byte offset where drag started)
   uint32_t selection_anchor = 0;
+
+  // Story 7.3 (R51.x): forms state. The IR (pc_doc) is synthesized by pc_doc_open and
+  // its fields loaded through the backend vtable (R48.2); fill/toggle run through the
+  // same transaction log as every other mutation (R48.3). No fields -> Tab falls
+  // through to the caret keys unchanged.
+  pc_doc* ir = nullptr;
+  pc_txn* txn = nullptr;
+  pc_form_focus form_focus = {};
 };
 
 // Open `path` through `api` and allocate the cache, cachemap and budget.
@@ -108,8 +118,22 @@ pc_status viewer_on_click(viewer_state* st, uint32_t page, int x, int y, int mod
 // Keyboard handler: converts virtual key to caret/selection action (R33.2, R34.1).
 // vk: Windows virtual-key code (VK_LEFT, VK_RIGHT, VK_HOME, VK_END, VK_CONTROL, VK_SHIFT).
 // down: 1=press, 0=release. modifiers: bit 0=Shift, 1=Ctrl, 2=Alt.
+// Story 7.3 (R51.1): VK_TAB commits the typing buffer and moves focus (Shift+TAB moves
+// back), VK_SPACE toggles a checkbox (or types a space into a text field), VK_ESCAPE
+// discards the buffer. These are handled before the caret keys and need no page text.
 // Returns PC_ERR_NONE on handled, PC_ERR_ARGUMENT for null.
 pc_status viewer_on_key(viewer_state* st, uint32_t page, int vk, int down, int modifiers);
+
+// Text input handler (R51.1): one Unicode codepoint (from WM_CHAR) typed into the
+// focused text field's buffer. PC_ERR_NONE, PC_ERR_LIMIT when the field's max_len
+// rejects the character, PC_ERR_STATE when no text field is focused.
+pc_status viewer_on_char(viewer_state* st, uint32_t codepoint);
+
+// The forms-focus a11y announcement (R51.2): the exact string pc_form_focus_announce
+// produces for the focused field, converted to UTF-16. PC_ERR_STATE when no field is
+// focused - the caller keeps announcing the page state (R24.7) instead. out_cap is in
+// wchar_t units; PC_UIA_ANNOUNCE_MAX is the intended capacity.
+pc_status viewer_forms_announcement(viewer_state* st, wchar_t* out, size_t out_cap);
 
 }  // namespace viewer
 }  // namespace tynypdf
