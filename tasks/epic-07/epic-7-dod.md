@@ -112,7 +112,13 @@ $ cat src/features/forms/SPEC.md | head -n 20
 - [ ] **Deferred: FDF import** — `pc_form_fdf_import` → `PC_ERR_UNSUPPORTED` (#73, open)
 - [x] **fz_widget enum** — closed in 7.2 by the AcroForm dict walk
       (`mupdf_form_list_fields` enumerates the real fixture); the line stays for history
-- [ ] **Pre-existing: test_text_fallback SEGV** — tracked in #74 (open), not a forms failure
+- [x] **test_text_fallback SEGV** — NOT pre-existing: a regression from the 7.1
+      rewrite of `mupdf_face_coverage` (nullptr `len` into `search_by_family`, plus a
+      "font exists = every codepoint covered" answer that broke R13.3's missing-glyph
+      contract). Caught by CI on PR #75 after the branch was pushed - main at 05ce35c
+      was green, so the label "pre-existing" (carried since the first mid-7.1 ctest run)
+      was wrong. #74 records the story; fixed by restoring the 05ce35c implementation
+      verbatim.
 
 ### 7.2 Fill + validate + undo
 
@@ -276,8 +282,9 @@ engine in core". It measured FALSE. Four numbers:
    0 layering violations across 72 files, `fz_widget`/`fz_try` in src/core = 0 - the dict
    walk lives in the bridge (R46.2, R46.3).
 4. **Every claim is headless.** 136 checks in 5 new suites, all on linux-core without a
-   window or the engine in the test TU; 49/50 ctest with the single red being the
-   pre-existing tracked `test_text_fallback`, not forms.
+   window or the engine in the test TU. At verdict time ctest read 49/50 with the red
+   believed pre-existing; CI on the pushed branch disproved that belief - it was a 7.1
+   regression (#74) - and the fixed branch reads 50/50, the epic's first full green.
 
 Kept with its debt named, not hidden (all tracked): FDF import stays `PC_ERR_UNSUPPORTED`
 (7.1 issue: needs an incremental-save story); hierarchical field names and page_index ride
@@ -308,11 +315,12 @@ $ sh tools/check.sh 2>&1 | tail -2
 $ sh tools/gates-selftest.sh 2>&1 | tail -1
 # -> gates-selftest: OK (13/13 suites hold)
 
-$ ctest --preset linux-core 2>&1 | grep "tests passed"
+$ ctest --preset linux-core 2>&1 | grep "tests passed"     [run of 1ce1fad]
 # -> 98% tests passed, 1 tests failed out of 50
-#    (the 1 red is the PRE-EXISTING tracked test_text_fallback, not forms - the
-#     template below expected "0 failed" and this paste records the honest number
-#     with the issue named; 50 tests = 45 pre-epic + 5 new forms suites)
+#    (at paste time this was believed the PRE-EXISTING test_text_fallback; CI on the
+#     pushed branch proved it a 7.1 regression instead - #74)
+$ ctest --preset linux-core 2>&1 | grep "tests passed"     [after the #74 fix]
+# -> 100% tests passed, 0 tests failed out of 50
 
 $ python3 tools/spec-check.py 2>&1 | head -1
 # -> spec-check: OK (27 specs, 123 requirements, 48 source files, 0 orphans)
@@ -353,7 +361,7 @@ $ git ls-tree -r --name-only HEAD | wc -l
 - [x] 7.4: flatten (bake pixel-identical)
 - [x] 7.5: verdict - keep, 4 numbers
 - [x] `check.sh` 14/14, `gates-selftest` 13/13,
-  `ctest` 49/50 (1 pre-existing tracked, not forms), `layering 0.0269 <= 0.07`,
+  `ctest` 50/50 (after the #74 regression fix), `layering 0.0269 <= 0.07`,
   `spec-check` 0 orphans, `docs-check` 0 - all pasted
   in §7.6 from a clean clone of `1ce1fad`
 

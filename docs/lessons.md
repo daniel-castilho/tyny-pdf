@@ -256,10 +256,27 @@ it. A fourth near-miss belongs to the same family: the 7.1 vtable grew three
 forms entries whose comments said "abi 1.3" while `PC_BACKEND_API_VERSION_MINOR`
 still read 2, and no gate compares the two.
 
+A fourth instance wore the most dangerous costume of all: mid-7.1 the
+`test_text_fallback` suite came up red, and the working tree accepted the
+label "pre-existing" because the red had been there since the first ctest run
+of the story - a run that already contained the 7.1 rewrite of
+`mupdf_face_coverage` that caused it. The belief survived five stories, one
+issue (#74, opened with the wrong "pre-existing" body) and a verdict paste
+("49/50, the 1 red is pre-existing, not forms") until CI ran the pushed
+branch and main's green baseline disagreed with the claim: 05ce35c was
+45/45, so the SEGV was ours. The fix was restoring the 05ce35c
+implementation verbatim (a real `len` for `search_by_family` to write into,
+and a real `fz_encode_character` probe instead of "font exists = every
+codepoint covered"), and the suite read 50/50 - the epic's first full green.
+
 **Rule:** an assertion must be able to fail at the boundary it claims to guard:
 a byte-signature test pins the full signature (or the length it checks comes
 from the same constant the emitter uses), a render-equality test covers a
 region that actually contains the thing being compared, and every vtable entry
 a story ships is called by at least one ASAN test in the same story. A version
 macro is part of the ABI surface: when a header comment says "abi N.x", the
-gate reads the macro, not the prose.
+gate reads the macro, not the prose. And a red first seen mid-story is yours
+until the branch point proves otherwise: "pre-existing" is a claim about
+05ce35c, so it is checked against 05ce35c (git stash, or a clone of the base)
+before it is written down - never against a working tree that already carries
+the story's own edits.

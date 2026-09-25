@@ -347,15 +347,25 @@ struct MupdfFace {
   const char* name;
 };
 
-static constexpr uint32_t kNcuratedFaces = 10;
+static const MupdfFace kCuratedFaces[] = {
+    {"Helvetica"},         {"Times"},      {"Courier"},    {"Symbol"},
+    {"ZapfDingbats"},      {"Charis SIL"}, {"Noto Serif"}, {"Noto Sans Math"},
+    {"Noto Sans Symbols"}, {"Noto Emoji"},
+};
+
+static constexpr uint32_t kNcuratedFaces = sizeof(kCuratedFaces) / sizeof(kCuratedFaces[0]);
 static_assert(kNcuratedFaces > 0, "face table must not be empty");
 
 static uint32_t mupdf_face_count(void* backend_doc) __attribute__((used));
 static uint32_t mupdf_face_count(void* backend_doc) {
   (void)backend_doc;
-  return 10;
+  return kNcuratedFaces;
 }
 
+// Restored from 05ce35c (the 7.1 rewrite of this file broke it two ways: a nullptr
+// `len` that search_by_family dereferences on the first base-14 match, and a
+// "font exists" answer that made every codepoint covered, killing the R13.3
+// missing-glyph contract that test_text_fallback pins).
 static pc_status mupdf_face_coverage(void* backend_doc, uint32_t face, uint32_t codepoint,
                                      int* out_has) __attribute__((used));
 static pc_status mupdf_face_coverage(void* backend_doc, uint32_t face, uint32_t codepoint,
@@ -368,12 +378,27 @@ static pc_status mupdf_face_coverage(void* backend_doc, uint32_t face, uint32_t 
   }
   MupdfDoc* doc = static_cast<MupdfDoc*>(backend_doc);
 
-  // Use fz_lookup_builtin_font which is available in this MuPDF version
-  // rather than fz_new_font which is not available
-  const unsigned char* font_data = fz_lookup_builtin_font(doc->ctx, "Helvetica", 0, 0, nullptr);
-  int has = (font_data != nullptr) ? 1 : 0;
-  (void)codepoint;  // All codepoints are supported if the font is available
-
+  int has = 0;
+  fz_var(has);
+  pc_status s = mupdf::run_guarded(
+      doc->ctx,
+      [&]() -> pc_status {
+        int len = 0;
+        const unsigned char* data =
+            fz_lookup_builtin_font(doc->ctx, kCuratedFaces[face].name, 0, 0, &len);
+        if (!data || len <= 0) {
+          return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};  // face absent -> has stays 0
+        }
+        fz_font* font =
+            fz_new_font_from_memory(doc->ctx, kCuratedFaces[face].name, data, len, 0, 1);
+        has = fz_encode_character(doc->ctx, font, (int)codepoint) != 0;
+        fz_drop_font(doc->ctx, font);
+        return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
+      },
+      "face probe failed");
+  if (s.code != PC_ERR_NONE) {
+    return s;
+  }
   *out_has = has;
   return {sizeof(pc_status), PC_ERR_NONE, 0, nullptr};
 }
