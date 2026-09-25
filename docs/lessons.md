@@ -236,3 +236,47 @@ has produced the same bytes (`sha256sum`, `openssl dgst`), and the primitive
 itself is pinned against published vectors in its own test - never blessed
 from its own output. A golden is a record of what the code did, so it cannot
 be the only thing that says what the code should have done.
+
+## 2026-09-24 - three checks that passed while the thing under them was broken
+
+Epic 7 (forms) harvested one lesson three times, and all three wore the same
+costume: a green assertion that could not have disagreed with the code it was
+supposed to check. (1) The 7.1 MuPDF FDF export emitted a truncated signature
+header - 13 of the 15 `%FDF-1.2\n%...\xd3\n` bytes - because the emitter passed
+an explicit length that disagreed with the literal; the unit test asserted only
+the first 8 bytes (`strncmp(fdf.data, "%FDF-1.2", 8)`), so the corrupted header
+passed. (2) The 7.4 render-equality claim would have been vacuous the same way:
+the CLI's hardcoded `{0,0,100,100}` clip sat below every fixture field
+(fields start at x=180), so both renders would have shown no fields at all and
+any two hashes would match. (3) The first ASAN test to ever call
+`mupdf_page_get_box` found a pre-existing `fz_page` leak - the function had
+loaded, bounded and never dropped the page since the backend was written, and
+every suite that called it before was either not instrumented or never called
+it. A fourth near-miss belongs to the same family: the 7.1 vtable grew three
+forms entries whose comments said "abi 1.3" while `PC_BACKEND_API_VERSION_MINOR`
+still read 2, and no gate compares the two.
+
+A fourth instance wore the most dangerous costume of all: mid-7.1 the
+`test_text_fallback` suite came up red, and the working tree accepted the
+label "pre-existing" because the red had been there since the first ctest run
+of the story - a run that already contained the 7.1 rewrite of
+`mupdf_face_coverage` that caused it. The belief survived five stories, one
+issue (#74, opened with the wrong "pre-existing" body) and a verdict paste
+("49/50, the 1 red is pre-existing, not forms") until CI ran the pushed
+branch and main's green baseline disagreed with the claim: 05ce35c was
+45/45, so the SEGV was ours. The fix was restoring the 05ce35c
+implementation verbatim (a real `len` for `search_by_family` to write into,
+and a real `fz_encode_character` probe instead of "font exists = every
+codepoint covered"), and the suite read 50/50 - the epic's first full green.
+
+**Rule:** an assertion must be able to fail at the boundary it claims to guard:
+a byte-signature test pins the full signature (or the length it checks comes
+from the same constant the emitter uses), a render-equality test covers a
+region that actually contains the thing being compared, and every vtable entry
+a story ships is called by at least one ASAN test in the same story. A version
+macro is part of the ABI surface: when a header comment says "abi N.x", the
+gate reads the macro, not the prose. And a red first seen mid-story is yours
+until the branch point proves otherwise: "pre-existing" is a claim about
+05ce35c, so it is checked against 05ce35c (git stash, or a clone of the base)
+before it is written down - never against a working tree that already carries
+the story's own edits.

@@ -12,71 +12,108 @@
 #include "pdfcore/sidecar.h"
 #include "pdfcore/transaction.h"
 
-// One logged mutation. `before` is the IR snapshot captured at apply time (zero rect for ADD,
-// meaning the element did not exist); `after` is the target state. Value types only, never an
-// engine handle (R-M4, R-M8).
-struct Command {
-  enum Type { ADD_ANNOT = 1, MOVE = 2, DELETE = 3 } type = ADD_ANNOT;
-  char id[11] = {};
-  pc_rect before = {};
-  pc_rect after = {};
-  pc_json_value* extras = nullptr;  // unknown keys, owned
-
-  Command() = default;
-  Command(const Command& o) {
-    type = o.type;
-    std::memcpy(id, o.id, sizeof(id));
-    before = o.before;
-    after = o.after;
-    extras = pc_json_clone(o.extras);
-  }
-  Command& operator=(const Command& o) {
-    if (this == &o) {
-      return *this;
+// Command and pc_txn are declared in the internal transaction.h (shared with forms.cc,
+// story 7.2); their non-trivial members are defined here.
+Command::Command(const Command& o) {
+  type = o.type;
+  std::memcpy(id, o.id, sizeof(id));
+  before = o.before;
+  after = o.after;
+  std::memcpy(form_field_name, o.form_field_name, sizeof(form_field_name));
+  std::memcpy(form_old_value, o.form_old_value, sizeof(form_old_value));
+  std::memcpy(form_new_value, o.form_new_value, sizeof(form_new_value));
+  flat_count = o.flat_count;
+  flat_fields = nullptr;
+  if (o.flat_fields && o.flat_count) {
+    // Deep copy: the snapshot is IR value types, never shared (R-M4). malloc family to
+    // match the doc's realloc-grown arrays (pc_doc_close frees with std::free).
+    flat_fields = static_cast<IrFormField*>(std::malloc(o.flat_count * sizeof(IrFormField)));
+    if (flat_fields) {
+      for (uint32_t i = 0; i < o.flat_count; ++i) {
+        flat_fields[i] = o.flat_fields[i];
+      }
+    } else {
+      flat_count = 0;
     }
-    type = o.type;
-    std::memcpy(id, o.id, sizeof(id));
-    before = o.before;
-    after = o.after;
-    pc_json_free(extras);
-    extras = pc_json_clone(o.extras);
+  }
+  extras = pc_json_clone(o.extras);
+}
+
+Command& Command::operator=(const Command& o) {
+  if (this == &o) {
     return *this;
   }
-  Command(Command&& o) noexcept {
-    type = o.type;
-    std::memcpy(id, o.id, sizeof(id));
-    before = o.before;
-    after = o.after;
-    extras = o.extras;
-    o.extras = nullptr;
-  }
-  Command& operator=(Command&& o) noexcept {
-    if (this == &o) {
-      return *this;
+  type = o.type;
+  std::memcpy(id, o.id, sizeof(id));
+  before = o.before;
+  after = o.after;
+  std::memcpy(form_field_name, o.form_field_name, sizeof(form_field_name));
+  std::memcpy(form_old_value, o.form_old_value, sizeof(form_old_value));
+  std::memcpy(form_new_value, o.form_new_value, sizeof(form_new_value));
+  std::free(flat_fields);
+  flat_fields = nullptr;
+  flat_count = o.flat_count;
+  if (o.flat_fields && o.flat_count) {
+    flat_fields = static_cast<IrFormField*>(std::malloc(o.flat_count * sizeof(IrFormField)));
+    if (flat_fields) {
+      for (uint32_t i = 0; i < o.flat_count; ++i) {
+        flat_fields[i] = o.flat_fields[i];
+      }
+    } else {
+      flat_count = 0;
     }
-    pc_json_free(extras);
-    type = o.type;
-    std::memcpy(id, o.id, sizeof(id));
-    before = o.before;
-    after = o.after;
-    extras = o.extras;
-    o.extras = nullptr;
+  }
+  pc_json_free(extras);
+  extras = pc_json_clone(o.extras);
+  return *this;
+}
+
+Command::Command(Command&& o) noexcept {
+  type = o.type;
+  std::memcpy(id, o.id, sizeof(id));
+  before = o.before;
+  after = o.after;
+  std::memcpy(form_field_name, o.form_field_name, sizeof(form_field_name));
+  std::memcpy(form_old_value, o.form_old_value, sizeof(form_old_value));
+  std::memcpy(form_new_value, o.form_new_value, sizeof(form_new_value));
+  flat_fields = o.flat_fields;
+  flat_count = o.flat_count;
+  o.flat_fields = nullptr;
+  o.flat_count = 0;
+  extras = o.extras;
+  o.extras = nullptr;
+}
+
+Command& Command::operator=(Command&& o) noexcept {
+  if (this == &o) {
     return *this;
   }
-  ~Command() { pc_json_free(extras); }
-};
+  pc_json_free(extras);
+  std::free(flat_fields);
+  type = o.type;
+  std::memcpy(id, o.id, sizeof(id));
+  before = o.before;
+  after = o.after;
+  std::memcpy(form_field_name, o.form_field_name, sizeof(form_field_name));
+  std::memcpy(form_old_value, o.form_old_value, sizeof(form_old_value));
+  std::memcpy(form_new_value, o.form_new_value, sizeof(form_new_value));
+  flat_fields = o.flat_fields;
+  flat_count = o.flat_count;
+  o.flat_fields = nullptr;
+  o.flat_count = 0;
+  extras = o.extras;
+  o.extras = nullptr;
+  return *this;
+}
 
-struct pc_txn {
-  pc_doc* doc;
-  std::vector<Command> undo;
-  std::vector<Command> redo;
-  uint32_t max_tiles;   // 0 = unlimited
-  uint64_t max_bytes;   // 0 = unlimited
-  uint64_t undo_bytes;  // running estimate of the undo stack
-  pc_json_value* extras = nullptr;
+Command::~Command() {
+  pc_json_free(extras);
+  std::free(flat_fields);
+}
 
-  ~pc_txn() { pc_json_free(extras); }
-};
+pc_txn::~pc_txn() {
+  pc_json_free(extras);
+}
 
 static uint64_t command_bytes_estimate() {
   // Every command holds the same fixed value-type payload; its in-memory size is the
@@ -134,27 +171,60 @@ static pc_status ir_apply(pc_doc* doc, const pc_command* cmd, Command& out) {
   out.before = {};
   out.after = cmd->after;
 
-  IrAnnotation* ann = find_annotation(doc, out.id);
   switch (cmd->type) {
-    case PC_CMD_ADD_ANNOT:
+    case PC_CMD_ADD_ANNOT: {
+      IrAnnotation* ann = find_annotation(doc, out.id);
       if (ann) {
         return status_err(PC_ERR_ARGUMENT, "annotation id already exists");
       }
       return ir_annot_insert(doc, out.id, cmd->after);
-    case PC_CMD_MOVE:
+    }
+    case PC_CMD_MOVE: {
+      IrAnnotation* ann = find_annotation(doc, out.id);
       if (!ann) {
         return status_err(PC_ERR_ARGUMENT, "annotation not found");
       }
       out.before = ann->rect;
       ann->rect = cmd->after;
       return status_none();
-    case PC_CMD_DELETE:
+    }
+    case PC_CMD_DELETE: {
+      IrAnnotation* ann = find_annotation(doc, out.id);
       if (!ann) {
         return status_err(PC_ERR_ARGUMENT, "annotation not found");
       }
       out.before = ann->rect;
       ir_annot_remove(doc, static_cast<uint32_t>(ann - doc->annotations));
       return status_none();
+    }
+    case PC_CMD_FORM_SET: {
+      // The fill itself was validated by pc_form_fill_field before the command was built;
+      // apply only needs the field to exist and copies the target value into the IR.
+      IrFormField* field = ir_form_field_find(doc, cmd->form_field_name);
+      if (!field) {
+        return status_err(PC_ERR_ARGUMENT, "form field not found");
+      }
+      std::strncpy(out.form_field_name, cmd->form_field_name, sizeof(out.form_field_name) - 1);
+      out.form_field_name[sizeof(out.form_field_name) - 1] = '\0';
+      std::strncpy(out.form_old_value, field->value, sizeof(out.form_old_value) - 1);
+      out.form_old_value[sizeof(out.form_old_value) - 1] = '\0';
+      std::strncpy(out.form_new_value, cmd->form_new_value, sizeof(out.form_new_value) - 1);
+      out.form_new_value[sizeof(out.form_new_value) - 1] = '\0';
+      std::strncpy(field->value, cmd->form_new_value, sizeof(field->value) - 1);
+      field->value[sizeof(field->value) - 1] = '\0';
+      return status_none();
+    }
+    case PC_CMD_FORM_FLATTEN: {
+      // Steal the IR's field array into the command: the doc has no fields until undo
+      // hands the array back. O(1), no copy, and the snapshot is pure IR value types
+      // (R-M4, story 7.4).
+      out.flat_fields = doc->form_fields;
+      out.flat_count = doc->form_field_count;
+      doc->form_fields = nullptr;
+      doc->form_field_count = 0;
+      doc->form_field_cap = 0;
+      return status_none();
+    }
     default:
       return status_err(PC_ERR_ARGUMENT, "unknown command type");
   }
@@ -190,6 +260,50 @@ static pc_status ir_reverse(pc_doc* doc, const Command& cmd, bool undo_not_redo)
       }
       ir_annot_remove(doc, static_cast<uint32_t>(ann - doc->annotations));
       return status_none();
+    case Command::FORM_SET: {
+      IrFormField* field = ir_form_field_find(doc, cmd.form_field_name);
+      if (!field) {
+        return status_err(PC_ERR_STATE, "form field not found during undo/redo");
+      }
+      // For undo: restore old value; for redo: apply new value
+      if (undo_not_redo) {
+        std::strncpy(field->value, cmd.form_old_value, sizeof(field->value) - 1);
+        field->value[sizeof(field->value) - 1] = '\0';
+      } else {
+        std::strncpy(field->value, cmd.form_new_value, sizeof(field->value) - 1);
+        field->value[sizeof(field->value) - 1] = '\0';
+      }
+      return status_none();
+    }
+    case Command::FORM_FLATTEN: {
+      // The command's snapshot is private; the doc never shares a pointer with a live
+      // Command, because the undo/redo stacks copy Commands around by value. Undo
+      // builds the doc a fresh array from the snapshot; redo frees the doc's array.
+      // Both directions stay alias-free under any copy pattern (story 7.4).
+      if (undo_not_redo) {
+        if (doc->form_fields) {
+          return status_err(PC_ERR_STATE, "undo violated IR invariant");
+        }
+        if (cmd.flat_count) {
+          doc->form_fields =
+              static_cast<IrFormField*>(std::malloc(cmd.flat_count * sizeof(IrFormField)));
+          if (!doc->form_fields) {
+            return status_err(PC_ERR_MEMORY, "OOM restoring flattened fields");
+          }
+          for (uint32_t i = 0; i < cmd.flat_count; ++i) {
+            doc->form_fields[i] = cmd.flat_fields[i];
+          }
+        }
+        doc->form_field_count = cmd.flat_count;
+        doc->form_field_cap = cmd.flat_count;
+        return status_none();
+      }
+      std::free(doc->form_fields);
+      doc->form_fields = nullptr;
+      doc->form_field_count = 0;
+      doc->form_field_cap = 0;
+      return status_none();
+    }
     default:
       return status_err(PC_ERR_STATE, "undo violated IR invariant");
   }
@@ -215,7 +329,11 @@ pc_status pc_txn_apply(pc_txn* txn, const pc_command* cmd) {
   if (!txn || !cmd) {
     return status_err(PC_ERR_ARGUMENT, "null argument");
   }
-  if (pc_sidecar_validate_annotation_id(cmd->annotation_id).code != PC_ERR_NONE) {
+  // The base32 annotation id is only meaningful for annotation commands; PC_CMD_FORM_SET
+  // identifies its target by form_field_name instead (story 7.2), and PC_CMD_FORM_FLATTEN
+  // targets the whole form (story 7.4).
+  if (cmd->type != PC_CMD_FORM_SET && cmd->type != PC_CMD_FORM_FLATTEN &&
+      pc_sidecar_validate_annotation_id(cmd->annotation_id).code != PC_ERR_NONE) {
     return status_err(PC_ERR_ARGUMENT, "invalid annotation id");
   }
 
@@ -305,6 +423,17 @@ pc_status pc_doc_hash(const pc_doc* doc, char out_hex[65]) {
                      sizeof(pc_rect));
   }
 
+  // Form field state (story 7.2): a fill changes the hash, an undo restores it. Strings are
+  // hashed by content length, never by the fixed IR buffers - padding bytes are not stable.
+  uint32_t form_field_count = doc->form_field_count;
+  pc_sha256_update(&ctx, reinterpret_cast<const uint8_t*>(&form_field_count),
+                   sizeof(form_field_count));
+  for (uint32_t i = 0; i < form_field_count; ++i) {
+    const IrFormField* f = &doc->form_fields[i];
+    pc_sha256_update(&ctx, reinterpret_cast<const uint8_t*>(f->name), std::strlen(f->name) + 1);
+    pc_sha256_update(&ctx, reinterpret_cast<const uint8_t*>(f->value), std::strlen(f->value) + 1);
+  }
+
   unsigned char digest[32];
   pc_sha256_final(&ctx, digest);
   for (int i = 0; i < 32; ++i) {
@@ -316,7 +445,9 @@ pc_status pc_doc_hash(const pc_doc* doc, char out_hex[65]) {
 
 static bool is_known_cmd_key(const char* key) {
   return std::strcmp(key, "after") == 0 || std::strcmp(key, "annotation_id") == 0 ||
-         std::strcmp(key, "before") == 0 || std::strcmp(key, "type") == 0;
+         std::strcmp(key, "before") == 0 || std::strcmp(key, "type") == 0 ||
+         std::strcmp(key, "field_name") == 0 || std::strcmp(key, "old_value") == 0 ||
+         std::strcmp(key, "new_value") == 0 || std::strcmp(key, "flattened_fields") == 0;
 }
 
 static bool is_known_root_key(const char* key) {
@@ -362,10 +493,47 @@ static pc_json_value* rect_to_json(const pc_rect& r) {
   return pc_json_object(pairs);
 }
 
+// Story 7.4: the FORM_FLATTEN snapshot rides in the command JSON so a replayed log
+// can undo the flatten. Pure value types on both sides (R-M4).
+static pc_json_value* field_to_json(const IrFormField& f) {
+  pc_json_pair rect_pairs[] = {
+      {"x0", pc_json_double(f.rect.x0)},
+      {"x1", pc_json_double(f.rect.x1)},
+      {"y0", pc_json_double(f.rect.y0)},
+      {"y1", pc_json_double(f.rect.y1)},
+      {nullptr, nullptr},
+  };
+  pc_json_pair pairs[] = {
+      {"default_value", pc_json_string(f.default_value)},
+      {"flags", pc_json_int(static_cast<int64_t>(f.flags))},
+      {"format", pc_json_string(f.format)},
+      {"max_len", pc_json_int(static_cast<int64_t>(f.max_len))},
+      {"name", pc_json_string(f.name)},
+      {"page_index", pc_json_int(static_cast<int64_t>(f.page_index))},
+      {"rect", pc_json_object(rect_pairs)},
+      {"type", pc_json_int(static_cast<int64_t>(f.type))},
+      {"value", pc_json_string(f.value)},
+      {nullptr, nullptr},
+  };
+  return pc_json_object(pairs);
+}
+
+static pc_json_value* fields_to_json(const IrFormField* fields, uint32_t count) {
+  std::vector<pc_json_value*> arr;
+  arr.reserve(count + 1);
+  for (uint32_t i = 0; i < count; ++i) {
+    arr.push_back(field_to_json(fields[i]));
+  }
+  arr.push_back(nullptr);
+  return pc_json_array(arr.data());
+}
+
 static pc_json_value* command_to_json(const Command& c) {
-  const char* type_str = (c.type == Command::ADD_ANNOT) ? "ADD_ANNOT"
-                         : (c.type == Command::MOVE)    ? "MOVE"
-                                                        : "DELETE";
+  const char* type_str = (c.type == Command::ADD_ANNOT)  ? "ADD_ANNOT"
+                         : (c.type == Command::MOVE)     ? "MOVE"
+                         : (c.type == Command::DELETE)   ? "DELETE"
+                         : (c.type == Command::FORM_SET) ? "FORM_SET"
+                                                         : "FORM_FLATTEN";
   pc_json_pair pairs[] = {
       {"after", rect_to_json(c.after)},
       {"annotation_id", pc_json_string(c.id)},
@@ -374,6 +542,16 @@ static pc_json_value* command_to_json(const Command& c) {
       {nullptr, nullptr},
   };
   pc_json_value* obj = pc_json_object(pairs);
+  if (c.type == Command::FORM_SET) {
+    // The form payload is emitted on the FORM_SET command itself so a sidecar log
+    // round-trips fill/undo without relying on the extras mechanism (story 7.2).
+    pc_json_object_put(obj, "field_name", pc_json_string(c.form_field_name));
+    pc_json_object_put(obj, "old_value", pc_json_string(c.form_old_value));
+    pc_json_object_put(obj, "new_value", pc_json_string(c.form_new_value));
+  }
+  if (c.type == Command::FORM_FLATTEN) {
+    pc_json_object_put(obj, "flattened_fields", fields_to_json(c.flat_fields, c.flat_count));
+  }
   merge_extras(obj, c.extras);
   return obj;
 }
@@ -452,6 +630,10 @@ static pc_status command_from_json(const pc_json_value* obj, Command& c) {
     c.type = Command::MOVE;
   } else if (std::strcmp(type_str, "DELETE") == 0) {
     c.type = Command::DELETE;
+  } else if (std::strcmp(type_str, "FORM_SET") == 0) {
+    c.type = Command::FORM_SET;
+  } else if (std::strcmp(type_str, "FORM_FLATTEN") == 0) {
+    c.type = Command::FORM_FLATTEN;
   } else {
     return status_err(PC_ERR_ARGUMENT, "unknown command type");
   }
@@ -463,6 +645,62 @@ static pc_status command_from_json(const pc_json_value* obj, Command& c) {
   c.id[sizeof(c.id) - 1] = '\0';
   c.before = rect_from_json(pc_json_object_get(obj, "before"));
   c.after = rect_from_json(pc_json_object_get(obj, "after"));
+  if (c.type == Command::FORM_SET) {
+    const char* field_name = pc_json_as_string(pc_json_object_get(obj, "field_name"));
+    const char* old_value = pc_json_as_string(pc_json_object_get(obj, "old_value"));
+    const char* new_value = pc_json_as_string(pc_json_object_get(obj, "new_value"));
+    if (!field_name || !old_value || !new_value) {
+      return status_err(PC_ERR_ARGUMENT, "malformed FORM_SET JSON");
+    }
+    std::strncpy(c.form_field_name, field_name, sizeof(c.form_field_name) - 1);
+    c.form_field_name[sizeof(c.form_field_name) - 1] = '\0';
+    std::strncpy(c.form_old_value, old_value, sizeof(c.form_old_value) - 1);
+    c.form_old_value[sizeof(c.form_old_value) - 1] = '\0';
+    std::strncpy(c.form_new_value, new_value, sizeof(c.form_new_value) - 1);
+    c.form_new_value[sizeof(c.form_new_value) - 1] = '\0';
+  }
+  if (c.type == Command::FORM_FLATTEN) {
+    const pc_json_value* arr = pc_json_object_get(obj, "flattened_fields");
+    if (!arr || pc_json_get_type(arr) != PC_JSON_ARRAY) {
+      return status_err(PC_ERR_ARGUMENT, "malformed FORM_FLATTEN JSON");
+    }
+    size_t n = pc_json_array_size(arr);
+    if (n) {
+      c.flat_fields = static_cast<IrFormField*>(std::malloc(n * sizeof(IrFormField)));
+      if (!c.flat_fields) {
+        return status_err(PC_ERR_MEMORY, "OOM parsing flattened fields");
+      }
+      for (size_t i = 0; i < n; ++i) {
+        const pc_json_value* fo = pc_json_array_at(arr, i);
+        if (!fo || pc_json_get_type(fo) != PC_JSON_OBJECT) {
+          return status_err(PC_ERR_ARGUMENT, "malformed FORM_FLATTEN JSON");
+        }
+        IrFormField& f = c.flat_fields[i];
+        const char* s = pc_json_as_string(pc_json_object_get(fo, "name"));
+        if (s) {
+          std::strncpy(f.name, s, sizeof(f.name) - 1);
+        }
+        s = pc_json_as_string(pc_json_object_get(fo, "value"));
+        if (s) {
+          std::strncpy(f.value, s, sizeof(f.value) - 1);
+        }
+        s = pc_json_as_string(pc_json_object_get(fo, "default_value"));
+        if (s) {
+          std::strncpy(f.default_value, s, sizeof(f.default_value) - 1);
+        }
+        s = pc_json_as_string(pc_json_object_get(fo, "format"));
+        if (s) {
+          std::strncpy(f.format, s, sizeof(f.format) - 1);
+        }
+        f.type = static_cast<uint32_t>(pc_json_as_int(pc_json_object_get(fo, "type")));
+        f.max_len = static_cast<uint32_t>(pc_json_as_int(pc_json_object_get(fo, "max_len")));
+        f.flags = static_cast<uint32_t>(pc_json_as_int(pc_json_object_get(fo, "flags")));
+        f.page_index = static_cast<uint32_t>(pc_json_as_int(pc_json_object_get(fo, "page_index")));
+        f.rect = rect_from_json(pc_json_object_get(fo, "rect"));
+      }
+    }
+    c.flat_count = static_cast<uint32_t>(n);
+  }
   c.extras = extras_from_object(obj, is_known_cmd_key);
   return status_none();
 }
@@ -481,9 +719,18 @@ static pc_status apply_undo_commands(pc_txn* txn, const pc_json_value* arr) {
     if (s.code != PC_ERR_NONE) {
       return s;
     }
-    pc_command pc_cmd = {sizeof(pc_command), static_cast<pc_command_type>(c.type), "", c.before,
-                         c.after};
+    pc_command pc_cmd = {
+        sizeof(pc_command), static_cast<pc_command_type>(c.type), "", c.before, c.after, "", ""};
     std::strncpy(pc_cmd.annotation_id, c.id, sizeof(pc_cmd.annotation_id) - 1);
+    pc_cmd.annotation_id[sizeof(pc_cmd.annotation_id) - 1] = '\0';
+    if (c.type == Command::FORM_SET) {
+      // The form payload rides on the command itself; without this copy the replayed
+      // apply would look up an empty field name and fail (story 7.2).
+      std::strncpy(pc_cmd.form_field_name, c.form_field_name, sizeof(pc_cmd.form_field_name) - 1);
+      pc_cmd.form_field_name[sizeof(pc_cmd.form_field_name) - 1] = '\0';
+      std::strncpy(pc_cmd.form_new_value, c.form_new_value, sizeof(pc_cmd.form_new_value) - 1);
+      pc_cmd.form_new_value[sizeof(pc_cmd.form_new_value) - 1] = '\0';
+    }
     s = pc_txn_apply(txn, &pc_cmd);
     if (s.code != PC_ERR_NONE) {
       return s;
@@ -492,6 +739,25 @@ static pc_status apply_undo_commands(pc_txn* txn, const pc_json_value* arr) {
     if (c.extras && !txn->undo.empty()) {
       pc_json_free(txn->undo.back().extras);
       txn->undo.back().extras = pc_json_clone(c.extras);
+    }
+    // The FORM_FLATTEN snapshot must also ride back onto the applied command: apply
+    // stole the doc's CURRENT fields (possibly a different set than the log recorded),
+    // while undo of the replayed log promises the snapshot's fields (story 7.4).
+    if (c.type == Command::FORM_FLATTEN && !txn->undo.empty()) {
+      std::free(txn->undo.back().flat_fields);
+      txn->undo.back().flat_fields = nullptr;
+      txn->undo.back().flat_count = c.flat_count;
+      if (c.flat_count) {
+        txn->undo.back().flat_fields =
+            static_cast<IrFormField*>(std::malloc(c.flat_count * sizeof(IrFormField)));
+        if (txn->undo.back().flat_fields) {
+          for (uint32_t i = 0; i < c.flat_count; ++i) {
+            txn->undo.back().flat_fields[i] = c.flat_fields[i];
+          }
+        } else {
+          txn->undo.back().flat_count = 0;
+        }
+      }
     }
   }
   return status_none();

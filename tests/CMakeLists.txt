@@ -363,4 +363,56 @@ if (TYNYPDF_BUILD_TESTS)
     pc_apply_warnings(test_annot_reanchor)
     add_test(NAME test_annot_reanchor COMMAND test_annot_reanchor)
 
+    # forms test (stories 7.1 R46.x + 7.2 R48.x) - enumeration via dict walk, IR load, FDF.
+    # Links BOTH backends: mupdf enumerates the real fixture; the null backend is the R-M5
+    # contract twin (pdfcore's interface already pulls the null backend for doc.cc).
+    add_executable(test_forms unit/test_forms.cc)
+    target_link_libraries(test_forms pdfcore tynypdf-forms
+        ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}mupdf ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}null)
+    target_include_directories(test_forms PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    target_compile_definitions(test_forms PRIVATE TEST_FIXTURE_DIR="${CMAKE_SOURCE_DIR}/tests/fixtures")
+    pc_apply_warnings(test_forms)
+    add_test(NAME test_forms COMMAND test_forms)
+
+    # fill/undo test (story 7.2 R48.x) - core semantics on a synthetic IR, null backend only
+    add_executable(test_forms_fill unit/test_forms_fill.cc)
+    target_link_libraries(test_forms_fill pdfcore tynypdf-forms)
+    target_include_directories(test_forms_fill PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_forms_fill)
+    add_test(NAME test_forms_fill COMMAND test_forms_fill)
+
+    # focus-model test (story 7.3 R50.x) - core keyboard semantics on a synthetic IR
+    add_executable(test_forms_focus unit/test_forms_focus.cc)
+    target_link_libraries(test_forms_focus pdfcore tynypdf-forms)
+    target_include_directories(test_forms_focus PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    pc_apply_warnings(test_forms_focus)
+    add_test(NAME test_forms_focus COMMAND test_forms_focus)
+
+    # viewer keyboard test (story 7.3 R51.x/R52.x) - Tab/Space/WM_CHAR through the real
+    # viewer TU against the real fixture (mupdf); the same code path Windows drives
+    if (TARGET ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}mupdf)
+        add_executable(test_forms_keyboard unit/test_forms_keyboard.cc
+            ${CMAKE_SOURCE_DIR}/src/app/viewer/viewer.cc
+            ${CMAKE_SOURCE_DIR}/src/os/win32/uia/uia_state.cc)
+        target_link_libraries(test_forms_keyboard pdfcore tynypdf-forms tynypdf-tiles
+            tynypdf-cachemap tynypdf-selection ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}mupdf)
+        target_include_directories(test_forms_keyboard PRIVATE ${CMAKE_SOURCE_DIR}/include
+            ${CMAKE_SOURCE_DIR}/src/app)
+        target_compile_definitions(test_forms_keyboard PRIVATE
+            TEST_FIXTURE_DIR="${CMAKE_SOURCE_DIR}/tests/fixtures")
+        pc_apply_warnings(test_forms_keyboard)
+        add_test(NAME test_forms_keyboard COMMAND test_forms_keyboard)
+
+        # flatten test (story 7.4 R53.x) - pdf_bake through the vtable, IR command +
+        # undo, and the pixel-identity claim (widgets before == baked content after)
+        add_executable(test_forms_flatten unit/test_forms_flatten.cc)
+        target_link_libraries(test_forms_flatten pdfcore tynypdf-forms
+            ${TYNYPDF_LIBRARY_BACKEND_DLL_PREFIX}mupdf)
+        target_include_directories(test_forms_flatten PRIVATE ${CMAKE_SOURCE_DIR}/include)
+        target_compile_definitions(test_forms_flatten PRIVATE
+            TEST_FIXTURE_DIR="${CMAKE_SOURCE_DIR}/tests/fixtures")
+        pc_apply_warnings(test_forms_flatten)
+        add_test(NAME test_forms_flatten COMMAND test_forms_flatten)
+    endif()
+
 endif()

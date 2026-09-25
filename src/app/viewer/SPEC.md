@@ -16,6 +16,14 @@ Verification: unit:tests/unit/test_viewer_loop.cc
 
 Verification: script:tools/bench-measure.sh
 
+### R51.1 The viewer SHALL own the forms IR and transaction log and wire the keyboard to the core focus model (R50.x): Tab commits the buffer and moves focus (Shift+Tab moves back), WM_CHAR typing fills the buffer, Space toggles a checkbox, Escape discards the buffer - all headless-testable on Linux through the same TU Windows drives.
+
+Verification: unit:tests/unit/test_forms_keyboard.cc
+
+### R51.2 The viewer SHALL expose `viewer_forms_announcement` returning the focused field's exact announcement (R50.3) as UTF-16, answering PC_ERR_STATE when no field is focused so the caller keeps the page announcement (R24.7).
+
+Verification: unit:tests/unit/test_forms_keyboard.cc
+
 ## Out of scope
 
 - Page content beyond the tile loop: text selection, annotations, zoom/pan gestures

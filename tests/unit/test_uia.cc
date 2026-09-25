@@ -7,7 +7,7 @@
 #include "pdfcore/status.h"
 #include "pdfcore/uia.h"
 
-// R24.7 (story 5.5): the a11y document state (page, zoom) and the announced
+// R24.7 R52.2 (stories 5.5/7.3): the a11y document state (page, zoom) and the announced
 // string it formats are engine-free and Windows-free, so the whole claim is
 // tested on Linux with no Windows header and no backend linked: the header must
 // leak neither (ADR-0011 R-M10), and the pure state module
@@ -106,6 +106,30 @@ static int run() {
     fprintf(stderr, "FAIL: truncated announcement reported success\n");
     errors++;
   }
+
+  // R52.2 (story 7.3): a forms-focus announcement replaces the page announcement while
+  // set, and an empty reset reverts to "Page N of M, zoom Z%". The exact strings are the
+  // ones docs/a11y/forms.md scripts and tests/unit/test_forms_focus.cc pin.
+  pc_uia_state* fstate = nullptr;
+  st = pc_uia_state_create(&fstate);
+  if (st.code != PC_ERR_NONE || !fstate) {
+    fprintf(stderr, "FAIL: focus-state create\n");
+    return 1;
+  }
+  pc_uia_state_set_forms_focus(fstate, L"Name, edit, value Foo");
+  st = pc_uia_state_announcement(fstate, buf, PC_UIA_ANNOUNCE_MAX);
+  if (st.code != PC_ERR_NONE || wcscmp(buf, L"Name, edit, value Foo") != 0) {
+    fprintf(stderr, "FAIL: forms focus announcement [%ls]\n", buf);
+    errors++;
+  }
+  // The page state is untouched underneath: reverting restores the last update.
+  pc_uia_state_set_forms_focus(fstate, L"");
+  st = pc_uia_state_announcement(fstate, buf, PC_UIA_ANNOUNCE_MAX);
+  if (st.code != PC_ERR_NONE || wcscmp(buf, L"Page 1 of 1, zoom 100%") != 0) {
+    fprintf(stderr, "FAIL: focus reset reverts to page state [%ls]\n", buf);
+    errors++;
+  }
+  pc_uia_state_destroy(fstate);
 
   if (errors) {
     fprintf(stderr, "uia_state: FAIL (%d)\n", errors);

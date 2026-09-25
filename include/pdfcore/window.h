@@ -5,6 +5,8 @@
 #pragma once
 
 #include <pdfcore/status.h>
+#include <pdfcore/uia.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,6 +41,11 @@ typedef struct pc_window_callbacks {
   typedef void (*pc_window_key_callback)(int down, int vk, int modifiers, void* user_data);
   pc_window_click_callback click;
   pc_window_key_callback key;
+  // ABI 1.4 (story 7.3): text-input callback from WM_CHAR. codepoint is one Unicode
+  // scalar value (a WM_CHAR UTF-16 code unit, or the combined surrogate pair when the
+  // window procedure assembles one). Used for form text entry (R51.1).
+  typedef void (*pc_window_char_callback)(uint32_t codepoint, void* user_data);
+  pc_window_char_callback char_input;
 } pc_window_callbacks;
 
 // Window creation parameters.
@@ -67,6 +74,11 @@ float pc_window_get_dpi_scale(pc_window* window);
 
 // Get current client size in pixels.
 void pc_window_get_size(pc_window* window, int* out_width, int* out_height);
+
+// ABI 1.4 (story 7.3): the a11y document state the UIA provider announces (R24.7).
+// The composition root pushes forms-focus announcements into it after each key
+// (R51.2/R52.2). Read-only borrow: the window retains ownership.
+pc_uia_state* pc_window_uia_state(pc_window* window);
 
 // Destroy the window and all associated resources.
 void pc_window_destroy(pc_window* window);
