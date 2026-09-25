@@ -2,7 +2,7 @@
 
 Status: story 7.1 shipped the field model + FDF export (R46.x) with enumeration via the
 AcroForm dict walk; story 7.2 added fill + validate + undo through the transaction log
-(R48.x). FDF import stays deferred (7.1 partial issue): writing /V back into the AcroForm
+(R48.x). FDF import stays deferred (7.1 partial issue, #73): writing /V back into the AcroForm
 tree needs an incremental-save story first.
 
 ## Requirements
@@ -49,7 +49,7 @@ Verification: unit:tests/unit/test_forms_focus.cc
 
 ## Out of scope
 
-- FDF import (deferred, 7.1 partial issue: needs incremental save)
+- FDF import (deferred, #73: needs incremental save)
 - Radio and Combo field types (7.3+; the dict walk maps Ch to the COMBO type constant but
   fill validation only models Text and Checkbox)
 - Hierarchical field names (parent.child joining arrives with radio groups)

@@ -109,9 +109,10 @@ $ cat src/features/forms/SPEC.md | head -n 20
 ```
 
 - [ ] FDF diff 0 (export→import→export diff 0)
-- [ ] **Deferred: FDF import** — `pc_form_fdf_import` → `PC_ERR_UNSUPPORTED` (Issue #xx)
-- [ ] **Deferred: fz_widget enum** — `mupdf_form_list_fields` → `PC_ERR_CAPABILITY` (Issue #xx)
-- [ ] **Pre-existing: test_text_fallback SEGV** — tracked in Issue #xx, not blocker for 7.1
+- [ ] **Deferred: FDF import** — `pc_form_fdf_import` → `PC_ERR_UNSUPPORTED` (#73, open)
+- [x] **fz_widget enum** — closed in 7.2 by the AcroForm dict walk
+      (`mupdf_form_list_fields` enumerates the real fixture); the line stays for history
+- [ ] **Pre-existing: test_text_fallback SEGV** — tracked in #74 (open), not a forms failure
 
 ### 7.2 Fill + validate + undo
 

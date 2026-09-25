@@ -2,7 +2,7 @@
 
 Status: story 7.1 shipped FDF export + honest capability answers (R47.x); story 7.2 wired
 the CLI fill/list through the core transaction log (R49.x). FDF import stays deferred
-(7.1 partial issue).
+(7.1 partial issue, #73).
 
 ## Requirements
 
@@ -24,7 +24,7 @@ Verification: unit:tests/unit/test_forms_fill.cc
 
 ## Out of scope
 
-- FDF import (deferred, 7.1 partial issue)
+- FDF import (deferred, #73)
 - Radio and Combo field types (7.3+)
 - Tab/focus/keyboard wiring in the viewer (story 7.3)
 - Flatten (story 7.4)

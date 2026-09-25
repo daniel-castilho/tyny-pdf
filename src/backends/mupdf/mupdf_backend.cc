@@ -703,7 +703,7 @@ static pc_status mupdf_fdf_import(const pc_backend_api* api, void* backend_doc,
   (void)backend_doc;
   (void)fdf_data;
   (void)fdf_size;
-  // Deferred, tracked in the 7.1 partial issue: writing /V back into the AcroForm tree
+  // Deferred, tracked in #73 (7.1 partial): writing /V back into the AcroForm tree
   // needs an incremental-save story first. Reports UNSUPPORTED, never a silent no-op.
   return {sizeof(pc_status), PC_ERR_UNSUPPORTED, 0, "FDF import not implemented"};
 }
