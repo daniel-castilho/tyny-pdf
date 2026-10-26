@@ -20,4 +20,4 @@ Each advisory entry has:
 
 *None at this time.*
 
-*Last scan: 2026-09-23T21:59:03Z.*
+*Last scan: 2026-10-26T08:17:28Z.*
